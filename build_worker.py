@@ -20,6 +20,7 @@ ASSETS = {
     '/prism-garden.html': ('prism-garden.html','text/html; charset=utf-8'),
     '/src/prism-garden/content.mjs': ('src/prism-garden/content.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/engine.mjs': ('src/prism-garden/engine.mjs','text/javascript; charset=utf-8'),
+    '/src/prism-garden/board-guide.mjs': ('src/prism-garden/board-guide.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/achievements.mjs': ('src/prism-garden/achievements.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/restoration-scene.mjs': ('src/prism-garden/restoration-scene.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/app.mjs': ('src/prism-garden/app.mjs','text/javascript; charset=utf-8'),
