@@ -50,3 +50,13 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
 .pg-socket.hint-destination,.pg-shelf-slot.hint-destination{outline:3px solid #e8c68d;outline-offset:2px;box-shadow:0 0 0 4px #102e29,0 0 20px #e8c68d99;animation:pg-hint-breathe 900ms ease-in-out 2}
 @keyframes pg-hint-breathe{50%{filter:brightness(1.3)}}
 #prism-app[data-motion="off"] .hint-destination{animation:none}
+
+/* Non-destructive run-change confirmation; the original arcade and local save remain untouched. */
+.pg-confirm-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;overflow-y:auto;background:#061713dd;padding:max(20px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+.pg-confirm{width:min(100%,440px);padding:clamp(20px,5vw,30px);border:1px solid #9cbd9c66;border-radius:22px;background:linear-gradient(155deg,#285043,#102e29 80%);box-shadow:0 24px 90px #000a}
+.pg-confirm h2{font-size:clamp(25px,5vw,31px);margin:12px 0}
+.pg-confirm p{font-size:14px;line-height:1.55;color:#d1e0d5;margin-bottom:24px}
+.pg-confirm-actions{display:flex;gap:10px;flex-wrap:wrap}
+.pg-confirm-actions button{min-height:48px;flex:1;min-width:145px;border-radius:12px;padding:10px 16px;border:1px solid #8aa899;background:#224b3d;font-weight:600}
+.pg-confirm-actions .pg-confirm-replace{border-color:#e8c68d;background:#e8c68d;color:#132b24}
+@media(max-width:530px){.pg-confirm-actions{flex-direction:column}.pg-confirm-actions button{width:100%}}

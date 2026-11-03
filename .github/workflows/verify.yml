@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - run: node --test tests/prism-garden.test.mjs tests/logic.test.mjs tests/access-jwt.test.mjs tests/save-boundary.test.mjs tests/d1-save-adapter.test.mjs tests/brandle-link.test.mjs tests/legacy-read-contract.test.mjs tests/access-roles.test.mjs tests/legacy-d1-writer.test.mjs
       - run: node --check src/prism-garden/app.mjs && node --check src/prism-garden/engine.mjs && node --check src/prism-garden/achievements.mjs && node --check src/prism-garden/save-guard.mjs && node --check src/prism-garden/backup.mjs && node --check src/prism-garden/backup-ui.mjs
-      - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs
+      - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs tests/prism-run-safety.test.mjs
       - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - run: python3 build_worker.py
       - run: python3 -m py_compile build_worker.py

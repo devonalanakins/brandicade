@@ -3,7 +3,7 @@ import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hi
 import {ACHIEVEMENTS,loadProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
 const app=document.querySelector('#prism-app');
 const progress=loadProgress();
-let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null;
+let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null;
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gem=(color,small=false)=>'<span class="crystal '+(small?'small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
 const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
@@ -28,8 +28,24 @@ function commit() {
 function nav(target) {screen=target;selected=null;hintTarget=null;newAwards=[];message='';render();}
 function reset(level,mode='sanctuary') {
  const id='pg-'+level.id+'-'+String(Date.now());
- run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;newAwards=[];message='';
+ run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;pendingChange=null;newAwards=[];message='';
  progress.active=run;commit();screen='game';render();
+}
+function requestRunChange(level,mode='sanctuary',kind='switch') {
+ const active=progress.active;
+ if(active&&!active.finished&&(active.moves>0||active.hints>0||active.undos>0)){
+  pendingChange={levelId:level.id,mode,kind};
+  render();
+  return;
+ }
+ reset(level,mode);
+}
+function cancelRunChange(){
+ pendingChange=null;
+ if(screen==='game'){
+  render();
+  app.querySelector?.('[data-action="restart"]')?.focus?.();
+ }else resume();
 }
 function resume() {
  const saved=progress.active,level=saved&&levelById(saved.levelId);
@@ -102,23 +118,50 @@ function showWin(){
  (newAwards.length?'<h2>New treasures</h2><div class="pg-win-awards">'+newAwards.map(a=>badge(a,true)).join('')+'</div>':'<p>Your gallery has grown a little brighter.</p>')+
  '<div class="pg-main-actions"><button class="pg-primary" data-action="next">Next puzzle →</button><button data-action="replay-mastery">Replay in Mastery</button><button data-nav="gallery">View gallery</button><button data-nav="achievements">Achievements</button></div></div>';
 }
+function showConfirmation(){
+ if(!pendingChange)return '';
+ const current=levelById(progress.active?.levelId),next=levelById(pendingChange.levelId);
+ if(!current||!next)return '';
+ const restarting=pendingChange.kind==='restart';
+ return '<div class="pg-confirm-backdrop"><section class="pg-confirm" role="alertdialog" aria-modal="true" aria-labelledby="pg-confirm-title" aria-describedby="pg-confirm-description">'+
+  '<div class="pg-eyebrow">KEEP YOUR PROGRESS SAFE</div>'+
+  '<h2 id="pg-confirm-title">'+(restarting?'Restart this mosaic?':'Start a different mosaic?')+'</h2>'+
+  '<p id="pg-confirm-description">'+(restarting?'The moves in this unfinished puzzle will be reset.':'Your unfinished '+escape(current.name)+' puzzle will be replaced by '+escape(next.name)+'.')+' Completed mosaics and achievements will stay saved.</p>'+
+  '<div class="pg-confirm-actions"><button type="button" data-action="cancel-run-change">Keep playing</button>'+
+  '<button type="button" class="pg-confirm-replace" data-action="accept-run-change">'+(restarting?'Restart puzzle':'Start new puzzle')+'</button></div>'+
+  '</section></div>';
+}
 function render(){
  const motion=progress.settings.motion;
  app.dataset.motion=motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches?'off':motion;
  app.dataset.night=progress.settings.night?'yes':'no';
- app.innerHTML='<div class="pg-shell"><header class="pg-header"><a href="/#home" class="pg-back">← Brandicade</a><button data-nav="home" class="pg-brand"><span class="pg-brand-mark">✧</span><span>PRISM <b>GARDEN</b></span></button><button data-nav="achievements" class="pg-header-awards" aria-label="Open achievements">✦ <b>'+Object.keys(progress.awards).length+'</b></button></header><main>'+({home:showHome,atlas:showAtlas,game:showGame,gallery:showGallery,achievements:showAchievements,settings:showSettings,win:showWin}[screen]||showHome)()+'</main><footer>MADE FOR BRANDI · NO ADS · NO CLOCKS · ALL YOURS</footer></div>';
+ app.innerHTML='<div class="pg-shell"><header class="pg-header"><a href="/#home" class="pg-back">← Brandicade</a><button data-nav="home" class="pg-brand"><span class="pg-brand-mark">✧</span><span>PRISM <b>GARDEN</b></span></button><button data-nav="achievements" class="pg-header-awards" aria-label="Open achievements">✦ <b>'+Object.keys(progress.awards).length+'</b></button></header><main>'+({home:showHome,atlas:showAtlas,game:showGame,gallery:showGallery,achievements:showAchievements,settings:showSettings,win:showWin}[screen]||showHome)()+'</main><footer>MADE FOR BRANDI · NO ADS · NO CLOCKS · ALL YOURS</footer></div>'+showConfirmation();
+ if(pendingChange){
+  const shell=app.querySelector?.('.pg-shell');if(shell)shell.inert=true;
+  app.querySelector?.('[data-action="cancel-run-change"]')?.focus?.();
+ }
 }
 app.addEventListener('click',(event)=>{
  const button=event.target.closest('button');if(!button||button.disabled)return;
+ if(pendingChange){
+  if(button.dataset.action==='cancel-run-change')cancelRunChange();
+  else if(button.dataset.action==='accept-run-change'){
+   const confirmed=pendingChange;
+   const level=levelById(confirmed.levelId);
+   pendingChange=null;
+   if(level)reset(level,confirmed.mode);else render();
+  }
+  return;
+ }
  if(button.dataset.nav){nav(button.dataset.nav);return;}
  if(button.dataset.modeChoice){desiredMode=button.dataset.modeChoice;render();return;}
- if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level)){if(desiredMode==='mastery'&&!progress.completed[level.id]){message='Complete this level in Sanctuary first.';desiredMode='sanctuary';render();return;}reset(level,desiredMode);}return;}
+ if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level)){if(desiredMode==='mastery'&&!progress.completed[level.id]){message='Complete this level in Sanctuary first.';desiredMode='sanctuary';render();return;}requestRunChange(level,desiredMode,'switch');}return;}
  const action=button.dataset.action;
  if(action==='continue'){resume();return;}
  if(action==='next'){const next=levelByNumber(Math.min(18,levelById(run.levelId).number+1));reset(next);return;}
  if(action==='replay-mastery'){const level=levelById(run.levelId);if(progress.completed[level.id])reset(level,'mastery');return;}
  if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;hintTarget=null;message='Last move undone.';commit();render();}return;}
- if(action==='restart'&&run){reset(levelById(run.levelId),run.mode);return;}
+ if(action==='restart'&&run){requestRunChange(levelById(run.levelId),run.mode,'restart');return;}
  if(action==='hint'&&run){
   const level=levelById(run.levelId),move=hint(level,run);
   run.hints++;progress.active=run;commit();selected=move?.source||null;hintTarget=move?.target||null;
@@ -145,6 +188,21 @@ app.addEventListener('click',(event)=>{
  if(kind!=='socket'&&selectedGem(run,target)){selected=selected&&selected.kind===kind&&selected.index===index?null:target;hintTarget=null;message='Choose a glowing destination.';}
  else message='That jewel does not fit there. Pick a highlighted place.';
  render();
+});
+// Keep keyboard focus inside the accessible confirmation; Escape never discards a run.
+app.addEventListener('keydown',(event)=>{
+ if(!pendingChange)return;
+ if(event.key==='Escape'){
+  event.preventDefault();
+  cancelRunChange();
+  return;
+ }
+ if(event.key!=='Tab')return;
+ const buttons=app.querySelectorAll?.('.pg-confirm-actions button');
+ if(!buttons?.length)return;
+ const first=buttons[0],last=buttons[buttons.length-1];
+ if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+ else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
 });
 app.addEventListener('change',(event)=>{
  const key=event.target.dataset.setting;if(!key)return;
