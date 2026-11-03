@@ -84,6 +84,31 @@ class PreviewBuildTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Missing module'):
             builder.build(self.root)
 
+    def test_external_and_dynamic_modules_fail_closed(self):
+        attacks = [
+            b"import {a} from 'https://cdn.example/evil.mjs'",
+            b"import 'https://cdn.example/side-effect.mjs'",
+            b"import {a} from 'third-party-package'",
+            b"const code=import('./content.mjs')",
+            b"import './missing-side-effect.mjs'",
+        ]
+        for attack in attacks:
+            with self.subTest(attack=attack):
+                self.write('src/prism-garden/engine.mjs', attack)
+                with self.assertRaisesRegex(ValueError, 'not allowed|Missing module'):
+                    builder.build(self.root)
+
+    def test_html_external_asset_fails_closed(self):
+        self.write('prism-garden.html',
+            b'<html><head><script src="https://cdn.example/track.js"></script></head><body><div id="prism-app"></div><script type="module" src="/src/prism-garden/backup-ui.mjs"></script></body></html>')
+        with self.assertRaisesRegex(ValueError, 'External or missing HTML asset'):
+            builder.build(self.root)
+
+    def test_css_import_fails_closed(self):
+        self.write('src/prism-garden/prism.css', b'@import url(https://evil.example/style.css);')
+        with self.assertRaisesRegex(ValueError, 'CSS imports are not allowed'):
+            builder.build(self.root)
+
     def test_wrong_entrypoint_fails_closed(self):
         self.write('prism-garden.html', b'<html>not a game</html>')
         with self.assertRaisesRegex(ValueError, 'Unexpected Prism Garden'):

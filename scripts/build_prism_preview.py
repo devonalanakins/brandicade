@@ -7,6 +7,8 @@ It deliberately reuses the repository's deterministic static Worker builder.
 import hashlib
 import importlib.util
 import json
+import posixpath
+import re
 import tempfile
 from pathlib import Path
 
@@ -96,13 +98,27 @@ def build(root=ROOT):
         "self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n.startsWith('prism-garden-preview-')&&n!==CACHE).map(n=>caches.delete(n)))));self.clients.claim()});"
         "self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==self.location.origin||!URLS.includes(u.pathname))return;e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request)))});"
     ).encode('utf-8')
-    import re
+    # Fail closed when offline modules or HTML attempt to load absent/external assets.
     for path, data in files.items():
         if path.endswith('.mjs'):
-            for specifier in re.findall(r'\bfrom\s*[\'\"](\.[^\'\"]+)[\'\"]', data.decode('utf-8')):
-                target = str((Path(path).parent / specifier).as_posix())
+            source = data.decode('utf-8')
+            if re.search(r'\bimport\s*\(', source):
+                raise ValueError(f'Dynamic imports are not allowed in the offline preview: {path}')
+            imports = re.findall(r"\bfrom\s*['\"]([^'\"]+)['\"]|\bimport\s*['\"]([^'\"]+)['\"]", source)
+            for match in imports:
+                specifier = match[0] or match[1]
+                if not specifier.startswith(('./', '../')):
+                    raise ValueError(f'External or bare module is not allowed: {specifier}')
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(path), specifier))
                 if target not in files:
                     raise ValueError(f'Missing module {specifier} from {path}')
+        if path.endswith('.css') and re.search(r'@import\b', data.decode('utf-8'), re.I):
+            raise ValueError(f'CSS imports are not allowed in offline preview: {path}')
+    for url in re.findall(r"\b(?:src|href)=['\"]([^'\"]+)['\"]", html):
+        if url.startswith(('data:', '#')):
+            continue
+        if not url.startswith('/') or url.split('?', 1)[0].split('#', 1)[0] not in files:
+            raise ValueError(f'External or missing HTML asset: {url}')
     with tempfile.TemporaryDirectory(prefix='brandicade-prism-preview-') as tmp:
         staging = Path(tmp)
         mapping = {}
@@ -118,7 +134,8 @@ def build(root=ROOT):
         builder.main()
     output = builder.OUT
     script = output.read_text('utf-8')
-    assert '/api/save' not in script and 'cf-access-jwt-assertion' not in script.lower()
+    if '/api/save' in script or 'cf-access-jwt-assertion' in script.lower():
+        raise ValueError('Unexpected production cloud-save dependency in preview')
     return {'file': str(output), 'assets': len(files), 'fingerprint': fingerprint, 'bytes': output.stat().st_size}
 
 
