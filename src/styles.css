@@ -91,3 +91,82 @@ body.color-assist .charm.fern:after,body.color-assist .charm.aqua:after,body.col
 @media(prefers-reduced-motion:reduce){body:not(.force-motion) .mist:before,body:not(.force-motion) .portal,body:not(.force-motion) .orbits,body:not(.force-motion) .profile-pattern,body:not(.force-motion) .art-gem,body:not(.force-motion) .avatar-rings:after{animation:none!important}body:not(.force-motion) #fireflies{display:none}body:not(.force-motion) *,body:not(.force-motion) *:before,body:not(.force-motion) *:after{animation-duration:0s!important;transition-duration:0s!important;scroll-behavior:auto!important}}
 
 .level-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}.level-node{border:1px solid #88bfaa65;border-radius:15px;background:#15473c;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:98px}.level-node:disabled{opacity:.4;cursor:default}.level-node b{font:500 25px Georgia,serif;color:#ffdfa5}.level-node span{font-size:10px}.level-node small{color:#f1c38f;font-size:8px;letter-spacing:.05em}.level-node:not(:disabled):hover{border-color:#f4c891;background:#1c624f}
+/* Cross-game read-only Prism Garden progression inside the Brandicade arcade. */
+.prism-arcade-progress{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 27px;margin:22px 0 28px;border-radius:23px;border:1px solid #8ac8ac63;background:radial-gradient(circle at 90% 0,#377f6050,transparent 50%),linear-gradient(135deg,#1c5143,#102e2a);box-shadow:0 14px 35px #0003}
+.prism-arcade-progress h2,.prism-achievement-section h2{font:500 clamp(24px,3.4vw,33px)/1.1 Georgia,serif;letter-spacing:-.03em;margin:11px 0}
+.prism-arcade-progress p,.prism-achievement-section p{font-size:13px;color:#e0ebd9;line-height:1.55;margin:0 0 8px}
+.prism-arcade-progress small,.prism-achievement-note{display:block;font-size:11px;line-height:1.55;color:#aac9b9}
+.prism-arcade-play{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:11px 16px;border-radius:13px;border:1px solid #cce6cb;color:#153d30;background:#cce6cb;font-weight:750;font-size:12px;text-decoration:none}
+.prism-arcade-play:focus-visible{outline:3px solid #fff2c0;outline-offset:3px}
+.prism-achievement-section{margin:37px 0 16px;padding:24px 0;border-top:1px solid #7ac7a45b}
+.prism-achievement-head{display:flex;gap:18px;align-items:center;justify-content:space-between;margin-bottom:20px}
+.prism-trophy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}
+.prism-trophy{display:flex;flex-direction:column;gap:8px;justify-content:space-between;padding:18px 16px;min-height:91px;border:1px solid #78b99a70;border-radius:15px;background:linear-gradient(150deg,#244c3d,#132b26)}
+.prism-trophy.locked{border-color:#78958650;opacity:.72;background:#1b302b}
+.prism-trophy strong{font:500 17px/1.2 Georgia,serif}
+.prism-trophy-status{font-size:9px;font-weight:800;letter-spacing:.14em;color:#c3dfbd}
+.prism-trophy.locked .prism-trophy-status{color:#afc4b5}
+.prism-progress-unreadable{grid-column:1/-1;padding:17px;border:1px solid #d9c085a3;border-radius:14px;color:#efdcba;line-height:1.5}
+@media(max-width:650px){.prism-arcade-progress,.prism-achievement-head{align-items:stretch;flex-direction:column;gap:15px}.prism-arcade-progress{padding:19px}.prism-trophy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.prism-trophy{padding:13px;min-height:82px}.prism-trophy strong{font-size:15px}.prism-arcade-play{align-self:stretch}}
+@media(max-width:360px){.prism-trophy-grid{grid-template-columns:1fr}}
+
+/* PRISM BLOOM — Living Atrium: progress-aware ornamentation, not a save writer. */
+.atrium-bloom{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:24px;row-gap:11px;padding:24px 28px;margin:6px 0 28px;border:1px solid #99c9ac60;border-radius:25px;background:radial-gradient(ellipse at 86% 28%,#9de9c015,transparent 37%),radial-gradient(ellipse at 12% 90%,#d49c7910,transparent 60%),linear-gradient(125deg,#173c34,#0e2928);box-shadow:0 18px 48px #0517124a,inset 0 1px #ffffff16}
+.atrium-bloom:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 30%,#f0d5a40b 52%,transparent 80%)}
+.atrium-bloom-copy{position:relative;z-index:1;grid-row:span 2}
+.atrium-bloom-eyebrow{display:block;color:#e2c699;font-size:9px;font-weight:850;letter-spacing:.17em}
+.atrium-bloom h2{color:#fff3df;font:500 clamp(23px,2.5vw,31px)/1.13 Georgia,serif;letter-spacing:-.03em;margin:9px 0}
+.atrium-bloom p{color:#b9d9c7;font-size:12px;line-height:1.55;max-width:520px;margin:0}
+.atrium-bloom-worlds{display:flex;align-items:center;justify-content:center;gap:12px;min-width:160px}
+.prism-world-orb{--orb:#91d8b1;position:relative;width:44px;height:44px;flex:none;border:1px solid #cde4bd45;border-radius:50%;background:radial-gradient(circle at 35% 24%,#ffffff51,transparent 29%),radial-gradient(circle at 58% 78%,#131f2b,transparent 65%),var(--orb);box-shadow:0 0 0 4px #c8f0d20b,0 10px 19px #030c0c9e,inset -8px -9px 17px #0a222696;opacity:.52;transition:opacity .4s,box-shadow .4s,transform .4s}
+.prism-world-orb:nth-child(2){--orb:#edaa72}.prism-world-orb:nth-child(3){--orb:#a1b6ec}
+.prism-world-orb:after{content:"";position:absolute;inset:-5px;border:1px dashed #cfead37b;border-radius:50%;transform:rotate(-20deg)}
+.prism-world-orb.awakening{opacity:.83}.prism-world-orb.restored{opacity:1;box-shadow:0 0 0 5px #c8f0d212,0 0 18px var(--orb),inset -8px -9px 15px #0c262c80}
+.atrium-bloom-link{position:relative;z-index:1;justify-self:center;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 15px;border:1px solid #d0e6ca85;border-radius:12px;background:#cfe6d6;color:#16372d;font-size:11px;font-weight:800;text-decoration:none}
+.atrium-bloom-link:hover{background:#f3ead0}.atrium-bloom-link:focus-visible{outline:3px solid #fff0c3;outline-offset:3px}
+/* The third game is a distinct opal-jewel door, not another Glimmer Pop card. */
+.prism-card{background:radial-gradient(ellipse at 79% 18%,#7a5da75c,transparent 55%),linear-gradient(145deg,#2b3850,#162e37 52%,#19392f)!important;border-color:#bea8e35f!important}
+.prism-card:hover,.prism-card:focus-visible{border-color:#e8d4ffb7!important;box-shadow:0 25px 55px #060a1e95,0 0 34px #a887ed32!important}
+.prism-card-art{position:absolute;z-index:0;right:-8px;top:-5px;width:170px;height:171px;pointer-events:none;filter:drop-shadow(0 16px 19px #0006)}
+.prism-art-halo{position:absolute;inset:16px 9px;border-radius:50%;border:1px solid #ecd3ff4b;box-shadow:0 0 40px #9f78d34d,inset 0 0 22px #95cfea25;transform:rotate(-18deg)}
+.prism-art-ring{position:absolute;inset:34px 22px;border:1px dashed #e9ddf34a;border-radius:50%;transform:rotate(27deg)}
+.prism-art-gem{position:absolute;width:62px;height:79px;filter:drop-shadow(0 0 12px #fff4);box-shadow:inset 0 1px #fff9;opacity:.96;animation:prism-gem-drift 6s ease-in-out infinite}
+.prism-art-gem:after{content:"";position:absolute;inset:13% 12%;background:linear-gradient(135deg,#ffffff92,transparent 38%,#ffffff38 72%,transparent);clip-path:inherit}
+.prism-art-fern{top:9px;left:14px;background:linear-gradient(150deg,#d4ffe0,#59b49c 55%,#327c76);clip-path:polygon(50% 0,89% 20%,95% 53%,55% 100%,12% 96%,18% 53%,5% 30%)}
+.prism-art-orchid{top:15px;right:13px;background:linear-gradient(145deg,#fff2ff,#a78be0 48%,#6f5da8);clip-path:polygon(50% 0,66% 22%,90% 12%,85% 41%,100% 55%,79% 70%,74% 100%,49% 82%,25% 100%,20% 70%,0 55%,15% 41%,10% 12%,34% 22%);animation-delay:-1.7s}
+.prism-art-moon{bottom:10px;left:16px;background:linear-gradient(150deg,#eff8ff,#9daee6 55%,#596cba);clip-path:polygon(70% 0,38% 10%,18% 36%,12% 63%,35% 88%,70% 100%,98% 81%,65% 80%,49% 52%,53% 22%);animation-delay:-3.2s}
+.prism-art-rose{bottom:9px;right:11px;background:linear-gradient(145deg,#fff0f3,#ed94b4 57%,#a75389);clip-path:polygon(50% 100%,7% 58%,4% 29%,20% 12%,38% 16%,50% 29%,62% 16%,80% 12%,96% 29%,93% 58%);animation-delay:-2.1s}
+@keyframes prism-gem-drift{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-5px) rotate(2deg)}}
+.prism-card .card-bottom{padding-top:51px}
+.prism-card-reading{margin-top:11px;max-width:290px;padding:11px 12px;border-radius:12px;background:#091d2a99;border:1px solid #dfcaed33}
+.prism-card-reading p{color:#ede2f9!important;font-size:11px!important;min-height:0!important;margin:0 0 8px!important;line-height:1.4!important}
+.prism-card-progress{display:block;width:100%;height:8px;border:0;border-radius:12px;overflow:hidden;appearance:none;background:#14242f}
+.prism-card-progress::-webkit-progress-bar{background:#243342;border-radius:12px}
+.prism-card-progress::-webkit-progress-value{background:linear-gradient(90deg,#7fd7bd,#cba9ef);border-radius:12px}
+.prism-card-progress::-moz-progress-bar{background:#bda1e4;border-radius:12px}
+/* Trophy cabinet navigation is keyboard and touch accessible, with no awards stored. */
+.cabinet-filter-bar{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0 5px}
+.cabinet-filter{min-height:44px;padding:11px 15px;border:1px solid #79b59c61;border-radius:13px;background:#19352f;color:#d0e2d8;font-size:11px;font-weight:750;transition:background .2s,border-color .2s}
+.cabinet-filter:hover{background:#245145}.cabinet-filter.selected{background:#d0e8d7;color:#18392e;border-color:#e3f4df}
+.cabinet-filter:focus-visible{outline:3px solid #ffe3a3;outline-offset:3px}
+.cabinet-filter-status{font-size:11px;min-height:18px;margin:9px 0 14px;color:#aecdbb}
+.cabinet-section[hidden]{display:none!important}
+.cabinet-section-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 20px}
+.cabinet-section-header h2{font:500 clamp(25px,3.1vw,35px)/1.15 Georgia,serif;color:#fff0d7;margin:8px 0}
+.cabinet-section-header p{font-size:12px;color:#bcd7c6;line-height:1.5;margin:0}
+.prism-trophy p{font-size:11px;line-height:1.55;color:#bfd5c9;margin:2px 0 0}
+.passport-achievement-section{margin:24px 0 22px;padding:24px 0;border-top:1px solid #77b79e55}
+.passport-trophy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin:16px 0}
+.passport-trophy{position:relative;isolation:isolate;overflow:hidden;min-height:190px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:23px;border-radius:20px;border:1px solid #b5a5bf75;background:radial-gradient(ellipse at 65% 12%,#8e72ba45,transparent 70%),linear-gradient(155deg,#292d42,#172d31)}
+.passport-trophy:before{content:"";position:absolute;right:-45px;top:-38px;width:140px;height:140px;border-radius:50%;border:1px solid #e8d6ff26;box-shadow:0 0 45px #8668b625;z-index:-1}
+.passport-trophy.earned{border-color:#e9cb96a8;box-shadow:inset 0 1px #ffffff1c,0 12px 40px #6b4f8c32}
+.passport-trophy.locked{opacity:.77}
+.passport-trophy-sigil{display:grid;place-items:center;width:49px;height:49px;border-radius:15px;background:linear-gradient(140deg,#c7b0e84f,#ddcda626);border:1px solid #dacdf17d;color:#fbe1bb;font:500 33px Georgia,serif}
+.passport-trophy-status{font-size:9px;font-weight:800;letter-spacing:.13em;color:#e7cfa8}
+.passport-trophy strong{font:500 clamp(19px,2.2vw,25px)/1.12 Georgia,serif;color:#fff2e7}
+.passport-trophy p{font-size:11px;line-height:1.55;color:#cdd5d4;margin:0}
+#profile-passport-summary{margin:7px 0 8px;color:#efdcae!important}
+@media(max-width:950px){.atrium-bloom{grid-template-columns:minmax(0,1fr) auto}.prism-card-art{opacity:.8}.passport-trophy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.atrium-bloom{padding:20px;margin:13px 0 26px;grid-template-columns:1fr;gap:14px}.atrium-bloom-copy{grid-row:auto}.atrium-bloom h2{font-size:25px}.atrium-bloom-worlds{justify-content:flex-start}.atrium-bloom-link{justify-self:stretch}.prism-card-art{transform:scale(.8);transform-origin:top right;opacity:.68}.prism-card .card-bottom{padding-top:53px}.prism-card-reading{padding:9px}.prism-card-reading p{font-size:10px!important}.cabinet-filter{flex:1 1 calc(50% - 10px);padding:11px 10px}.passport-trophy-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.passport-trophy{min-height:184px;padding:16px}.passport-trophy strong{font-size:19px}.passport-trophy-sigil{width:38px;height:38px;font-size:24px}}
+@media(max-width:385px){.passport-trophy-grid{grid-template-columns:1fr}.prism-card-art{transform:scale(.65);opacity:.52}.prism-card .card-bottom{padding-top:43px}}
+@media(prefers-reduced-motion:reduce){.prism-art-gem{animation:none!important}.prism-world-orb,.cabinet-filter{transition:none!important}}

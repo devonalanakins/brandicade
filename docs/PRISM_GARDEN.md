@@ -16,3 +16,25 @@ Select an exposed gem in any of three stacks, then choose a glowing matching col
 - Progress can be lost if Safari website data is cleared. The client does not migrate or alter older saves.
 - Complex native 3D dioramas, voiced soundtrack, authoritative cross-device identity and full user-verified iPhone experience are follow-up quality work.
 - Source/license provenance from the older Brandicade recovery remains unresolved.
+
+## Product destination: Brandicade, not another game site
+Prism Garden is Brandicade's **third arcade game**, alongside Glimmer Pop and Brandle. Both Home and Games library link to the native `/prism-garden.html` route on the **same Brandicade origin**. The Brandicade Brandi profile and Treasures gallery also display read-only Prism Garden mosaics and achievements using `src/prism-garden/arcade-summary.mjs`. The arcade only reads a validated Prism Garden local save and never writes to it. This is a shared presentation surface, not cross-game XP, a cloud account, or an import of Brandle progress.
+
+The isolated `prism.anevum.com` Worker, PR #11 and preview bundle are **temporary QA infrastructure only** and are not a second game destination or a release requirement for the finished player experience. The intended final URL is `brandicade.anevum.com/prism-garden.html`. The Brandicade legacy backup exports Glimmer Pop progress only; Prism Garden retains its independent Settings backup until migration is explicitly verified.
+
+The recovered static worker still omits the *live* Access/D1 API and must never overwrite production. Production launch requires safe recovery of the live Worker source, actual encrypted owner backup/restore, license/source parity, signed Access acceptance, an authorized rollback procedure and physical iPhone QA.
+
+## Prism Bloom — first integrated release increment (2026-11-03)
+
+The next major Brandicade release is the **Prism Bloom Update**, with Prism Garden as its third first-party game. This incremental implementation:
+
+- Adds a Living Atrium restoration strip grounded in **actual completed** Prism mosaics and world progress, plus a distinct faceted jewel door on both Home and Games. Glimmer Pop and Brandle launch behavior stays unchanged.
+- Makes Prism launchers show the next authored mosaic or validated interrupted level, and a real 0–18 completion meter. Corrupt/inaccessible progress displays recovery guidance and an indeterminate meter rather than inventing completion.
+- Expands the Keepsake Cabinet into filterable Glimmer Pop, Prism Garden and Arcade Passport sections, each with explicit locked/earned states, accessible buttons and complete award descriptions.
+- Introduces **six read-only, derived Arcade Passport achievements**, bringing the candidate collection to **34** (10 Glimmer + 18 Prism + 6 Passport). Requirements always use validated game-local progress, never Brandle's external origin. The Passport cannot grant XP, mutate game saves or infer inaccessible progress; it recomputes on visiting the profile/cabinet.
+- Enhances Brandi's profile with the Passport count while preserving original Glimmer Pop XP, levels, cosmetics and separate Prism Garden save/backup formats.
+- Uses no new dependencies or remote image trackers. Layered CSS/SVG-style glass jewels and world accents obey reduced-motion preference; keyboard and touch filters use 44px minimum targets.
+
+**Implementation evidence:** Gameplay PR #8, first Prism Bloom source commit (CI, diff and device checks must be independently verified). Tests include read-only badge derivation, per-world progress and normal/error states, launcher references, offline asset list and cabinet accessibility checks.
+
+**Important limits:** The recovered static Worker still does not contain the live Cloudflare Access/D1 backend and must not replace production. Brandle's external original saves remain there; do not claim cross-device synchronized trophies. All production source/backup, encrypted D1 restore, signed Access, licensing, safe rollout and real iPhone PWA acceptance gates on [issue #2](https://github.com/devonalanakins/brandicade/issues/2) remain in force.
