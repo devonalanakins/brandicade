@@ -42,44 +42,56 @@ async function fetchTrustedJWKS(issuer) {
 const restricted = (status) => new Response(status===403?'Forbidden':'Service unavailable',{
   status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}
 });
-function protectedConfiguration(env) {
-  if(!env||!env.SAVES||typeof env.SAVES.prepare!=='function'
+// Authentication must remain available when D1 is down: local-first games
+// and cached puzzle artwork do not require a successful cloud-save connection.
+function privateAccessConfiguration(env) {
+  const keys=['ACCESS_ISSUER','ACCESS_AUDIENCE','ACCESS_PLAYER_EMAIL',
+    'ACCESS_ADMIN_EMAIL'];
+  if(!env||keys.some(k=>typeof env[k]!=='string'||!env[k]))
+    throw new Error('Private Access configuration unavailable');
+  return {
+    issuer:env.ACCESS_ISSUER,audience:env.ACCESS_AUDIENCE,
+    playerEmail:env.ACCESS_PLAYER_EMAIL,adminEmail:env.ACCESS_ADMIN_EMAIL,
+    playerDisplayName:env.PLAYER_DISPLAY_NAME||'Player',
+    adminDisplayName:'Administrator',
+    jwksProvider:()=>fetchTrustedJWKS(env.ACCESS_ISSUER)
+  };
+}
+function privateStorageConfiguration(env,access) {
+  if(!env.SAVES||typeof env.SAVES.prepare!=='function'
       ||typeof env.SAVES.batch!=='function')
     throw new Error('Private database unavailable');
-  const keys=['ACCESS_ISSUER','ACCESS_AUDIENCE','ACCESS_PLAYER_EMAIL',
-    'ACCESS_ADMIN_EMAIL','PLAYER_RECORD_KEY','PLAYER_DISPLAY_NAME'];
-  if(keys.some(k=>typeof env[k]!=='string'||!env[k]))
-    throw new Error('Private worker configuration unavailable');
+  if(typeof env.PLAYER_RECORD_KEY!=='string'||!env.PLAYER_RECORD_KEY
+     ||typeof env.PLAYER_DISPLAY_NAME!=='string'||!env.PLAYER_DISPLAY_NAME)
+    throw new Error('Private player configuration unavailable');
   if(env.ENABLE_CLOUD_WRITES!==undefined &&
      env.ENABLE_CLOUD_WRITES!=='true'&&env.ENABLE_CLOUD_WRITES!=='false')
     throw new Error('Invalid private cloud-write flag');
   return {
     db:env.SAVES,playerRecordKey:env.PLAYER_RECORD_KEY,
-    expectedProfileName:env.PLAYER_DISPLAY_NAME,
-    access:{
-      issuer:env.ACCESS_ISSUER,audience:env.ACCESS_AUDIENCE,
-      playerEmail:env.ACCESS_PLAYER_EMAIL,adminEmail:env.ACCESS_ADMIN_EMAIL,
-      playerDisplayName:env.PLAYER_DISPLAY_NAME,adminDisplayName:'Administrator',
-      jwksProvider:()=>fetchTrustedJWKS(env.ACCESS_ISSUER)
-    },
+    expectedProfileName:env.PLAYER_DISPLAY_NAME,access,
     writeEnabled:env.ENABLE_CLOUD_WRITES==='true'
   };
 }
 export default {
   async fetch(request,env) {
-    let cfg,authorize;
+    let access,authorize;
     try {
-      cfg=protectedConfiguration(env);
-      authorize=createAccessRoleAuthorizer(cfg.access);
+      access=privateAccessConfiguration(env);
+      authorize=createAccessRoleAuthorizer(access);
     }catch {return restricted(503);}
     let path;
     try {path=new URL(request.url).pathname;}catch{return restricted(400);}
-    if(path.startsWith('/api/')){
-      try {return await createLegacyRecoveryAPI(cfg)(request);}
-      catch {return restricted(503);}
-    }
+    // Authenticate every request before exposing either static assets or
+    // storage availability. A missing D1 binding never makes the game public.
     try {await authorize(request);}
     catch {return restricted(403);}
+    if(path.startsWith('/api/')){
+      try {
+        const cfg=privateStorageConfiguration(env,access);
+        return await createLegacyRecoveryAPI(cfg)(request);
+      }catch {return restricted(503);}
+    }
     return BRANDICADE_STATIC.fetch(request);
   }
 };

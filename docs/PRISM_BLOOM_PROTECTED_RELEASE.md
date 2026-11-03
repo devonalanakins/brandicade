@@ -73,3 +73,32 @@ settings change was performed by preparing this candidate.**
 
 ## Verified bundling gate (added to PR #12)
 The draft CI also runs pinned open-source `wrangler@4.156.2 deploy --dry-run --outdir dist/protected-bundle`, checks that exactly one bundle is emitted, validates its JavaScript syntax, and re-runs the signed-Access/D1 HTTP tests against the **actual bundled module**. This is a local build test, **not a Worker upload, an Access login or a real D1-binding test**. Do not add a deploy workflow or publish bundled files to a public release before the data/identity/license gates pass.
+
+## Resilience and cloud-save availability (November 3, 2026)
+
+The protected preview/release candidate now has two separately validated boundaries:
+a mandatory **signed Cloudflare Access identity** for every game or API route,
+and a **separate optional D1 storage connection** for cloud-save endpoints.
+A legitimate signed, allowlisted player or administrator can load static
+Brandicade and Prism Bloom game assets even when D1 is absent, disabled, or has
+invalid private save configuration. The `/api/*` cloud-save endpoints then
+return 503; unauthenticated callers remain 403, including during an outage.
+This avoids turning a temporary cloud-storage failure into a total loss of the
+device-local arcade, without making any assets public.
+
+This behavior is verified by signed synthetic JWT and missing/malformed D1
+cases against both source and Wrangler's generated bundle. It does *not* prove
+installed iPhone PWA behavior or cross-device synchronization.
+
+### Metadata-only production D1 preflight
+
+A read-only Cloudflare D1 check on November 3, 2026 confirmed both expected
+tables exist and found **zero cloud save records and zero history records** at
+the instant of the query, with no mismatches. These aggregate checks did not
+read or output any saved-game JSON or individual player identity. The absence
+of server-side rows does **not** establish the absence of Brandi's iPhone-local
+progress, which must be exported/verified before any PWA origin, key, service
+worker or cache migration. New records could appear after the check: verify
+again immediately before any cutover, and preserve owner-held backup and
+rollback approvals. Never rely on this historical zero count as permission to
+wipe or reinitialize a database.

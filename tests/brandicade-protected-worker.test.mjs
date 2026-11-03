@@ -82,12 +82,36 @@ test('missing, tampered, expired, wrong-audience and unlisted identities cannot 
   assert.equal((await hit('/',await signed(PLAYER,{exp:now()-10}),env(f.db))).status,403);
  }finally{f.close()}
 });
-test('missing or invalid private settings fail closed',async()=>{
+test('missing or invalid private Access settings fail closed before any asset',async()=>{
  const f=fixture();try{
   const jwt=await signed();
-  for(const config of [env(null),env(f.db,{ACCESS_AUDIENCE:''}),
-    env(f.db,{ACCESS_ADMIN_EMAIL:PLAYER}),env(f.db,{ENABLE_CLOUD_WRITES:'yes'})]){
+  for(const config of [env(f.db,{ACCESS_ISSUER:''}),
+    env(f.db,{ACCESS_AUDIENCE:''}),
+    env(f.db,{ACCESS_ADMIN_EMAIL:PLAYER}),
+    env(f.db,{ACCESS_PLAYER_EMAIL:''})]){
    assert.equal((await hit('/',jwt,config)).status,503);
+   assert.equal((await hit('/api/save',jwt,config)).status,503);
+  }
+ }finally{f.close()}
+});
+test('signed users can play when D1 is unavailable, but all save APIs stay closed',async()=>{
+ const f=fixture();try{
+  const jwt=await signed();
+  const brokenConfigs=[
+    env(null),
+    env(f.db,{PLAYER_RECORD_KEY:''}),
+    env(f.db,{PLAYER_DISPLAY_NAME:''}),
+    env(f.db,{ENABLE_CLOUD_WRITES:'yes'}),
+    env({prepare(){throw Error('No database')},batch:null})
+  ];
+  for(const cfg of brokenConfigs){
+   assert.equal((await hit('/',jwt,cfg)).status,200);
+   assert.equal((await hit('/prism-garden.html',jwt,cfg)).status,200);
+   assert.equal((await hit('/api/session',jwt,cfg)).status,503);
+   assert.equal((await hit('/api/save',jwt,cfg)).status,503);
+   assert.equal((await hit('/api/backups',jwt,cfg)).status,503);
+   assert.equal((await hit('/api/save',null,cfg)).status,403);
+   assert.equal((await hit('/',null,cfg)).status,403);
   }
  }finally{f.close()}
 });
