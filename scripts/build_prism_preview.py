@@ -104,9 +104,19 @@ def build(root=ROOT):
             source = data.decode('utf-8')
             if re.search(r'\bimport\s*\(', source):
                 raise ValueError(f'Dynamic imports are not allowed in the offline preview: {path}')
-            imports = re.findall(r"\bfrom\s*['\"]([^'\"]+)['\"]|\bimport\s*['\"]([^'\"]+)['\"]", source)
-            for match in imports:
-                specifier = match[0] or match[1]
+            # Only parse import/export declarations. Matching every ``from '...``
+            # also matches literal HTML/text inside app strings (e.g. "Restore from ...").
+            for line in source.splitlines():
+                declaration = re.match(r'^\s*(?:import|export)\s+(.+)$', line)
+                if not declaration:
+                    continue
+                clause = declaration.group(1)
+                specifier_match = re.match(r"^['\"]([^'\"]+)['\"]", clause)
+                if not specifier_match:
+                    specifier_match = re.search(r"\bfrom\s*['\"]([^'\"]+)['\"]", clause)
+                if not specifier_match:
+                    continue
+                specifier = specifier_match.group(1)
                 if not specifier.startswith(('./', '../')):
                     raise ValueError(f'External or bare module is not allowed: {specifier}')
                 target = posixpath.normpath(posixpath.join(posixpath.dirname(path), specifier))

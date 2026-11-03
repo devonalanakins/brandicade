@@ -98,6 +98,12 @@ class PreviewBuildTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'not allowed|Missing module'):
                     builder.build(self.root)
 
+    def test_literal_html_with_from_does_not_trigger_fake_imports(self):
+        self.write('src/prism-garden/backup-ui.mjs',
+            b"const markup=\"<label>Choose from '<input type=file>'</label>\";\n")
+        result = builder.build(self.root)
+        self.assertEqual(result['assets'], 19)
+
     def test_html_external_asset_fails_closed(self):
         self.write('prism-garden.html',
             b'<html><head><script src="https://cdn.example/track.js"></script></head><body><div id="prism-app"></div><script type="module" src="/src/prism-garden/backup-ui.mjs"></script></body></html>')
