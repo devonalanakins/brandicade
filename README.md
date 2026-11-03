@@ -4,7 +4,7 @@ Brandicade is an independent personal game collection under development. This re
 
 ## Recovery status
 
-**Not yet a complete standalone deployment.** [Draft PR #1](https://github.com/anevum/brandicade/pull/1) recovers a V1.0.1 static application checkpoint and CI-only verification. Its 14 static assets matched the corresponding assets embedded in the observed deployed Worker, but the running Worker's cloud-save and access layer are missing from the recovered archive. Main still contains only this project README.
+**Not yet a complete standalone deployment.** [Draft PR #1](https://github.com/devonalanakins/brandicade/pull/1) recovers a V1.0.1 static application checkpoint and CI-only verification. Its 14 static assets matched the corresponding assets embedded in the observed deployed Worker, but the running Worker's cloud-save and access layer are missing from the recovered archive. Main still contains only this project README.
 
 The archive's MIT license and a GPLv3 notice emitted by its build script conflict. Do not merge or deploy the recovery branch as authoritative until source provenance, redistribution rights, and the resulting license notices are reviewed. Do not silently replace or strip notices.
 
@@ -17,4 +17,4 @@ The archive's MIT license and a GPLv3 notice emitted by its build script conflic
 
 Until then, preserve the existing live Worker and original source history. This repository is not a substitute for the running application.
 
-Project index: [anevum/anevum](https://github.com/anevum/anevum) · Organization handoff: [GitHub reorganization](https://github.com/anevum/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md)
+Project index: [devonalanakins/anevum](https://github.com/devonalanakins/anevum) · Organization handoff: [GitHub reorganization](https://github.com/devonalanakins/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md)
