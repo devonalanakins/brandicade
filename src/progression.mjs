@@ -72,8 +72,41 @@ export function sanitizeSave(input){
  if((TITLES.find(x=>x.id===out.profile.title)?.level||1)>out.progression.level)out.profile.title='keeper';
  return out;
 }
-export function loadSave(storage=null){try{storage??=globalThis.localStorage;const raw=storage.getItem(SAVE_KEY);return raw?sanitizeSave(JSON.parse(raw)):newSave();}catch{return newSave();}}
-export function persist(save,storage=null){save.updatedAt=nowISO();try{storage??=globalThis.localStorage;storage.setItem(SAVE_KEY,JSON.stringify(save));return true;}catch{return false;}}
+/** Never interpret corrupt, unsupported or unreadable local saves as an empty slot. */
+export function inspectLocalSave(storage=null){
+ try{
+  storage??=globalThis.localStorage;
+  const raw=storage.getItem(SAVE_KEY);
+  if(raw===null)return {save:newSave(),status:'empty'};
+  if(typeof raw!=='string'||raw.length>524288)throw Error('Invalid stored data');
+  return {save:sanitizeSave(JSON.parse(raw)),status:'valid'};
+ }catch{return {save:newSave(),status:'unreadable'};}
+}
+export function loadSave(storage=null){return inspectLocalSave(storage).save;}
+/** Ordinary game writes MUST NOT overwrite an unreadable original save. */
+export function persist(save,storage=null){
+ try{
+  storage??=globalThis.localStorage;
+  const existing=storage.getItem(SAVE_KEY);
+  if(existing!==null){
+   if(typeof existing!=='string'||existing.length>524288)return false;
+   sanitizeSave(JSON.parse(existing)); // fail closed before touching original
+  }
+  save.updatedAt=nowISO();
+  storage.setItem(SAVE_KEY,JSON.stringify(save));
+  return true;
+ }catch{return false;}
+}
+/** Only call following explicit user confirmation of a validated import. */
+export function restoreConfirmedBackup(document,storage=null){
+ const restored=sanitizeSave(document); // unsupported/corrupt import throws
+ try{
+  storage??=globalThis.localStorage;
+  restored.updatedAt=nowISO();
+  storage.setItem(SAVE_KEY,JSON.stringify(restored));
+  return {ok:true,save:restored};
+ }catch{return {ok:false,save:null};}
+}
 export function exportSave(save){return JSON.stringify({format:'BRANDICADE_BACKUP',exportedAt:nowISO(),data:sanitizeSave(save)},null,2);}
 export function importSave(text){if(typeof text!=='string'||text.length>512000)throw Error('Backup must be smaller than 500KB.');let parsed;try{parsed=JSON.parse(text);}catch{throw Error('That file is not valid JSON.');}
  if(parsed?.format!=='BRANDICADE_BACKUP')throw Error('This is not a BRANDICADE backup.');

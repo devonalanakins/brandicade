@@ -1,17 +1,22 @@
 import {SIZE,TYPES,LEVEL_NAMES,levelSpec,makeRun,findMove,trySwap,adjacent} from './engine.mjs';
-import {AVATARS,FRAMES,TITLES,ACHIEVEMENTS,newSave,loadSave,persist,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
+import {AVATARS,FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
 import {prismArcadeSummary} from './prism-garden/arcade-summary.mjs';
 import {ARCADE_PASSPORT,deriveArcadePassport} from './arcade-passport.mjs';
 
 const $=(s)=>document.querySelector(s);
 const $$=(s)=>[...document.querySelectorAll(s)];
 const escapeHTML=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let save=loadSave(),selected=null,moving=false,lastTrigger=null,importPending=null,noticeTimeout=null,ignoreClickUntil=0;
+const bootSave=inspectLocalSave();
+let save=bootSave.save,saveBlocked=bootSave.status==='unreadable',selected=null,moving=false,lastTrigger=null,importPending=null,noticeTimeout=null,ignoreClickUntil=0;
 let storageWarningShown=false,prevPage='home',cabinetFilter='all';
 const TYPE_LABELS={fern:'fern',aqua:'waterdrop',ember:'ember',sun:'sun',orchid:'orchid',luna:'moonstone'};
 const activeMotion=()=>save.settings.motion==='on'||save.settings.motion==='system'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function commit(){if(!persist(save)&&!storageWarningShown){storageWarningShown=true;toast('This browser is not saving progress. Export your game regularly.');}}
-function saveVisited(){const award=recordVisit(save);commit();return award;}
+function commit(){
+ if(saveBlocked){if(!storageWarningShown){storageWarningShown=true;toast('Unreadable save preserved. Import a backup to resume Glimmer Pop.');}return false;}
+ const ok=persist(save);if(!ok&&!storageWarningShown){storageWarningShown=true;toast('This browser is not saving progress. Check your backup.');}
+ return ok;
+}
+function saveVisited(){if(saveBlocked)return {newAwards:[],newLevel:null,bonusXP:0};const award=recordVisit(save);commit();return award;}
 
 // High-resolution vector gemstones. Shapes, not font glyphs or generic emoji.
 const GEM_PATHS={
@@ -51,7 +56,7 @@ function sound(kind='tap'){if(!save.settings.sound)return;try{const A=window.Aud
 function haptic(){if(!save.settings.sound&&!save.settings.motion)return;try{navigator.vibrate?.(9);}catch{}}
 function confetti(amount=32){if(!activeMotion())return;const el=$('#celebrations'),colors=['#e4b77e','#5ce9c5','#64a2a1','#f3dcc1','#e29abb'];el.replaceChildren();for(let i=0;i<amount;i++){const bit=document.createElement('span');bit.className='celebration-bit';bit.style.setProperty('--x',`${Math.random()*100}%`);bit.style.setProperty('--size',`${4+Math.random()*7}px`);bit.style.setProperty('--color',colors[i%colors.length]);bit.style.setProperty('--time',`${1.4+Math.random()*1.4}s`);el.append(bit);}setTimeout(()=>el.replaceChildren(),3100);}
 function ensureRun(){if(!save.currentRun)save.currentRun=makeRun(save.progression.unlockedLevel);commit();return save.currentRun;}
-function navigate(id,replace=false){const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
+function navigate(id,replace=false){const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(saveBlocked&&id==='game'){id='home';toast('Glimmer Pop progress is locked until a backup is restored.');}if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
  $$('.section').forEach(el=>{el.classList.toggle('active',el.id===id);el.setAttribute('aria-hidden',el.id===id?'false':'true')});$$('.nav-button').forEach(el=>{const on=el.dataset.go===id;el.classList.toggle('active',on);on?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current');});
  if(location.hash!==`#${id}`){if(replace)history.replaceState(null,'',`#${id}`);else history.pushState(null,'',`#${id}`)}
  if(id==='game')renderGame();if(id==='profile')renderProfile();if(id==='treasures')renderTreasures();if(id==='home')renderHome();
@@ -152,14 +157,14 @@ function openModal(kind,origin){lastTrigger=origin||document.activeElement;const
  <div class="setting-item"><div><b>Animation intensity</b><small>System respects reduced-motion preferences. Calm minimizes effects.</small></div><select data-select="motion" aria-label="Animation intensity"><option value="system" ${save.settings.motion==='system'?'selected':''}>System</option><option value="on" ${save.settings.motion==='on'?'selected':''}>Cinematic</option><option value="off" ${save.settings.motion==='off'?'selected':''}>Calm</option></select></div>
  <div class="setting-item"><div><b>High contrast</b><small>Increase text and card-edge contrast.</small></div><button class="switch ${save.settings.contrast?'on':''}" role="switch" type="button" aria-label="High contrast" aria-checked="${save.settings.contrast}" data-toggle="contrast"></button></div>
  <div class="setting-item"><div><b>Charm labels</b><small>Add a small letter to each piece as a color-independent cue.</small></div><button class="switch ${save.settings.colorAssist?'on':''}" role="switch" type="button" aria-label="Charm labels" aria-checked="${save.settings.colorAssist}" data-toggle="colorAssist"></button></div>
- <h3>Progress &amp; privacy</h3><p>This version keeps Brandi's profile on the current browser only. There is no real signed-in cloud account yet. Export to move devices or keep a permanent backup.</p><div class="dialog-actions"><button class="btn secondary" data-action="export" type="button">Export backup ↓</button><button class="btn secondary" data-action="import" type="button">Import backup ↑</button></div><div class="settings-note">No advertising, analytics, subscriptions, paid lives, public rankings, or external account data. This project's code can be public while personal saved data stays private.</div>`,
+ <h3>Progress &amp; privacy</h3><p>Glimmer Pop saves on this device. A separate, optional cloud-backup panel is available in your Profile when signed in. Export a backup before changing phones. Prism Garden has its own independent save.</p><div class="dialog-actions"><button class="btn secondary" data-action="export" type="button">Export backup ↓</button><button class="btn secondary" data-action="import" type="button">Import backup ↑</button></div><div class="settings-note">No advertising, analytics, subscriptions, paid lives, public rankings, or external account data. This project's code can be public while personal saved data stays private.</div>`,
  levels:`<div class="eyebrow">Your little adventure map</div><h2 id="modal-title">The Garden Trail</h2><p>Replay unlocked levels whenever you want. Finished levels keep their best stars. The next level opens when you win.</p><div class="level-map">${Array.from({length:Math.min(save.progression.unlockedLevel+4,18)},(_,i)=>i+1).map(l=>{const unlocked=l<=save.progression.unlockedLevel,stars=save.progression.levels[String(l)]?.stars||0;return `<button class="level-node" data-level="${l}" type="button" ${unlocked?'':'disabled'}><b>${String(l).padStart(2,'0')}</b><span>${unlocked?levelSpec(l).title:'Locked'}</span><small>${unlocked?(stars?'★'.repeat(stars):'AVAILABLE'):'FINISH PRIOR LEVEL'}</small></button>`}).join('')}</div>`,
  restart:`<div class="eyebrow">Another attempt</div><h2 id="modal-title">Start fresh?</h2><p>Restarting resets the current Glimmer Pop level's board, moves and score. Previously earned stars, XP and achievements stay safe.</p><div class="dialog-actions"><button class="btn primary" data-action="confirm-restart" type="button">Restart this level</button><button class="btn secondary" data-action="close-modal" type="button">Keep playing</button></div>`,
- import:`<div class="eyebrow">Restore a saved garden</div><h2 id="modal-title">Replace local progress?</h2><p>A valid BRANDICADE backup was found. Importing will replace the progress currently saved on this device, including its existing avatar, achievements and active puzzle.</p><p id="import-preview"></p><div class="dialog-actions"><button class="btn primary" data-action="confirm-import" type="button">Yes, restore backup</button><button class="btn secondary" data-action="close-modal" type="button">Cancel</button></div>`,
+ import:`<div class="eyebrow">Restore a saved garden</div><h2 id="modal-title">Replace local progress?</h2><p>A valid BRANDICADE backup was found. Importing will replace the Glimmer Pop progress currently stored on this device. If the existing save is unreadable, download its original data first. Prism Garden saves are not changed.</p><p id="import-preview"></p><div class="dialog-actions"><button class="btn primary" data-action="confirm-import" type="button">Yes, restore backup</button><button class="btn secondary" data-action="close-modal" type="button">Cancel</button></div>`,
  };$('#modal-body').innerHTML=templates[kind]||templates.help;if(kind==='import'&&importPending){$('#import-preview').textContent=`Backup: Level ${importPending.progression.level}, ${Object.keys(importPending.achievements).length} achievements, ${importPending.progression.totalStars} stars.`;}
  $('#modal').classList.add('open');$('#modal-close').focus();}
 function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();lastTrigger?.focus?.();}}
-function startRun(level){save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
+function startRun(level){if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
 function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){selected=i;setSelection();sound();return;}
  if(selected===i){selected=null;setSelection();return;}
  if(!adjacent(selected,i)){selected=i;setSelection();sound();return;}
@@ -179,7 +184,32 @@ function handleHint(){if(ensureRun().ended)return;const move=findMove(save.curre
  for(const id of [move.from,move.to]){$(`#pop-board [data-cell="${id}"]`)?.classList.add('hinted');}
  setTimeout(()=>$$('#pop-board .hinted').forEach(x=>x.classList.remove('hinted')),2100);$('#game-live').textContent='Try swapping those two glowing charms.';sound();}
 function settingsToggle(key){if(!Object.hasOwn(save.settings,key)||typeof save.settings[key]!=='boolean')return;save.settings[key]=!save.settings[key];commit();applySettings();openModal('settings',lastTrigger);}
-function doExport(){const str=exportSave(save);const file=new Blob([str],{type:'application/json'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=`BRANDICADE-Brandi-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);toast('A portable progress backup was prepared.');}
+function doExport(){if(saveBlocked){doRecoveryExport();return;}const str=exportSave(save);const file=new Blob([str],{type:'application/json'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=`BRANDICADE-Brandi-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);toast('A portable progress backup was prepared.');}
+
+function doRecoveryExport(){
+ let original;
+ try{original=globalThis.localStorage.getItem('brandicade:save:v1');}catch{}
+ if(typeof original!=='string'){
+  toast('Original data cannot be read. Do not clear Safari website data.');
+  return;
+ }
+ const blob=new Blob([original],{type:'text/plain;charset=utf-8'});
+ const href=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=href;link.download='brandicade-original-unreadable-save.txt';
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(href),3000);
+ toast('The original unreadable save was exported without altering it.');
+}
+function showRecoveryNotice(){
+ if(!saveBlocked||document.querySelector('#brandicade-save-recovery'))return;
+ const section=document.createElement('aside');
+ section.id='brandicade-save-recovery';
+ section.setAttribute('role','alert');
+ section.setAttribute('aria-label','Glimmer Pop progress needs recovery');
+ section.innerHTML='<div class="recovery-copy"><strong>Saved progress needs recovery</strong><p>An existing Glimmer Pop save cannot be read. It has not been replaced. Download the original data, then import a known-good backup. Prism Garden stores progress separately.</p></div>'+
+ '<div class="recovery-actions"><button type="button" data-action="recovery-export">Download original save</button><button type="button" data-action="recovery-import">Import valid backup</button></div>';
+ document.body.prepend(section);
+}
 
 // Central event delegation keeps controls keyboard and touch accessible.
 document.addEventListener('click',event=>{const target=event.target;
@@ -192,14 +222,15 @@ document.addEventListener('click',event=>{const target=event.target;
   case 'open-settings':case 'settings':openModal('settings',action);break;
   case 'close-modal':closeModal();break;
   case 'export':doExport();break;
-  case 'import':$('#import-file').click();break;
+   case 'recovery-export':doRecoveryExport();break;
+  case 'recovery-import':case 'import':$('#import-file').click();break;
   case 'hint':handleHint();break;
   case 'restart':openModal('restart',action);break;
   case 'confirm-restart':{const level=save.currentRun?.level||1;closeModal();startRun(level);break;}
   case 'next':{if(!save.currentRun?.won)return;startRun(save.currentRun.level+1);break;}
   case 'replay':{startRun(save.currentRun?.level||1);break;}
   case 'levels':openModal('levels',action);break;
-  case 'confirm-import':{if(!importPending)return;save=importPending;importPending=null;commit();closeModal();renderAll();navigate('home');toast('Your saved garden has been restored.');break;}
+  case 'confirm-import':{if(!importPending)return;const result=restoreConfirmedBackup(importPending);if(!result.ok){toast('Restore failed. Original saved data is unchanged.');return;}save=result.save;saveBlocked=false;storageWarningShown=false;importPending=null;$('#brandicade-save-recovery')?.remove();closeModal();renderAll();navigate('home');toast('Your saved garden has been restored.');break;}
  }return;}
  const nav=target.closest?.('[data-go]');if(nav){closeModal();navigate(nav.dataset.go);sound();return;}
  const avatar=target.closest?.('[data-avatar]');if(avatar){const id=avatar.dataset.avatar;if(AVATARS.some(x=>x.id===id)){save.profile.avatar=id;commit();renderProfile();sound();}return;}
@@ -231,5 +262,5 @@ function startAmbient(){const canvas=$('#fireflies'),ctx=canvas.getContext('2d')
  function loop(stamp){requestAnimationFrame(loop);if(document.hidden||!activeMotion()){if(last){ctx.clearRect(0,0,width,height);last=0;}return;}if(stamp-last<33)return;last=stamp;time+=.018;ctx.clearRect(0,0,width,height);
  for(const p of particles){p.y-=p.s;p.x+=Math.sin(time+p.phase)*.16;if(p.y<-14){p.y=height+14;p.x=Math.random()*width;}const r=p.r*5,a=.14+.3*(.5+.5*Math.sin(time*1.6+p.phase));const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);grad.addColorStop(0,`rgba(${p.color},${a})`);grad.addColorStop(1,`rgba(${p.color},0)`);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();}}
  requestAnimationFrame(loop);}
-startAmbient();saveVisited();renderAll();navigate(location.hash.slice(1)||'home',true);
+startAmbient();saveVisited();renderAll();showRecoveryNotice();navigate(location.hash.slice(1)||'home',true);
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));

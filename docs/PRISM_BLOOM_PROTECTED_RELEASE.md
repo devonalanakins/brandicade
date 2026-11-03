@@ -164,3 +164,32 @@ exportable but not merged or replaced; administrator checks never mutate
 device progress; and the Prism Garden save namespace is left unchanged.
 These checks still do not certify iPhone Files downloads, Safari execution,
 Cloudflare Access's actual injected JWT, or production D1 behavior.
+
+## P1 device-local progress recovery fix (source-only)
+
+An integrity review identified a concrete local data-loss path in the legacy
+Glimmer Pop app: `loadSave()` previously swallowed invalid JSON/unsupported
+schema/storage read errors, returned `newSave()`, and the normal bootstrap
+`saveVisited()` immediately saved that new state over the original record.
+This could erase the only remaining local progress on Brandi's iPhone.
+
+The protected-release branch now uses `inspectLocalSave()` to distinguish
+an absent save from one that is unreadable or unsupported. Routine
+`persist()` performs a defensive re-read and rejects overwriting a malformed
+or unsupported existing record. During blocked recovery, the UI renders a
+persistent, accessible alert, offers a raw download of **exact original
+localStorage bytes** (without changing the key), and disables entry into
+Glimmer Pop gameplay. Prism Garden/Brandle retain their independent storage
+and launch paths.
+
+The only overwrite of an unreadable original is through the existing
+explicit import-confirmation dialog using `restoreConfirmedBackup()`, which
+validates schema before writing and retains the original if the browser
+refuses storage writes. No automatic repair, reset, cross-game migration,
+unannounced backup upload, or D1 write is involved.
+
+`tests/main-save-recovery.test.mjs` verifies absent vs. malformed,
+unsupported, oversized, unavailable storage, existing valid progress,
+explicit recovery success/failure, and static recovery UI controls; actual
+iPhone Safari storage-denial and Files-download tests remain outstanding.
+Do not merge/deploy before these tests and the rest of the release gates pass.
