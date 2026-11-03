@@ -45,7 +45,8 @@ function mount(){
  if(!host||host.querySelector('#pg-backup-tools'))return;
  const settings=host.querySelector('.pg-options');
  if(!settings)return;
- const recoveryRequired=readStoredProgress().recoveryRequired;
+ const recovery=readStoredProgress();
+ const hasUnreadableOriginal=recovery.recoveryRequired&&typeof recovery.raw==='string';
  const panel=document.createElement('section');
  panel.id='pg-backup-tools';panel.className='pg-backup-panel';
  panel.setAttribute('aria-labelledby','pg-backup-title');
@@ -55,7 +56,8 @@ function mount(){
   '<div class="pg-backup-buttons"><button type="button" id="pg-backup-export">Download backup</button>'+
   '<label for="pg-backup-import">Restore from file</label>'+
   '<input id="pg-backup-import" type="file" accept=".json,application/json" aria-label="Select Prism Garden backup file"></div>'+
-  (recoveryRequired?'<button type="button" id="pg-backup-raw">Download original unreadable save</button>':'')+
+  (hasUnreadableOriginal?'<button type="button" id="pg-backup-raw">Download original unreadable save</button>':'')+
+  (recovery.recoveryRequired&&!hasUnreadableOriginal?'<p class="pg-backup-storage-note">Browser storage is unavailable. Allow site storage before restoring a backup.</p>':'')+
   '<p id="pg-backup-status" role="status" aria-live="polite">'+
   'Backups include achievements, completed levels and your current puzzle. '+
   'They remain on your device unless you choose to share the file.</p>';
@@ -65,7 +67,7 @@ function mount(){
   try{await exportCurrent();}catch(error){notify(error?.message||'Backup could not be created.','error');}
   finally{button.disabled=false;}
  });
- if(recoveryRequired)panel.querySelector('#pg-backup-raw').addEventListener('click',async event=>{
+ if(hasUnreadableOriginal)panel.querySelector('#pg-backup-raw').addEventListener('click',async event=>{
   const button=event.currentTarget;button.disabled=true;
   try{await exportUnreadable();}catch(error){notify(error?.message||'Original save export failed.','error');}
   finally{button.disabled=false;}
