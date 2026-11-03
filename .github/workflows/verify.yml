@@ -31,4 +31,10 @@ jobs:
           test "$count" -eq 1
           node --check "$files"
           BRANDICADE_BUNDLED_WORKER="$PWD/$files" node --test tests/brandicade-protected-worker.test.mjs tests/cloud-sync.test.mjs tests/cloud-sync-ui.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brandicade-protected-candidate
+          path: dist/protected-bundle/*.js
+          if-no-files-found: error
+          retention-days: 3
 # Verification only: NO deploy step. Protected Worker candidate is UNBUNDLED and requires owner-key, Access, D1, license and on-device release acceptance.
