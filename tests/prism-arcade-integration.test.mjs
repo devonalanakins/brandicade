@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {LEVELS} from '../src/prism-garden/content.mjs';
+import {createRun} from '../src/prism-garden/engine.mjs';
 import {ACHIEVEMENTS,newProgress,persistProgress,KEY} from '../src/prism-garden/achievements.mjs';
 import {prismArcadeSummary} from '../src/prism-garden/arcade-summary.mjs';
 
@@ -61,4 +62,36 @@ test('main arcade only READS Prism Garden profile and retains separate save, off
  assert.match(offline,/src\/prism-garden\/arcade-summary\.mjs/);
  assert.match(worker,/\/prism-garden\.html/);
  assert.match(main,/original web address/);
+});
+
+test('Prism summary reports exact world restoration, gold medals and active mosaic',()=>{
+ const progress=newProgress();
+ for(const i of [0,1,6,12])progress.completed[LEVELS[i].id]='2026-11-03T20:00:00.000Z';
+ progress.mastery[LEVELS[0].id]='gold';
+ progress.active=createRun(LEVELS[2]);
+ const raw=JSON.stringify(progress),storage={getItem:key=>key===KEY?raw:null};
+ const summary=prismArcadeSummary(storage);
+ assert.equal(summary.available,true);
+ assert.equal(summary.completed,4);
+ assert.deepEqual(summary.worldProgress,{dewglass:2,ember:1,moonpool:1});
+ assert.equal(summary.worldsVisited,3);
+ assert.equal(summary.goldMedals,1);
+ assert.equal(summary.activeLevel,LEVELS[2].name);
+ assert.equal(summary.nextLevel,LEVELS[2].name);
+});
+test('Prism Bloom includes the live-origin jewel doors, progress and accessible cabinet filters',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+ const styles=readFileSync(new URL('../src/styles.css',import.meta.url),'utf8');
+ for(const label of ['all','glimmer','prism','passport'])assert.match(html,new RegExp('data-cabinet-filter="'+label+'"'));
+ assert.match(app,/aria-pressed/);assert.match(app,/cabinetFilter/);
+ assert.match(html,/id="passport-achievement-grid"/);
+ assert.match(html,/id="atrium-prism-caption"/);
+ assert.match(html,/id="home-prism-progress"/);
+ assert.match(html,/id="library-prism-progress"/);
+ assert.match(styles,/prefers-reduced-motion/);
+ assert.match(styles,/\.cabinet-filter:focus-visible/);
+ assert.match(styles,/\.cabinet-section\[hidden\]/);
+ assert.equal((html.match(/class="prism-card-art"/g)||[]).length,2);
+ assert.ok((html.match(/href="\/prism-garden\.html"/g)||[]).length>=4);
 });

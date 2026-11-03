@@ -28,6 +28,7 @@ ASSETS = {
     '/src/prism-garden/backup-ui.mjs': ('src/prism-garden/backup-ui.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/backup.css': ('src/prism-garden/backup.css','text/css; charset=utf-8'),
     '/src/prism-garden/arcade-summary.mjs': ('src/prism-garden/arcade-summary.mjs','text/javascript; charset=utf-8'),
+    '/src/arcade-passport.mjs': ('src/arcade-passport.mjs','text/javascript; charset=utf-8'),
     '/sw.js': ('sw.js','text/javascript; charset=utf-8'),
     '/manifest.webmanifest': ('manifest.webmanifest','application/manifest+json; charset=utf-8'),
     '/assets/atrium.svg': ('assets/atrium.svg','image/svg+xml'),
