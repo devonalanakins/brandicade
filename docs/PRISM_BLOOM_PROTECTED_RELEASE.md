@@ -70,3 +70,6 @@ player records.
 
 **No release, DNS, Access, D1, token, stored save, or existing Worker
 settings change was performed by preparing this candidate.**
+
+## Verified bundling gate (added to PR #12)
+The draft CI also runs pinned open-source `wrangler@4.156.2 deploy --dry-run --outdir dist/protected-bundle`, checks that exactly one bundle is emitted, validates its JavaScript syntax, and re-runs the signed-Access/D1 HTTP tests against the **actual bundled module**. This is a local build test, **not a Worker upload, an Access login or a real D1-binding test**. Do not add a deploy workflow or publish bundled files to a public release before the data/identity/license gates pass.

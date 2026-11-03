@@ -2,6 +2,7 @@ import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 
 const ISSUER='https://synthetic-team.cloudflareaccess.com';
@@ -20,7 +21,9 @@ before(async()=>{
   if(url!==ISSUER+'/cdn-cgi/access/certs')throw Error('Unexpected network request');
   return {ok:true,async json(){return jwks}};
  };
- worker=(await import('../dist/brandicade-protected.candidate.mjs')).default;
+ worker=(await import(process.env.BRANDICADE_BUNDLED_WORKER?
+  pathToFileURL(process.env.BRANDICADE_BUNDLED_WORKER).href:
+  '../dist/brandicade-protected.candidate.mjs')).default;
 });
 after(()=>{if(originalFetch)globalThis.fetch=originalFetch});
 async function signed(email=PLAYER,change={}){
