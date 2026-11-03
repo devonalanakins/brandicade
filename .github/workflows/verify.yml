@@ -18,6 +18,7 @@ jobs:
       - run: node --check src/prism-garden/app.mjs && node --check src/prism-garden/engine.mjs && node --check src/prism-garden/achievements.mjs && node --check src/prism-garden/save-guard.mjs && node --check src/prism-garden/backup.mjs && node --check src/prism-garden/backup-ui.mjs
       - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs tests/prism-run-safety.test.mjs
       - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - run: python3 scripts/build_prism_preview.py && node --input-type=module --check < dist/prism-garden-preview.worker.js
       - run: python3 build_worker.py
       - run: python3 -m py_compile build_worker.py
 # Verification only: the recovered static bundle must not overwrite production.
