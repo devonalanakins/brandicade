@@ -1,6 +1,6 @@
 /* App-shell caching only. Network-first HTML, offline fallback; no tracking. */
-const CACHE='brandicade-app-v1.0.1';
-const ASSETS=['/','/index.html','/src/styles.css','/src/app.mjs','/src/engine.mjs','/src/progression.mjs','/assets/atrium.svg','/assets/mark.svg','/assets/icon.svg','/assets/icon-192.png','/assets/icon-512.png','/assets/icon-1024.png','/manifest.webmanifest'];
+const CACHE='brandicade-app-prism-v1';
+const ASSETS=['/','/index.html','/src/styles.css','/src/app.mjs','/src/engine.mjs','/src/progression.mjs','/prism-garden.html','/src/prism-garden/content.mjs','/src/prism-garden/engine.mjs','/src/prism-garden/achievements.mjs','/src/prism-garden/app.mjs','/src/prism-garden/prism.css','/assets/atrium.svg','/assets/mark.svg','/assets/icon.svg','/assets/icon-192.png','/assets/icon-512.png','/assets/icon-1024.png','/manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==self.location.origin)return;
