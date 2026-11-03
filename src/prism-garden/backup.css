@@ -1,0 +1,13 @@
+/* Prism Garden device-local backup controls: game-scoped; accessible at phone widths. */
+.pg-backup-panel{max-width:520px;margin:15px auto 0;padding:20px;border:1px solid #80ab9366;border-radius:18px;background:linear-gradient(135deg,#224b3d,#15382f);color:#f3efe1}
+.pg-backup-heading{display:flex;align-items:center;gap:12px}.pg-backup-heading h2{font-size:19px;margin:0 0 6px;letter-spacing:-.02em}.pg-backup-heading p{font-size:12px;color:#bdcfc4;margin:0;line-height:1.55}
+.pg-backup-symbol{font-size:33px;color:#e1c99d}.pg-backup-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 10px}
+.pg-backup-buttons button,.pg-backup-buttons label{display:grid;place-items:center;text-align:center;min-height:47px;padding:9px 10px;background:#235545;color:#f3efe1;border:1px solid #8fbfa6;border-radius:13px;font-size:12px;font-weight:650;cursor:pointer}
+.pg-backup-buttons button:disabled{opacity:.5;cursor:wait}.pg-backup-buttons label{background:#d2e7cb;color:#173b2f;border-color:#d2e7cb}
+.pg-backup-buttons button:focus-visible,.pg-backup-buttons label:focus-within{outline:3px solid #e9d7a2;outline-offset:3px}
+.pg-backup-buttons input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+#pg-backup-status{font-size:11px;line-height:1.55;color:#bed2c5;min-height:34px;margin:5px 0 0}#pg-backup-status[data-kind=error]{color:#ffd0c2}#pg-backup-status[data-kind=success]{color:#bff5d1}
+@media(max-width:360px){.pg-backup-panel{padding:15px}.pg-backup-buttons{grid-template-columns:1fr}}
+#pg-backup-raw{display:block;width:100%;min-height:47px;margin:3px 0 10px;border:1px solid #e9c789;border-radius:12px;background:#453927;color:#fff4db;font-size:12px;font-weight:700;padding:11px}
+#pg-backup-raw:focus-visible{outline:3px solid #e9d7a2;outline-offset:3px}
+.pg-backup-storage-note{color:#ffe2bb;font-size:12px;line-height:1.5;margin:10px 0}
