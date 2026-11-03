@@ -74,6 +74,11 @@ test('browser bridge cannot silently import, upload, or merge before user intera
  assert.match(src,/data-cloud-action="check"/);
  assert.match(src,/deviceBackupVerified/);
  assert.match(src,/remoteBackupVerified/);
+ assert.match(src,/data-cloud-action="confirm-backup"/);
+ assert.match(src,/pendingBackup='local';deviceBackupVerified=false/);
+ assert.match(src,/pendingBackup='remote';remoteBackupVerified=false/);
+ assert.match(src,/else if\(action==='confirm-backup'&&pendingBackup&&state\)/);
+ assert.match(src,/Save it in Files, then confirm/);
  assert.match(src,/state.kind==='conflict'/);
  assert.match(src,/No device data was overwritten/);
  assert.match(src,/credentials:'same-origin'/);

@@ -57,7 +57,8 @@ export function mountCloudSync(){
   '<div class="brandicade-cloud-controls">'+
   '<button type="button" data-cloud-action="check">Check cloud backup</button>'+
   '<button type="button" data-cloud-action="local" hidden>Download device backup</button>'+
-  '<button type="button" data-cloud-action="remote" hidden>Download cloud backup</button>'+
+  '<button type="button" data-cloud-action="remote" hidden>Download cloud backup</button>'+ 
+  '<button type="button" data-cloud-action="confirm-backup" hidden>I saved the backup file</button>'+
   '<button type="button" data-cloud-action="upload" hidden>Upload device save</button>'+
   '<button type="button" data-cloud-action="restore" hidden>Restore cloud save</button></div>';
  const css=document.createElement('style');
@@ -74,7 +75,7 @@ export function mountCloudSync(){
  const status=panel.querySelector('.brandicade-cloud-status');
  const buttons=Object.fromEntries([...panel.querySelectorAll('[data-cloud-action]')]
   .map(b=>[b.dataset.cloudAction,b]));
- let state=null,localSnapshot=null,deviceBackupVerified=false,remoteBackupVerified=false,busy=false;
+ let state=null,localSnapshot=null,deviceBackupVerified=false,remoteBackupVerified=false,pendingBackup=null,busy=false;
  function say(message){status.textContent=message}
  function show(...names){
   for(const [action,button] of Object.entries(buttons))
@@ -85,7 +86,7 @@ export function mountCloudSync(){
   catch{return false}
  }
  async function check(){
-  state=null;deviceBackupVerified=false;remoteBackupVerified=false;
+  state=null;deviceBackupVerified=false;remoteBackupVerified=false;pendingBackup=null;
   show();say('Checking encrypted connection and save revision…');
   let raw;
   try{raw=globalThis.localStorage.getItem(SAVE_KEY)}
@@ -163,14 +164,29 @@ export function mountCloudSync(){
    if(action==='check')await check();
    else if(action==='local'&&state?.local){
     saveFile(exportSave(state.local),'brandicade-device-backup.json');
-    deviceBackupVerified=true;
-    if(state.kind==='upload'&&unchanged())show('local','upload');
-    say(state.kind==='upload'?'Device backup downloaded. You may now choose to upload your device save.':'Device backup downloaded; no save was modified.');
+    pendingBackup='local';deviceBackupVerified=false;
+    show('local','confirm-backup');
+    say('Device backup download started. Save it in Files, then confirm before any upload.');
    }else if(action==='remote'&&state?.remote){
     saveFile(exportSave(state.remote),'brandicade-cloud-backup.json');
-    remoteBackupVerified=true;
-    if(state.kind==='restore'&&unchanged())show('remote','restore');
-    say(state.kind==='restore'?'Cloud backup downloaded. You may now restore it to this empty device.':'Cloud backup downloaded; no save was modified.');
+    pendingBackup='remote';remoteBackupVerified=false;
+    show('remote','confirm-backup');
+    say('Cloud backup download started. Save it in Files, then confirm before any restore.');
+   }else if(action==='confirm-backup'&&pendingBackup&&state){
+    if(!unchanged()){
+     state=null;pendingBackup=null;show();
+     say('Device save changed. Check cloud again before proceeding.');return;
+    }
+    if(pendingBackup==='local'){
+     deviceBackupVerified=true;
+     show('local',...(state.kind==='conflict'||state.kind==='equal'?['remote']:[]),...(state.kind==='upload'?['upload']:[]));
+     say('Backup file acknowledged. You may now choose to upload. No data has changed.');
+    }else{
+     remoteBackupVerified=true;
+     show('remote',...(state.kind==='conflict'||state.kind==='equal'?['local']:[]),...(state.kind==='restore'?['restore']:[]));
+     say('Backup file acknowledged. You may now choose to restore. No data has changed.');
+    }
+    pendingBackup=null;
    }else if(action==='upload')await upload();
    else if(action==='restore')restore();
   }finally{busy=false;button.disabled=false}

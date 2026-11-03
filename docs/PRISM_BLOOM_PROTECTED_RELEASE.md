@@ -141,3 +141,16 @@ Worker HTTP suite checks script injection, first-party route, denied anonymous
 access, service-worker caching and offline asset registration against both
 raw and Wrangler-bundled output. No production records, tokens or identities
 are used. Real iPhone/PWA and storage-recovery acceptance remains mandatory.
+
+### Mobile backup confirmation refinement
+
+A browser download request does not prove that Safari actually saved a file.
+The initial backup buttons therefore initiate a download **without** unlocking
+a cloud upload or local restore. A separate, explicit **I saved the backup
+file** action confirms that the user has retained the exported file in Files;
+only then does the applicable upload/restore button become available.
+This is user attestation rather than cryptographic proof of possession.
+The device-local record is rechecked before the action, and a changed save
+requires a fresh cloud review. In a conflict, both independent export options
+remain available. Physical iPhone Files/download verification is still needed
+before a production rollout.
