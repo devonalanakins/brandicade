@@ -48,3 +48,13 @@ The vector illustrations are local, dependency-free, decorative rather than auth
 The app-shell route list includes `/src/prism-garden/restoration-scene.mjs` for offline play; Cloudflare preview must include this module in its isolated source allowlist before preview verification can pass. New `tests/prism-world-restoration.test.mjs` covers truthful scene states, non-sequential completion, all three art variants, unreadable data, static accessibility/motion guards, a read-only gallery/atlas and actual puzzle completion with a single newly revealed mosaic.
 
 **Release boundary unchanged:** recovered static Worker build is not production's Access/D1 Worker. Production deployment remains blocked until the existing real-data backup/restore, identity, source parity, license, rollback and on-device testing gates are met.
+
+## Prism Bloom guided jewel board — November 3, 2026
+
+An additive, source-only interaction pass after the earned-world restoration scenes. `src/prism-garden/board-guide.mjs` derives a truthful, **non-persisted** color-region path and legal-destination explanation directly from the existing reducer. Each mosaic shows a horizontal jewel-region ribbon (0–3 jewels per region, current/locked/restored), a labeled semantic progress bar, and a selected-jewel instruction. Exact valid destinations are also announced in socket/shelf accessible labels. Players can cancel a selection using the explicit large **Clear selection** touch button or Escape without using a hint or changing the save. Locked socket rows are disabled from tab navigation.
+
+On narrow phones, the board height grows based on the authored number of color regions (277 / 331 / 385 px minimum for 3 / 4 / 5 rows), retaining 44px socket targets and avoiding a second nested mosaic scrollbar. Mobile behavior still needs visual/VoiceOver validation on a real iPhone.
+
+The guide is pure and does not alter puzzle difficulty, move counting, Sanctuary/Mastery medal rules, completion awards, game-local save schemas, legacy Glimmer Pop progress, Brandle, or the production Access/D1 Worker. Offline service-worker and static Worker asset lists include the new module; the isolated QA-only preview builder must carry it too. Focused `prism-board-guide.test.mjs` checks reducer parity, illegal shelf moves, true region transitions, undo, non-mutating cancel actions, narrow 5-region board structure, and accessibility/motion CSS controls.
+
+**Release guard:** CI and browser simulation are not production/device verification. Live Worker data/auth recovery, encrypted backup and isolated restore, source/license parity, real phone testing and approved rollback remain required.

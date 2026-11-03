@@ -52,9 +52,10 @@ class PreviewBuildTests(unittest.TestCase):
     def test_only_prism_and_preview_assets_with_no_api(self):
         result = builder.build(self.root)
         source, assets = self.files()
-        self.assertEqual(result['assets'], 20)
+        self.assertEqual(result['assets'], 21)
         self.assertNotIn('/src/app.mjs', assets)
         self.assertIn('/src/prism-garden/restoration-scene.mjs', assets)
+        self.assertIn('/src/prism-garden/board-guide.mjs', assets)
         self.assertNotIn('/api/save', assets)
         self.assertNotIn('D1_DATABASE', source)
         self.assertIn('PRISM GARDEN PREVIEW', assets['/index.html'].decode())
@@ -66,6 +67,7 @@ class PreviewBuildTests(unittest.TestCase):
         self.assertEqual(manifest['icons'][2]['sizes'], '512x512')
         self.assertNotIn('/src/engine.mjs', assets['/sw.js'].decode())
         self.assertIn('/src/prism-garden/restoration-scene.mjs', assets['/sw.js'].decode())
+        self.assertIn('/src/prism-garden/board-guide.mjs', assets['/sw.js'].decode())
         self.assertNotIn('/api/save', assets['/sw.js'].decode())
         self.assertEqual(result['bytes'], len(source.encode()))
         syntax = subprocess.run(['node','--input-type=module','--check'], input=source, text=True, capture_output=True)
@@ -104,7 +106,7 @@ class PreviewBuildTests(unittest.TestCase):
         self.write('src/prism-garden/backup-ui.mjs',
             b"const markup=\"<label>Choose from '<input type=file>'</label>\";\n")
         result = builder.build(self.root)
-        self.assertEqual(result['assets'], 20)
+        self.assertEqual(result['assets'], 21)
 
     def test_html_external_asset_fails_closed(self):
         self.write('prism-garden.html',

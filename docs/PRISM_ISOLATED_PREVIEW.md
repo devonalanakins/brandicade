@@ -30,3 +30,6 @@ Brandicade release issue: https://github.com/devonalanakins/brandicade/issues/2
 
 ## Prism Bloom scene parity (2026-11-03)
 The QA-only preview's static asset allowlist now includes `restoration-scene.mjs` because the first-party Prism Garden game uses it for six earned layers in each of its three worlds. The isolated build must serve the new art module offline, keep legacy app and cloud-save API routes excluded, and pass exact-head HTTP tests. This remains test infrastructure, not a separate product or live deployment. The target player experience stays inside Brandicade.
+
+## Guided-board module parity — 2026-11-03
+The QA-only preview builder now includes `board-guide.mjs` and verifies it in the source allowlist and generated Worker HTTP and offline routes. This is necessary for the new truthful region-progress ribbon, selected-jewel instructions, clear-selection control and narrow-board layout. The player destination remains inside Brandicade; this temporary preview is not a separate permanent game or a production release. No Access/D1 or DNS changes were authorized or performed.

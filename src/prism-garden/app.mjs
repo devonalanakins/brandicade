@@ -2,6 +2,7 @@ import {GEMS,LEVELS,WORLDS,levelByNumber,levelById} from './content.mjs';
 import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hint,solve,isComplete} from './engine.mjs';
 import {ACHIEVEMENTS,readStoredProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
 import {renderRestoration,restorationState} from './restoration-scene.mjs';
+import {describeBoard} from './board-guide.mjs';
 const app=document.querySelector('#prism-app');
 const initialSave=readStoredProgress();
 const progress=initialSave.progress;
@@ -63,20 +64,26 @@ function resume() {
 }
 function showGame() {
  const level=levelById(run.levelId),world=WORLDS[level.worldIndex];
- const area=activeRegion(run,level);
- const destinations=selected?validDestinations(level,run,selected):[];
+ const area=activeRegion(run,level),guide=describeBoard(level,run,selected);
+ const destinations=guide.destinations;
  const valid=(kind,index)=>destinations.some(d=>d.kind===kind&&d.index===index);
  const hinted=(kind,index)=>hintTarget?.kind===kind&&hintTarget.index===index;
  const hintedSource=(kind,index)=>!!hintTarget&&selected?.kind===kind&&selected.index===index;
  const newlyPlaced=(kind,index)=>recentPlacement?.kind===kind&&recentPlacement.index===index;
- const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+' '+(hinted('socket',i)?'hint-destination':'')+' '+(newlyPlaced('socket',i)?'just-placed':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+(hinted('socket',i)?', suggested by hint':'')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
+ const trail=guide.regions.map(region=>'<li class="pg-region-step '+region.status+'"'+(region.status==='active'?' aria-current="step"':'')+' aria-label="Region '+(region.index+1)+', '+escape(region.name)+', '+region.filled+' of 3 jewels, '+region.status+'">'+
+   gem(region.color,true)+'<span class="pg-region-copy"><b>'+escape(region.name)+'</b><small>'+region.filled+' / 3</small></span>'+
+   '<span class="pg-region-state" aria-hidden="true">'+(region.status==='restored'?'✓':region.status==='active'?'•':'·')+'</span></li>').join('');
+ const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+' '+(hinted('socket',i)?'hint-destination':'')+' '+(newlyPlaced('socket',i)?'just-placed':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn||Math.floor(i/3)>area?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+(hinted('socket',i)?', suggested by hint':'')+(valid('socket',i)?', available destination':'')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
  const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+' '+(hintedSource('stack',i)?'hint-source':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[stack[0].color].label+'</span>':''):'<span class="pg-empty">·</span>')+'</button>').join('');
- const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+' '+(hinted('shelf',i)?'hint-destination':'')+' '+(hintedSource('shelf',i)?'hint-source':'')+' '+(newlyPlaced('shelf',i)?'just-placed':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+(hinted('shelf',i)?', suggested by hint':'')+'">'+(entry?gem(entry.color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[entry.color].label+'</span>':''):'<span class="pg-empty">+</span>')+'</button>').join('');
- const count=run.placed.filter(Boolean).length,total=run.placed.length;
+ const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+' '+(hinted('shelf',i)?'hint-destination':'')+' '+(hintedSource('shelf',i)?'hint-source':'')+' '+(newlyPlaced('shelf',i)?'just-placed':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+(hinted('shelf',i)?', suggested by hint':'')+(valid('shelf',i)?', available destination':'')+'">'+(entry?gem(entry.color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[entry.color].label+'</span>':''):'<span class="pg-empty">+</span>')+'</button>').join('');
+ const count=guide.placed,total=guide.total;
  return '<div class="pg-game"><div class="pg-topline"><button class="pg-icon-button" data-nav="home" aria-label="Return to Prism Garden home">←</button><div><small>'+escape(world.short)+' · '+escape(run.mode)+'</small><h2>'+escape(level.name)+'</h2></div><button class="pg-icon-button" data-nav="settings" aria-label="Settings">⚙</button></div>'+
- '<div class="pg-progress"><span>Restoration <b>'+count+'/'+total+'</b></span><div class="pg-progress-track"><i style="width:'+(count/total*100)+'%"></i></div></div>'+
- '<div class="pg-world-scene pg-scene-'+world.scene+'"><div class="pg-scene-glow"></div>'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'play'})+'<div class="pg-arch"><div class="pg-mosaic">'+sockets+'</div></div><div class="pg-scene-floor"></div></div>'+
- '<div class="pg-task"><b>'+(area===level.colors.length?'Garden restored': 'Restore '+GEMS[level.colors[area]].label+' jewels')+'</b><span>'+(selected?'Choose a highlighted destination':'Choose an exposed jewel')+'</span></div>'+
+ '<div class="pg-progress"><span>Restoration <b>'+count+'/'+total+'</b></span><div class="pg-progress-track" role="progressbar" aria-label="Mosaic jewels placed" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+count+'"><i style="width:'+(count/total*100)+'%"></i></div></div>'+
+ '<div class="pg-region-heading"><b>RESTORATION PATH</b><span>'+(area===level.colors.length?'All regions restored':'Region '+(area+1)+' of '+level.colors.length)+'</span></div>'+
+ '<ol class="pg-region-rail" aria-label="Jewel regions in restoration order">'+trail+'</ol>'+
+ '<div class="pg-world-scene pg-scene-'+world.scene+'" style="--pg-board-height:'+(115+level.colors.length*54)+'px"><div class="pg-scene-glow"></div>'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'play'})+'<div class="pg-arch"><div class="pg-mosaic">'+sockets+'</div></div><div class="pg-scene-floor"></div></div>'+
+ '<div class="pg-task"><div class="pg-task-copy"><b>'+(area===level.colors.length?'Garden restored': 'Restore '+GEMS[level.colors[area]].label+' jewels')+'</b><span>'+escape(guide.instruction)+'</span></div>'+
+ (guide.selection?'<button type="button" class="pg-clear-selection" data-action="clear-selection" aria-keyshortcuts="Escape">Clear selection</button>':'')+'</div>'+
  '<div class="pg-supplies"><div class="pg-supply-heading">JEWEL STACKS <span>Moves '+run.moves+'</span></div><div class="pg-stacks">'+stacks+'</div><div class="pg-supply-heading">HOLDING SHELF <span>'+run.shelf.filter(Boolean).length+' / '+run.shelf.length+'</span></div><div class="pg-shelf">'+shelf+'</div></div>'+
  '<div class="pg-tools"><button data-action="undo" '+(!run.history.length?'disabled':'')+'>↶ Undo</button><button data-action="hint">✧ Hint</button><button data-action="restart">Restart</button></div>'+
  '<p class="pg-live" role="status" aria-live="polite">'+escape(message||'Take your time. Nothing expires here.')+'</p><p class="pg-game-mode-note">'+(run.mode==='mastery'?'Mastery: earn a gold medal through efficient moves without hints.':'Sanctuary: no timer, no penalties and unlimited undo.')+'</p></div>';
@@ -183,6 +190,7 @@ app.addEventListener('click',(event)=>{
  if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level)){if(desiredMode==='mastery'&&!progress.completed[level.id]){message='Complete this level in Sanctuary first.';desiredMode='sanctuary';render();return;}requestRunChange(level,desiredMode,'switch');}return;}
  const action=button.dataset.action;
  if(action==='continue'){resume();return;}
+ if(action==='clear-selection'&&screen==='game'&&selected){const previous=selected;selected=null;hintTarget=null;recentPlacement=null;message='Selection cleared.';render();if(event.detail===0)app.querySelector?.('[data-kind="'+previous.kind+'"][data-index="'+previous.index+'"]:not([disabled])')?.focus?.();return;}
  if(action==='next'){const next=levelByNumber(Math.min(18,levelById(run.levelId).number+1));reset(next);return;}
  if(action==='replay-mastery'){const level=levelById(run.levelId);if(progress.completed[level.id])reset(level,'mastery');return;}
  if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;hintTarget=null;recentPlacement=null;message='Last move undone.';commit();render();}return;}
@@ -219,7 +227,16 @@ app.addEventListener('click',(event)=>{
 });
 // Keep keyboard focus inside the accessible confirmation; Escape never discards a run.
 app.addEventListener('keydown',(event)=>{
- if(!pendingChange)return;
+ if(!pendingChange){
+  if(screen==='game'&&selected&&event.key==='Escape'){
+   event.preventDefault();
+   const previous=selected;
+   selected=null;hintTarget=null;recentPlacement=null;message='Selection cleared.';
+   render();
+   app.querySelector?.('[data-kind="'+previous.kind+'"][data-index="'+previous.index+'"]:not([disabled])')?.focus?.();
+  }
+  return;
+ }
  if(event.key==='Escape'){
   event.preventDefault();
   cancelRunChange();

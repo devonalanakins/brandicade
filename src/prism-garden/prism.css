@@ -122,3 +122,50 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
 }
 #prism-app[data-motion="off"] .pg-restoration-layer,#prism-app[data-motion="off"] .pg-restoration-layer.is-new{transition:none!important;animation:none!important}
 #prism-app[data-motion="off"] .pg-socket.just-placed .crystal,#prism-app[data-motion="off"] .pg-shelf-slot.just-placed .crystal{animation:none!important}
+
+/* PRISM BLOOM — guided, thumb-friendly jewel-board controls. */
+.pg-region-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0;color:#DCEBD5;font-size:10px;line-height:1.4}
+.pg-region-heading b{letter-spacing:.16em;font-size:9px;color:#E9D19C}
+.pg-region-heading span{font-weight:700;color:#B8D5C1}
+.pg-region-rail{display:flex;align-items:stretch;gap:8px;list-style:none;margin:0 0 12px;padding:0 2px 7px;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:#547F69 transparent}
+.pg-region-step{display:flex;position:relative;flex:0 0 116px;min-width:0;align-items:center;gap:9px;min-height:58px;scroll-snap-align:start;padding:9px 10px;background:#17392F;border:1px solid #74988465;border-radius:13px;opacity:.65;box-shadow:inset 0 1px #FFFFFF10}
+.pg-region-step .crystal.small{width:24px;height:28px;flex:0 0 24px;filter:drop-shadow(0 4px 5px #020D1280)}
+.pg-region-step.active{opacity:1;border-color:#EBD3A0;box-shadow:0 0 0 1px #D9C58D55,inset 0 1px #FFFFFF18;background:linear-gradient(150deg,#305745,#193A34)}
+.pg-region-step.restored{opacity:1;border-color:#8FD7B380;background:linear-gradient(150deg,#255B49,#183C37)}
+.pg-region-step.locked .crystal{filter:grayscale(.7);opacity:.58}
+.pg-region-copy{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+.pg-region-copy b{font-weight:750;font-size:10px;color:#F4EADB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg-region-copy small{font-size:10px;letter-spacing:.06em;color:#BBD4C4}
+.pg-region-state{position:absolute;top:3px;right:6px;font-size:10px;color:#E4CEA0}
+.pg-region-step.restored .pg-region-state{color:#B7E6C6}
+.pg-region-step.active .pg-region-state{color:#F8E3B8}
+.pg-task{align-items:center}
+.pg-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+.pg-task-copy b{font-size:12px;color:#F2E9D6}
+.pg-task-copy span{max-width:48ch;text-align:left;color:#BED5C8;line-height:1.5}
+.pg-clear-selection{display:inline-flex;justify-content:center;align-items:center;min-width:110px;min-height:44px;padding:10px 12px;border:1px solid #E3C995A0;background:#344638;border-radius:12px;color:#FFF0D6;font-size:11px;font-weight:800}
+.pg-clear-selection:hover{background:#4B5B42}
+.pg-clear-selection:focus-visible{outline:3px solid #FFEBC3;outline-offset:3px}
+/* Variable minimum height avoids clipping five rows of 44px sockets on small phones. */
+.pg-world-scene{height:max(clamp(250px,39dvh,355px),var(--pg-board-height,277px));min-height:0}
+.pg-world-scene .pg-mosaic{max-height:none;overflow:visible}
+.pg-world-scene .pg-arch{height:88%}
+.pg-socket{touch-action:manipulation;min-width:44px;min-height:44px}
+.pg-stack,.pg-shelf-slot,.pg-tools button{touch-action:manipulation}
+.pg-stack,.pg-shelf-slot{min-width:44px;min-height:52px}
+.pg-socket:disabled{cursor:default}
+.pg-socket.sealed:disabled{opacity:.25}
+.pg-socket:focus-visible,.pg-stack:focus-visible,.pg-shelf-slot:focus-visible{outline:3px solid #FFE1A3;outline-offset:3px}
+@media(max-width:530px){
+ .pg-world-scene{height:max(285px,var(--pg-board-height,277px));min-height:0}
+ .pg-region-heading{padding-inline:2px}
+ .pg-region-step{flex-basis:108px;min-height:56px;padding:8px}
+ .pg-task{flex-direction:column;align-items:stretch;gap:10px}
+ .pg-task-copy span{text-align:left}
+ .pg-clear-selection{align-self:stretch}
+ .pg-stack,.pg-shelf-slot{width:56px;min-width:44px;height:56px}
+}
+@media(prefers-reduced-motion:reduce){
+ .pg-region-step,.pg-clear-selection{transition:none!important;animation:none!important}
+}
+#prism-app[data-motion="off"] .pg-region-step,#prism-app[data-motion="off"] .pg-clear-selection{transition:none!important;animation:none!important}

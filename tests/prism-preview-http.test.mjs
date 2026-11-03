@@ -31,7 +31,7 @@ test('game imports and settings backup UI are local, with a link back to the ori
   const source = await app.text();
   assert.match(source, /https:\/\/brandicade\.anevum\.com\/#home/);
   assert.doesNotMatch(source, /href="\/#home"/);
-  for (const path of ['/src/prism-garden/content.mjs', '/src/prism-garden/engine.mjs', '/src/prism-garden/restoration-scene.mjs', '/src/prism-garden/backup-ui.mjs', '/src/prism-garden/backup.css']) {
+  for (const path of ['/src/prism-garden/content.mjs', '/src/prism-garden/engine.mjs', '/src/prism-garden/board-guide.mjs', '/src/prism-garden/restoration-scene.mjs', '/src/prism-garden/backup-ui.mjs', '/src/prism-garden/backup.css']) {
     assert.equal((await get(path)).status, 200, path);
   }
 });
@@ -52,6 +52,7 @@ test('PWA metadata and offline service worker serve only preview assets', async 
   assert.match(body, /prism-garden-preview-/);
   assert.match(body, /\/src\/prism-garden\/app\.mjs/);
   assert.match(body, /\/src\/prism-garden\/restoration-scene\.mjs/);
+  assert.match(body, /\/src\/prism-garden\/board-guide\.mjs/);
   assert.doesNotMatch(body, /\/src\/app\.mjs/);
   assert.doesNotMatch(body, /\/api\/save/);
   const icon = await get('/assets/icon-192.png');
