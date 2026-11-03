@@ -7,6 +7,7 @@ assets. This is not a deployment command. Do not upload until release gates
 and privately supplied owner config have been independently verified.
 """
 from pathlib import Path
+import json
 import subprocess
 import sys
 
@@ -24,6 +25,9 @@ import {createLegacyRecoveryAPI} from '../server/legacy-recovery-composition.mjs
 """
 
 RUNTIME = r"""
+// Externally served, first-party, opt-in client. Never use inline executable
+// JavaScript in the protected HTML: Content Security Policy stays self-only.
+const CLOUD_SYNC_SOURCE = __CLOUD_SYNC_SOURCE__;
 // JWKS only comes from the fixed, validated Cloudflare Access team issuer.
 const keyCache = new Map();
 async function fetchTrustedJWKS(issuer) {
@@ -92,7 +96,34 @@ export default {
         return await createLegacyRecoveryAPI(cfg)(request);
       }catch {return restricted(503);}
     }
-    return BRANDICADE_STATIC.fetch(request);
+    if(path==='/src/cloud-sync.mjs'){
+      if(request.method!=='GET'&&request.method!=='HEAD')
+        return new Response('Method Not Allowed',{status:405,headers:{Allow:'GET, HEAD'}});
+      return new Response(request.method==='HEAD'?null:CLOUD_SYNC_SOURCE,{
+        status:200,headers:{'Content-Type':'text/javascript; charset=utf-8',
+          'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+    }
+    const response=await BRANDICADE_STATIC.fetch(request);
+    if(request.method!=='GET'||!response.ok)return response;
+    if(path==='/'||path==='/index.html'){
+      const html=await response.text();
+      const snippet='<script type="module" src="/src/cloud-sync.mjs"></script>';
+      if(!html.includes('</body>')||html.includes(snippet))return restricted(503);
+      const headers=new Headers(response.headers);headers.set('Cache-Control','no-store');
+      return new Response(html.replace('</body>',snippet+'</body>'),{
+        status:200,headers});
+    }
+    if(path==='/sw.js'){
+      let code=await response.text();
+      const cache="const CACHE='brandicade-prism-bloom-guided-board-v5'";
+      const assets="const ASSETS=[";
+      if(!code.includes(cache)||!code.includes(assets))return restricted(503);
+      code=code.replace(cache,"const CACHE='brandicade-prism-bloom-cloud-bridge-v6'")
+        .replace(assets,"const ASSETS=['/src/cloud-sync.mjs',");
+      const headers=new Headers(response.headers);headers.set('Cache-Control','no-store');
+      return new Response(code,{status:200,headers});
+    }
+    return response;
   }
 };
 """
@@ -108,7 +139,15 @@ def main():
         raise RuntimeError("Static asset table missing; refusing candidate build")
     # Neither the game assets nor the original security headers are rewritten.
     content=content.replace(marker,"const BRANDICADE_STATIC = {",1)
-    OUTPUT.write_text(PREFIX+content+"\n"+RUNTIME,encoding="utf-8")
+    client_path=ROOT / "src" / "cloud-sync.mjs"
+    if not client_path.is_file():
+        raise RuntimeError("Protected cloud-sync client missing; refuse build")
+    client=client_path.read_text(encoding="utf-8")
+    if "import {SAVE_KEY,sanitizeSave,exportSave}" not in client:
+        raise RuntimeError("Unexpected cloud-sync import boundary")
+    runtime=RUNTIME.replace("__CLOUD_SYNC_SOURCE__",
+                            json.dumps(client, ensure_ascii=True))
+    OUTPUT.write_text(PREFIX+content+"\n"+runtime,encoding="utf-8")
     print("Built REVIEW-ONLY protected candidate",OUTPUT,
           OUTPUT.stat().st_size,"bytes; no upload performed")
 

@@ -102,3 +102,42 @@ worker or cache migration. New records could appear after the check: verify
 again immediately before any cutover, and preserve owner-held backup and
 rollback approvals. Never rely on this historical zero count as permission to
 wipe or reinitialize a database.
+
+## Opt-in cloud-save client parity — November 3, 2026
+
+Production's existing Worker injects an inline browser-side Glimmer Pop cloud
+sync script after fetching `index.html`. The recovered static source had no
+such client. Merely reconstructing `/api/save` would therefore remove an
+existing feature. PR #12 now includes a **review-only** replacement
+`src/cloud-sync.mjs`, served as a first-party module from the protected
+Worker. The protected builder injects the external script into authenticated
+HTML (no unsafe inline CSP exception) and adds that module to a versioned
+offline service-worker app shell.
+
+The client is intentionally safer than the original implicit reconciliation:
+
+- Access to cloud status requires explicit **Check cloud backup** selection.
+- It synchronizes only original Glimmer Pop `brandicade:save:v1`; Prism
+  Garden's separate local save key, achievements and backups are untouched.
+- Before an initial upload (empty remote), a real downloadable **device
+  backup** action must be selected. Upload uses the exact observed cloud
+  revision and refuses to overwrite a different concurrent revision.
+- If there is only a cloud save, a cloud backup download is required before
+  a deliberate restore into a truly empty browser save key.
+- When local and cloud copies differ, **no automatic winner**, no
+  last-played guess, no merge and no destructive replacement. Both copies can
+  be exported for explicit conflict resolution.
+- No background writes, polling, auto-retries of ambiguous writes, monkey
+  patching of browser storage, or backup key custody in the client.
+- Signed Access is still required on every route. D1 outages return errors
+  from cloud routes but do not block local-first gameplay.
+- This is a **manual sync candidate**. It does not yet restore full automatic
+  cloud-sync semantics or demonstrate live real-owner login. Actual player
+  acceptance and cloud-write gate activation remain outstanding.
+
+`tests/cloud-sync.test.mjs` covers empty/device-only/cloud-only/matching/
+conflicting/corrupt input and exact-progress preservation. The protected
+Worker HTTP suite checks script injection, first-party route, denied anonymous
+access, service-worker caching and offline asset registration against both
+raw and Wrangler-bundled output. No production records, tokens or identities
+are used. Real iPhone/PWA and storage-recovery acceptance remains mandatory.

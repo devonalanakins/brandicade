@@ -120,7 +120,20 @@ test('signed player sees first-party Prism assets and legacy read contracts; adm
   const user=await signed(),admin=await signed(ADMIN),config=env(f.db);
   const page=await hit('/',user,config);
   assert.equal(page.status,200);
-  assert.match(await page.text(),/BRANDICADE|Brandicade/);
+  const html=await page.text();
+  assert.match(html,/BRANDICADE|Brandicade/);
+  assert.equal((html.match(/<script type="module" src="\/src\/cloud-sync\.mjs"><\/script>/g)||[]).length,1);
+  const client=await hit('/src/cloud-sync.mjs',user,config);
+  assert.equal(client.status,200);
+  assert.match(client.headers.get('content-type'),/text\/javascript/);
+  assert.match(await client.text(),/planCloudSync/);
+  assert.equal((await hit('/src/cloud-sync.mjs',null,config)).status,403);
+  const sw=await hit('/sw.js',user,config);
+  assert.equal(sw.status,200);
+  const swContent=await sw.text();
+  assert.match(swContent,/brandicade-prism-bloom-cloud-bridge-v6/);
+  assert.match(swContent,/ASSETS=\['\/src\/cloud-sync\.mjs'/);
+  assert.equal((await hit('/src/cloud-sync.mjs',user,config,'HEAD')).status,200);
   assert.equal((await hit('/src/prism-garden/app.mjs',user,config)).status,200);
   assert.equal((await hit('/src/prism-garden/board-guide.mjs',user,config)).status,200);
   assert.deepEqual(await (await hit('/api/session',user,config)).json(),
