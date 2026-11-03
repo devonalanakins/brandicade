@@ -154,3 +154,13 @@ The device-local record is rechecked before the action, and a changed save
 requires a fresh cloud review. In a conflict, both independent export options
 remain available. Physical iPhone Files/download verification is still needed
 before a production rollout.
+ 
+### Independent synthetic browser interaction coverage
+`tests/cloud-sync-ui.test.mjs` uses a synthetic DOM, browser-storage facade
+and real module callbacks to exercise the complete check → download →
+acknowledge → upload / restore sequence. It verifies that merely initiating
+a download does not unlock a data change; conflicting local/cloud files are
+exportable but not merged or replaced; administrator checks never mutate
+device progress; and the Prism Garden save namespace is left unchanged.
+These checks still do not certify iPhone Files downloads, Safari execution,
+Cloudflare Access's actual injected JWT, or production D1 behavior.
