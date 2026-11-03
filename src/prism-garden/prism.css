@@ -73,3 +73,52 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
 .pg-storage-warning b{display:block;font-size:15px;margin-bottom:7px}
 .pg-storage-warning p{font-size:13px;line-height:1.55;margin:0 0 12px}
 .pg-storage-warning button{min-height:46px;padding:10px 16px;border-radius:12px;border:1px solid #e9c789;background:#e9c789;color:#1a3129;font-weight:700}
+
+/* PRISM BLOOM — six truthful, original restoration layers for each authored world. */
+.pg-restoration{position:relative;overflow:hidden;isolation:isolate;pointer-events:none;width:100%;height:100%;border-radius:inherit;background:#102e29}
+.pg-restoration svg{display:block;width:100%;height:100%;object-fit:cover}
+.pg-restoration-layer{opacity:.045;transform-origin:50% 50%;transition:opacity 420ms ease-out}
+.pg-restoration-layer.is-awake{opacity:1}
+.pg-restoration-layer.is-new{animation:pg-scene-awaken 900ms ease-out both}
+@keyframes pg-scene-awaken{0%{opacity:.08;filter:brightness(.6)}48%{opacity:1;filter:brightness(1.4)}100%{opacity:1;filter:brightness(1)}}
+/* Visuals on the World Atlas show exactly the mosaics earned for that world. */
+.pg-atlas-restoration{position:relative;height:175px;overflow:hidden;margin:12px 0 16px;border:1px solid #c6d3bf45;border-radius:19px;background:#102e30}
+.pg-restoration--atlas{height:100%}
+.pg-atlas-restoration:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#102b2a00 56%,#0c302a65 100%)}
+.pg-world-card{border-color:#9bbba159;box-shadow:0 16px 38px #041b1736}
+/* Diagonal glass arches remain the puzzle interaction layer: art never intercepts taps. */
+.pg-world-scene .pg-restoration--play{position:absolute;inset:0;z-index:0;opacity:.43}
+.pg-world-scene .pg-scene-glow,.pg-world-scene .pg-scene-floor{z-index:1;pointer-events:none}
+.pg-world-scene .pg-arch{z-index:2;background:#102b2aba;backdrop-filter:blur(1.5px)}
+.pg-world-scene .pg-socket{position:relative;z-index:3}
+.pg-world-scene .pg-restoration-layer.is-dormant{opacity:.015}
+/* The Gallery uses the same scene geometry as the Atlas and victory animation. */
+.pg-gallery-scene{position:relative;min-height:162px;background:#102e30}
+.pg-gallery-scene .pg-restoration--gallery{position:absolute;inset:0}
+.pg-gallery-world-name{position:absolute;z-index:1;bottom:10px;left:9px;right:9px;text-align:center;padding:5px 8px;border-radius:8px;background:#0a211fcc;color:#f7eedb;font-size:10px;font-weight:800;letter-spacing:.05em}
+.pg-gallery-details .pg-restoration-description{line-height:1.55;color:#d1e2d2}
+.pg-gallery-details button{min-height:44px;margin-top:5px}
+.pg-gallery-details .pg-secret{min-width:44px}
+.pg-gallery-scene.pg-scene-orchard,.pg-gallery-scene.pg-scene-moonpool{background:#102e30}
+/* A restored mosaic blooms once in the victory scene; never loops or changes save state. */
+.pg-win-diorama{width:min(100%,580px);height:245px;margin:15px auto 7px;overflow:hidden;border:1px solid #c9d2b66b;border-radius:23px;background:#132f2c;box-shadow:0 18px 48px #02181485,inset 0 1px #fff2}
+.pg-restoration--win{height:100%}
+.pg-world-restored-label{font:700 12px/1.4 system-ui,sans-serif;letter-spacing:.12em;color:#ead7ac!important;text-transform:uppercase}
+/* Feedback attaches only to the destination of an actual successful move. */
+.pg-socket.just-placed,.pg-shelf-slot.just-placed{border-color:#ebd7ab;box-shadow:0 0 0 2px #ecd9a356,0 0 26px #e5bf7899}
+.pg-socket.just-placed .crystal,.pg-shelf-slot.just-placed .crystal{animation:pg-jewel-land 380ms cubic-bezier(.16,1,.3,1) both}
+@keyframes pg-jewel-land{0%{opacity:.45;transform:translateY(-10px) scale(.75)}65%{opacity:1;transform:translateY(1px) scale(1.07)}100%{opacity:1;transform:none}}
+@media(max-width:530px){
+ .pg-atlas-restoration{height:148px;margin:11px 0 13px}
+ .pg-gallery-scene{min-height:130px}
+ .pg-gallery-world-name{bottom:4px;left:4px;right:4px;font-size:9px;padding:4px}
+ .pg-win{padding:32px 4px}
+ .pg-win-diorama{height:180px;border-radius:17px}
+ .pg-world-scene .pg-arch{backdrop-filter:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .pg-restoration-layer,.pg-restoration-layer.is-new{transition:none!important;animation:none!important}
+ .pg-socket.just-placed .crystal,.pg-shelf-slot.just-placed .crystal{animation:none!important}
+}
+#prism-app[data-motion="off"] .pg-restoration-layer,#prism-app[data-motion="off"] .pg-restoration-layer.is-new{transition:none!important;animation:none!important}
+#prism-app[data-motion="off"] .pg-socket.just-placed .crystal,#prism-app[data-motion="off"] .pg-shelf-slot.just-placed .crystal{animation:none!important}
