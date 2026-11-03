@@ -224,6 +224,6 @@ test('cloud-only restore revalidates revision immediately before writing device 
   assert.equal(f.cloudGets,2);
   assert.equal(f.writes,0);
   assert.equal(f.reloads,0);
-  assert.equal(f.values.get(SAVE_KEY),null);
+  assert.equal(f.values.has(SAVE_KEY),false);
  }finally{f.cleanup()}
 });
