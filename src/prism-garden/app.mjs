@@ -3,7 +3,7 @@ import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hi
 import {ACHIEVEMENTS,loadProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
 const app=document.querySelector('#prism-app');
 const progress=loadProgress();
-let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary';
+let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null;
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gem=(color,small=false)=>'<span class="crystal '+(small?'small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
 const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
@@ -25,15 +25,15 @@ function playSound(freq=470) {
 function commit() {
  if(!persistProgress(progress)){message='Your browser is not saving. Avoid clearing website data until storage is available.';}
 }
-function nav(target) {screen=target;selected=null;newAwards=[];message='';render();}
+function nav(target) {screen=target;selected=null;hintTarget=null;newAwards=[];message='';render();}
 function reset(level,mode='sanctuary') {
  const id='pg-'+level.id+'-'+String(Date.now());
- run=createRun(level,{mode,runId:id});selected=null;newAwards=[];message='';
+ run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;newAwards=[];message='';
  progress.active=run;commit();screen='game';render();
 }
 function resume() {
  const saved=progress.active,level=saved&&levelById(saved.levelId);
- if(level&&saved.stacks&&saved.placed&&!saved.finished){run=saved;screen='game';selected=null;render();}
+ if(level&&saved.stacks&&saved.placed&&!saved.finished){run=saved;screen='game';selected=null;hintTarget=null;render();}
  else reset(nextLevel());
 }
 function showGame() {
@@ -41,9 +41,11 @@ function showGame() {
  const area=activeRegion(run,level);
  const destinations=selected?validDestinations(level,run,selected):[];
  const valid=(kind,index)=>destinations.some(d=>d.kind===kind&&d.index===index);
- const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
- const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[stack[0].color].label+'</span>':''):'<span class="pg-empty">·</span>')+'</button>').join('');
- const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+'">'+(entry?gem(entry.color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[entry.color].label+'</span>':''):'<span class="pg-empty">+</span>')+'</button>').join('');
+ const hinted=(kind,index)=>hintTarget?.kind===kind&&hintTarget.index===index;
+ const hintedSource=(kind,index)=>!!hintTarget&&selected?.kind===kind&&selected.index===index;
+ const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+' '+(hinted('socket',i)?'hint-destination':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+(hinted('socket',i)?', suggested by hint':'')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
+ const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+' '+(hintedSource('stack',i)?'hint-source':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[stack[0].color].label+'</span>':''):'<span class="pg-empty">·</span>')+'</button>').join('');
+ const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+' '+(hinted('shelf',i)?'hint-destination':'')+' '+(hintedSource('shelf',i)?'hint-source':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+(hinted('shelf',i)?', suggested by hint':'')+'">'+(entry?gem(entry.color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[entry.color].label+'</span>':''):'<span class="pg-empty">+</span>')+'</button>').join('');
  const count=run.placed.filter(Boolean).length,total=run.placed.length;
  return '<div class="pg-game"><div class="pg-topline"><button class="pg-icon-button" data-nav="home" aria-label="Return to Prism Garden home">←</button><div><small>'+escape(world.short)+' · '+escape(run.mode)+'</small><h2>'+escape(level.name)+'</h2></div><button class="pg-icon-button" data-nav="settings" aria-label="Settings">⚙</button></div>'+
  '<div class="pg-progress"><span>Restoration <b>'+count+'/'+total+'</b></span><div class="pg-progress-track"><i style="width:'+(count/total*100)+'%"></i></div></div>'+
@@ -91,7 +93,7 @@ function finish(level,previouslyCompleted) {
    if(rank[medal]>rank[progress.mastery[level.id]||'bronze']||!progress.mastery[level.id])progress.mastery[level.id]=medal;
  }
  newAwards=evaluateAchievements(progress,current,{replay:previouslyCompleted});
- progress.active=null;commit();sound(660);screen='win';render();
+ progress.active=null;hintTarget=null;commit();sound(660);screen='win';render();
 }
 function sound(f){playSound(f);}
 function showWin(){
@@ -115,9 +117,18 @@ app.addEventListener('click',(event)=>{
  if(action==='continue'){resume();return;}
  if(action==='next'){const next=levelByNumber(Math.min(18,levelById(run.levelId).number+1));reset(next);return;}
  if(action==='replay-mastery'){const level=levelById(run.levelId);if(progress.completed[level.id])reset(level,'mastery');return;}
- if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;message='Last move undone.';commit();render();}return;}
+ if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;hintTarget=null;message='Last move undone.';commit();render();}return;}
  if(action==='restart'&&run){reset(levelById(run.levelId),run.mode);return;}
- if(action==='hint'&&run){const level=levelById(run.levelId),move=hint(level,run);run.hints++;progress.active=run;commit();selected=move?.source||null;message=move?'Try the highlighted jewel, then its glowing destination.':'Undo or restart to open a new route.';render();return;}
+ if(action==='hint'&&run){
+  const level=levelById(run.levelId),move=hint(level,run);
+  run.hints++;progress.active=run;commit();selected=move?.source||null;hintTarget=move?.target||null;
+  if(move){
+   const selectedColor=selectedGem(run,move.source).color;
+   const destination=move.target.kind==='socket'?'socket '+(move.target.index+1):'holding shelf slot '+(move.target.index+1);
+   message='Hint: move the '+GEMS[selectedColor].label.toLowerCase()+' jewel to '+destination+'.';
+  }else message='No winning route from here. Undo or restart to try a different path.';
+  render();return;
+ }
  if(action==='night'){progress.settings.night=!progress.settings.night;if(progress.settings.night&&WORLDS.some((_,i)=>worldDone(i)))earned(progress,'PG-ACH-018');commit();render();return;}
  if(action==='secret'){if(worldDone(Number(button.dataset.world))){earned(progress,'PG-ACH-015');commit();message='You found the hidden glimmer.';render();}return;}
  if(screen!=='game'||!run||!button.dataset.kind)return;
@@ -126,12 +137,12 @@ app.addEventListener('click',(event)=>{
  if(selected&&validDestinations(level,run,selected).some(d=>d.kind===kind&&d.index===index)){
    const result=tryMove(level,run,selected,target);
    if(result.ok){
-     run=result.run;selected=null;message=result.regionCompleted?'A little more of the garden is awake.':'Beautifully placed.';
+     run=result.run;selected=null;hintTarget=null;message=result.regionCompleted?'A little more of the garden is awake.':'Beautifully placed.';
      if(run.finished){finish(level,!!progress.completed[level.id]);return;}
      progress.active=run;commit();playSound(450);render();return;
    }
  }
- if(kind!=='socket'&&selectedGem(run,target)){selected=selected&&selected.kind===kind&&selected.index===index?null:target;message='Choose a glowing destination.';}
+ if(kind!=='socket'&&selectedGem(run,target)){selected=selected&&selected.kind===kind&&selected.index===index?null:target;hintTarget=null;message='Choose a glowing destination.';}
  else message='That jewel does not fit there. Pick a highlighted place.';
  render();
 });

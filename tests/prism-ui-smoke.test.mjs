@@ -27,3 +27,37 @@ test('Prism Garden boots, opens gameplay and persists an actual jewel move witho
   click({modeChoice:'mastery'});
   assert.match(element.innerHTML,/Mastery replays completed/);
 });
+
+test('hint identifies an exact accessible destination and clears after placement',async()=>{
+ const handlers={};
+ const element={dataset:{},innerHTML:'',addEventListener(name,handler){handlers[name]=handler;}};
+ const memory=new Map();
+ globalThis.document={querySelector(){return element;}};
+ globalThis.matchMedia=()=>({matches:false});
+ globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
+ const {LEVELS}=await import('../src/prism-garden/content.mjs');
+ const {hint}=await import('../src/prism-garden/engine.mjs');
+ await import('../src/prism-garden/app.mjs?hint-regression');
+ const tap=(dataset)=>handlers.click({target:{closest:()=>({dataset,disabled:false})}});
+ tap({action:'continue'});
+ const before=JSON.parse(memory.get('brandicade:prism-garden:v1'));
+ const level=LEVELS.find(l=>l.id===before.active.levelId);
+ const move=hint(level,before.active);
+ assert.ok(move);
+ tap({action:'hint'});
+ const suggested=[...element.innerHTML.matchAll(/class="[^"]*\bhint-destination\b[^"]*" data-kind="(socket|shelf)" data-index="(\d+)"/g)];
+ assert.deepEqual(suggested.map(m=>({kind:m[1],index:Number(m[2])})),[move.target]);
+ assert.match(element.innerHTML,/suggested by hint/);
+ assert.match(element.innerHTML,/Hint: move the/);
+ assert.match(element.innerHTML,/aria-live="polite"/);
+ assert.equal(JSON.parse(memory.get('brandicade:prism-garden:v1')).active.hints,1);
+ tap({kind:move.source.kind,index:String(move.source.index)});
+ assert.doesNotMatch(element.innerHTML,/\bhint-destination\b/);
+ tap({action:'hint'});
+ tap({kind:move.target.kind,index:String(move.target.index)});
+ const after=JSON.parse(memory.get('brandicade:prism-garden:v1'));
+ assert.equal(after.active.moves,1);
+ assert.equal(after.active.hints,2);
+ assert.doesNotMatch(element.innerHTML,/\bhint-destination\b/);
+ assert.equal(memory.has('brandicade:save:v1'),false);
+});
