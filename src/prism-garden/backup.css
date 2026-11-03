@@ -10,3 +10,4 @@
 @media(max-width:360px){.pg-backup-panel{padding:15px}.pg-backup-buttons{grid-template-columns:1fr}}
 #pg-backup-raw{display:block;width:100%;min-height:47px;margin:3px 0 10px;border:1px solid #e9c789;border-radius:12px;background:#453927;color:#fff4db;font-size:12px;font-weight:700;padding:11px}
 #pg-backup-raw:focus-visible{outline:3px solid #e9d7a2;outline-offset:3px}
+.pg-backup-storage-note{color:#ffe2bb;font-size:12px;line-height:1.5;margin:10px 0}

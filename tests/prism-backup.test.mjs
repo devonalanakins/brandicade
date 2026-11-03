@@ -154,3 +154,24 @@ test('legitimate active move histories remain valid on startup',()=>{
  assert.equal(loaded.recoveryRequired,false);
  assert.deepEqual(loaded.progress,progress);
 });
+
+test('profile normalization never silently drops damaged completion or unknown v1 fields',()=>{
+ const progress=newProgress(),store=new Map();
+ const storage={getItem:key=>store.get(key)??null,setItem:(key,value)=>store.set(key,value)};
+ const invalid={...progress,completed:{'PG-001':99}};
+ const raw=JSON.stringify(invalid);store.set(KEY,raw);
+ assert.equal(readStoredProgress(storage).recoveryRequired,true);
+ assert.equal(store.get(KEY),raw);
+ const unknown={...progress,futureProfileVersion:{owned:17}};
+ const unknownRaw=JSON.stringify(unknown);store.set(KEY,unknownRaw);
+ assert.equal(readStoredProgress(storage).recoveryRequired,true);
+ assert.equal(store.get(KEY),unknownRaw);
+ const valid={...progress,completed:{'PG-001':'2026-11-03T20:00:00.000Z'}};
+ store.set(KEY,JSON.stringify(valid));
+ assert.equal(readStoredProgress(storage).recoveryRequired,false);
+});
+test('blocked localStorage getters and operations fail closed instead of crashing startup',()=>{
+ const storage={getItem(){throw Error('Storage blocked');}};
+ assert.equal(readStoredProgress(storage).recoveryRequired,true);
+ assert.equal(persistProgress(newProgress(),storage),false);
+});

@@ -41,25 +41,43 @@ export function validateProgress(value) {
   return out;
 }
 /** A damaged save is never silently replaced by the empty starter profile. */
-export function readStoredProgress(storage=globalThis.localStorage) {
+/** Compare normalized progress without dropping any older v1 profile fields. */
+function profileFieldsRetained(input,clean){
+ const plain=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
+ const sameRecord=(a,b)=>plain(a)&&Object.keys(a).length===Object.keys(b).length&&
+  Object.keys(a).every(key=>Object.prototype.hasOwnProperty.call(b,key)&&a[key]===b[key]);
+ const supported=new Set(['version','completed','mastery','sanctuary','awards','settings','active']);
+ if(Object.keys(input).some(key=>!supported.has(key)))return false;
+ if(!sameRecord(input.completed,clean.completed)||!sameRecord(input.mastery,clean.mastery)||
+    !sameRecord(input.awards,clean.awards))return false;
+ if(!Array.isArray(input.sanctuary)||input.sanctuary.length!==clean.sanctuary.length||
+    input.sanctuary.some((value,index)=>value!==clean.sanctuary[index]))return false;
+ return plain(input.settings)&&Object.keys(input.settings).every(key=>
+  Object.prototype.hasOwnProperty.call(clean.settings,key)&&input.settings[key]===clean.settings[key]);
+}
+export function readStoredProgress(storage) {
  let raw=null;
  try{
+  storage??=globalThis.localStorage;
   raw=storage.getItem(KEY);
   if(raw===null)return {progress:store(),raw:null,recoveryRequired:false};
-  const progress=sanitizeImportedProgress(JSON.parse(raw),{
+  const input=JSON.parse(raw);
+  const progress=sanitizeImportedProgress(input,{
    validateProgress,levelById,createRun,validDestinations,tryMove
   });
+  if(!profileFieldsRetained(input,progress))throw Error('Unsupported local profile fields');
   return {progress,raw,recoveryRequired:false};
  }catch{
   return {progress:store(),raw,recoveryRequired:true};
  }
 }
-export function loadProgress(storage=globalThis.localStorage) {
+export function loadProgress(storage) {
  return readStoredProgress(storage).progress;
 }
 /** Refuse stale-tab writes when the stored bytes changed since the last read. */
-export function persistProgress(progress,storage=globalThis.localStorage,expectedRaw=undefined) {
+export function persistProgress(progress,storage,expectedRaw=undefined) {
  try{
+  storage??=globalThis.localStorage;
   if(expectedRaw!==undefined&&storage.getItem(KEY)!==expectedRaw)return false;
   storage.setItem(KEY,JSON.stringify(progress));
   return true;
