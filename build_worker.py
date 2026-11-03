@@ -21,6 +21,7 @@ ASSETS = {
     '/src/prism-garden/content.mjs': ('src/prism-garden/content.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/engine.mjs': ('src/prism-garden/engine.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/achievements.mjs': ('src/prism-garden/achievements.mjs','text/javascript; charset=utf-8'),
+    '/src/prism-garden/restoration-scene.mjs': ('src/prism-garden/restoration-scene.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/app.mjs': ('src/prism-garden/app.mjs','text/javascript; charset=utf-8'),
     '/src/prism-garden/prism.css': ('src/prism-garden/prism.css','text/css; charset=utf-8'),
     '/src/prism-garden/save-guard.mjs': ('src/prism-garden/save-guard.mjs','text/javascript; charset=utf-8'),

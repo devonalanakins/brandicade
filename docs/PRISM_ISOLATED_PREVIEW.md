@@ -27,3 +27,6 @@ The preview has a separate PWA manifest, named preview cache, service worker, iP
 **Verification:** four synthetic build/CI tests check deterministic output, missing imports and entrypoint rejection, preview-only assets, correct PWA metadata, and Worker JavaScript syntax. These tests do not replace real-device or actual-host checks.
 
 Brandicade release issue: https://github.com/devonalanakins/brandicade/issues/2
+
+## Prism Bloom scene parity (2026-11-03)
+The QA-only preview's static asset allowlist now includes `restoration-scene.mjs` because the first-party Prism Garden game uses it for six earned layers in each of its three worlds. The isolated build must serve the new art module offline, keep legacy app and cloud-save API routes excluded, and pass exact-head HTTP tests. This remains test infrastructure, not a separate product or live deployment. The target player experience stays inside Brandicade.

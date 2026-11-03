@@ -24,7 +24,7 @@ MIME = {
     '.png': 'image/png',
 }
 SOURCES = (
-    'content.mjs', 'engine.mjs', 'achievements.mjs', 'app.mjs',
+    'content.mjs', 'engine.mjs', 'achievements.mjs', 'restoration-scene.mjs', 'app.mjs',
     'save-guard.mjs', 'backup.mjs', 'backup-ui.mjs', 'prism.css', 'backup.css',
 )
 ICONS = ('icon.svg', 'icon-192.png', 'icon-512.png', 'icon-1024.png')

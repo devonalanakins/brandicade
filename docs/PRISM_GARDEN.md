@@ -38,3 +38,13 @@ The next major Brandicade release is the **Prism Bloom Update**, with Prism Gard
 **Implementation evidence:** Gameplay PR #8, first Prism Bloom source commit (CI, diff and device checks must be independently verified). Tests include read-only badge derivation, per-world progress and normal/error states, launcher references, offline asset list and cabinet accessibility checks.
 
 **Important limits:** The recovered static Worker still does not contain the live Cloudflare Access/D1 backend and must not replace production. Brandle's external original saves remain there; do not claim cross-device synchronized trophies. All production source/backup, encrypted D1 restore, signed Access, licensing, safe rollout and real iPhone PWA acceptance gates on [issue #2](https://github.com/devonalanakins/brandicade/issues/2) remain in force.
+
+## Prism Bloom restoration-scene increment — November 3, 2026
+
+**Implemented in gameplay source:** three original scalable SVG dioramas are rendered by `src/prism-garden/restoration-scene.mjs`. Each world has exactly six visually distinct elements, one mapped to each existing authored mosaic. Nothing appears earned until that level's identifier is present in the validated device-local progress. The same scene is reused in the World Atlas, Living Gallery, puzzle environment and win screen. The win scene highlights only the newest completed layer, and the puzzle board highlights a genuinely successful placement.
+
+The vector illustrations are local, dependency-free, decorative rather than authoritative game UI. Scene composition is fully accessible as a text-labeled image with an exact `X of 6` restoration count. Keyboard move actions restore focus to a reachable control after re-rendering; aria-live messages remain available. Device/system reduced motion and in-game motion-off settings suppress the new reveals. No achievements, save key, engine, puzzle difficulty, API, account, or Brandle functionality changed.
+
+The app-shell route list includes `/src/prism-garden/restoration-scene.mjs` for offline play; Cloudflare preview must include this module in its isolated source allowlist before preview verification can pass. New `tests/prism-world-restoration.test.mjs` covers truthful scene states, non-sequential completion, all three art variants, unreadable data, static accessibility/motion guards, a read-only gallery/atlas and actual puzzle completion with a single newly revealed mosaic.
+
+**Release boundary unchanged:** recovered static Worker build is not production's Access/D1 Worker. Production deployment remains blocked until the existing real-data backup/restore, identity, source parity, license, rollback and on-device testing gates are met.
