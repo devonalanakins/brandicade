@@ -137,3 +137,31 @@ test('victory reveals exactly the newly completed mosaic without changing Glimme
   for(const [key,value] of Object.entries(previous))if(value===undefined)delete globalThis[key];else globalThis[key]=value;
  }
 });
+
+test('a replayed mosaic does not falsely animate a newly restored feature',async()=>{
+ const previous={document:globalThis.document,matchMedia:globalThis.matchMedia,localStorage:globalThis.localStorage};
+ const level=LEVELS[0],p=newProgress();
+ p.completed[level.id]='2026-11-03T20:00:00.000Z';
+ p.active=createRun(level);
+ const map=new Map([[KEY,JSON.stringify(p)],['brandicade:save:v1','original']]);
+ const handlers={},app={dataset:{},innerHTML:'',addEventListener:(name,fn)=>handlers[name]=fn,querySelector(){return null;},querySelectorAll(){return []}};
+ globalThis.document={querySelector(){return app}};
+ globalThis.matchMedia=()=>({matches:false});
+ globalThis.localStorage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)};
+ try{
+  await import('../src/prism-garden/app.mjs?replay-diorama-qa');
+  const click=dataset=>handlers.click({detail:1,target:{closest:()=>({dataset,disabled:false})}});
+  click({action:'continue'});
+  for(const move of solve(level,createRun(level)).path){
+   click({kind:move.source.kind,index:String(move.source.index)});
+   click({kind:move.target.kind,index:String(move.target.index)});
+  }
+  assert.match(app.innerHTML,/MOSAIC RESTORED/);
+  assert.match(app.innerHTML,/data-mosaic="PG-001" data-restored="yes"/);
+  assert.doesNotMatch(app.innerHTML,/is-awake is-new/);
+  assert.equal(Object.keys(JSON.parse(map.get(KEY)).completed).length,1);
+  assert.equal(map.get('brandicade:save:v1'),'original');
+ }finally{
+  for(const [key,value] of Object.entries(previous))if(value===undefined)delete globalThis[key];else globalThis[key]=value;
+ }
+});

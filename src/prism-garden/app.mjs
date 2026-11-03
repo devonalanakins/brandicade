@@ -7,7 +7,7 @@ const initialSave=readStoredProgress();
 const progress=initialSave.progress;
 let saveBlocked=initialSave.recoveryRequired,saveSnapshot=initialSave.raw;
 const SAVE_WARNING='Your saved game could not be verified or another tab updated it. The original data remains untouched. Open Settings to download your data or restore a verified backup.';
-let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null,recentPlacement=null;
+let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null,recentPlacement=null,freshRestoration=null;
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gem=(color,small=false)=>'<span class="crystal shape-'+GEMS[color].symbol+(small?' small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
 const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
@@ -33,11 +33,11 @@ function commit() {
  }
  saveSnapshot=JSON.stringify(progress);
 }
-function nav(target) {screen=target;selected=null;hintTarget=null;recentPlacement=null;newAwards=[];message='';render();}
+function nav(target) {screen=target;selected=null;hintTarget=null;recentPlacement=null;freshRestoration=null;newAwards=[];message='';render();}
 function reset(level,mode='sanctuary') {
  if(saveBlocked){screen='settings';message=SAVE_WARNING;render();return;}
  const id='pg-'+level.id+'-'+String(Date.now());
- run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;recentPlacement=null;pendingChange=null;newAwards=[];message='';
+ run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;recentPlacement=null;freshRestoration=null;pendingChange=null;newAwards=[];message='';
  progress.active=run;commit();screen='game';render();
 }
 function requestRunChange(level,mode='sanctuary',kind='switch') {
@@ -122,6 +122,7 @@ function showSettings() {
 }
 function finish(level,previouslyCompleted) {
  const current=run;
+ freshRestoration=previouslyCompleted?null:level.id;
  progress.completed[level.id]??=new Date().toISOString();
  if(current.mode==='sanctuary'&&!progress.sanctuary.includes(level.id))progress.sanctuary.push(level.id);
  if(current.mode==='mastery'){
@@ -136,7 +137,7 @@ function finish(level,previouslyCompleted) {
 function sound(f){playSound(f);}
 function showWin(){
  const level=levelById(run.levelId),restored=restorationState(level.worldIndex,saveBlocked?null:progress.completed);
- return '<div class="pg-win"><div class="pg-win-orbit">✦</div><div class="pg-eyebrow">MOSAIC RESTORED</div><h1>'+escape(level.name)+'</h1><p>You brought another little piece of the garden to life.</p><div class="pg-win-diorama">'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'win',freshLevelId:level.id})+'</div><p class="pg-world-restored-label">'+(restored.available?restored.count+' of '+restored.total+' world mosaics restored':'Progress needs recovery')+'</p><div class="pg-win-stats"><span>'+run.moves+' moves</span><span>'+run.undos+' undos</span><span>'+run.hints+' hints</span></div>'+
+ return '<div class="pg-win"><div class="pg-win-orbit">✦</div><div class="pg-eyebrow">MOSAIC RESTORED</div><h1>'+escape(level.name)+'</h1><p>You brought another little piece of the garden to life.</p><div class="pg-win-diorama">'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'win',freshLevelId:freshRestoration})+'</div><p class="pg-world-restored-label">'+(restored.available?restored.count+' of '+restored.total+' world mosaics restored':'Progress needs recovery')+'</p><div class="pg-win-stats"><span>'+run.moves+' moves</span><span>'+run.undos+' undos</span><span>'+run.hints+' hints</span></div>'+
  (newAwards.length?'<h2>New treasures</h2><div class="pg-win-awards">'+newAwards.map(a=>badge(a,true)).join('')+'</div>':'<p>Your gallery has grown a little brighter.</p>')+
  '<div class="pg-main-actions"><button class="pg-primary" data-action="next">Next puzzle →</button><button data-action="replay-mastery">Replay in Mastery</button><button data-nav="gallery">View gallery</button><button data-nav="achievements">Achievements</button></div></div>';
 }
