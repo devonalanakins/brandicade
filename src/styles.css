@@ -91,3 +91,21 @@ body.color-assist .charm.fern:after,body.color-assist .charm.aqua:after,body.col
 @media(prefers-reduced-motion:reduce){body:not(.force-motion) .mist:before,body:not(.force-motion) .portal,body:not(.force-motion) .orbits,body:not(.force-motion) .profile-pattern,body:not(.force-motion) .art-gem,body:not(.force-motion) .avatar-rings:after{animation:none!important}body:not(.force-motion) #fireflies{display:none}body:not(.force-motion) *,body:not(.force-motion) *:before,body:not(.force-motion) *:after{animation-duration:0s!important;transition-duration:0s!important;scroll-behavior:auto!important}}
 
 .level-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}.level-node{border:1px solid #88bfaa65;border-radius:15px;background:#15473c;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:98px}.level-node:disabled{opacity:.4;cursor:default}.level-node b{font:500 25px Georgia,serif;color:#ffdfa5}.level-node span{font-size:10px}.level-node small{color:#f1c38f;font-size:8px;letter-spacing:.05em}.level-node:not(:disabled):hover{border-color:#f4c891;background:#1c624f}
+/* Cross-game read-only Prism Garden progression inside the Brandicade arcade. */
+.prism-arcade-progress{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 27px;margin:22px 0 28px;border-radius:23px;border:1px solid #8ac8ac63;background:radial-gradient(circle at 90% 0,#377f6050,transparent 50%),linear-gradient(135deg,#1c5143,#102e2a);box-shadow:0 14px 35px #0003}
+.prism-arcade-progress h2,.prism-achievement-section h2{font:500 clamp(24px,3.4vw,33px)/1.1 Georgia,serif;letter-spacing:-.03em;margin:11px 0}
+.prism-arcade-progress p,.prism-achievement-section p{font-size:13px;color:#e0ebd9;line-height:1.55;margin:0 0 8px}
+.prism-arcade-progress small,.prism-achievement-note{display:block;font-size:11px;line-height:1.55;color:#aac9b9}
+.prism-arcade-play{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:11px 16px;border-radius:13px;border:1px solid #cce6cb;color:#153d30;background:#cce6cb;font-weight:750;font-size:12px;text-decoration:none}
+.prism-arcade-play:focus-visible{outline:3px solid #fff2c0;outline-offset:3px}
+.prism-achievement-section{margin:37px 0 16px;padding:24px 0;border-top:1px solid #7ac7a45b}
+.prism-achievement-head{display:flex;gap:18px;align-items:center;justify-content:space-between;margin-bottom:20px}
+.prism-trophy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}
+.prism-trophy{display:flex;flex-direction:column;gap:8px;justify-content:space-between;padding:18px 16px;min-height:91px;border:1px solid #78b99a70;border-radius:15px;background:linear-gradient(150deg,#244c3d,#132b26)}
+.prism-trophy.locked{border-color:#78958650;opacity:.72;background:#1b302b}
+.prism-trophy strong{font:500 17px/1.2 Georgia,serif}
+.prism-trophy-status{font-size:9px;font-weight:800;letter-spacing:.14em;color:#c3dfbd}
+.prism-trophy.locked .prism-trophy-status{color:#afc4b5}
+.prism-progress-unreadable{grid-column:1/-1;padding:17px;border:1px solid #d9c085a3;border-radius:14px;color:#efdcba;line-height:1.5}
+@media(max-width:650px){.prism-arcade-progress,.prism-achievement-head{align-items:stretch;flex-direction:column;gap:15px}.prism-arcade-progress{padding:19px}.prism-trophy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.prism-trophy{padding:13px;min-height:82px}.prism-trophy strong{font-size:15px}.prism-arcade-play{align-self:stretch}}
+@media(max-width:360px){.prism-trophy-grid{grid-template-columns:1fr}}

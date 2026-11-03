@@ -1,5 +1,6 @@
 import {SIZE,TYPES,LEVEL_NAMES,levelSpec,makeRun,findMove,trySwap,adjacent} from './engine.mjs';
 import {AVATARS,FRAMES,TITLES,ACHIEVEMENTS,newSave,loadSave,persist,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
+import {prismArcadeSummary} from './prism-garden/arcade-summary.mjs';
 
 const $=(s)=>document.querySelector(s);
 const $$=(s)=>[...document.querySelectorAll(s)];
@@ -56,7 +57,7 @@ function navigate(id,replace=false){const valid=['home','library','game','profil
  if(document.activeElement instanceof HTMLElement&&document.activeElement.closest('section')&&document.activeElement.closest('section')?.id!==id)document.activeElement.blur();
  window.scrollTo({top:0,behavior:'instant'});
 }
-function renderHome(){const p=save.progression;$('#hero-level').textContent=String(p.level).padStart(2,'0');$('#hero-stars').textContent=String(p.totalStars).padStart(2,'0');$('#hero-badges').textContent=String(earnedCount(save)).padStart(2,'0');$('#mini-level').textContent='LV '+p.level;
+function renderHome(){const p=save.progression,prism=prismArcadeSummary();$('#hero-level').textContent=String(p.level).padStart(2,'0');$('#hero-stars').textContent=String(p.totalStars).padStart(2,'0');$('#hero-badges').textContent=prism.available?String(earnedCount(save)+prism.earned).padStart(2,'0'):String(earnedCount(save))+'+';$('#mini-level').textContent='LV '+p.level;
  const r=save.currentRun;const label=r&&!r.ended?'Continue Glimmer Pop':r?.won?'See your victory':'Play Glimmer Pop';$('#home-play-label').textContent=label;
  $('#home-glimmer-summary').textContent=r&&!r.ended?`Level ${r.level} · ${r.movesLeft} moves left · Your garden is waiting.`:'Satisfying matches, cascading magic, and a new level around every corner.';
  $('#library-glimmer-summary').textContent=r&&!r.ended?`Your level ${r.level} puzzle is waiting, exactly where you left it.`:'Unlimited levels and replay, with no lives to run out of.';
@@ -76,16 +77,22 @@ function renderGame(){const run=ensureRun(),spec=levelSpec(run.level),board=$('#
  const next=$('[data-action="next"]');next.hidden=!run.won;
  }else{$('#game-live').textContent='Tap two neighboring charms, or swipe one into its neighbor.';}
 }
-function renderProfile(){const p=save.progression,profile=save.profile;
+function renderProfile(){const p=save.progression,profile=save.profile,prism=prismArcadeSummary();
  $('#profile-avatar').innerHTML=avatarSVG(profile.avatar);$('.profile-hero').dataset.frame=profile.frame;
  $('#profile-equipped-title').textContent=levelTitle(save);$('#profile-level').textContent='LEVEL '+p.level;$('#profile-xp').textContent=`${p.xp} / ${xpThreshold(p.level)} XP`;$('#xp-fill').style.width=Math.max(0,Math.min(100,p.xp/xpThreshold(p.level)*100))+'%';$('#profile-petals').textContent=p.petals.toLocaleString();
- $('#stat-wins').textContent=save.stats.wins.toLocaleString();$('#stat-stars').textContent=p.totalStars;$('#stat-badges').textContent=earnedCount(save);$('#stat-levels').textContent=Object.keys(p.levels).length;
+ $('#stat-wins').textContent=save.stats.wins.toLocaleString();$('#stat-stars').textContent=p.totalStars;$('#stat-badges').textContent=prism.available?earnedCount(save)+prism.earned:String(earnedCount(save))+'+';
+ $('#profile-prism-summary').textContent=prism.available?prism.completed+' / '+prism.totalLevels+' mosaics restored · '+prism.earned+' / '+prism.totalAchievements+' Prism Garden trophies':'Prism Garden save needs recovery. Open Prism Garden Settings to protect your progress.';$('#stat-levels').textContent=Object.keys(p.levels).length;
  $('#avatar-options').innerHTML=AVATARS.map(a=>`<button class="avatar-option ${profile.avatar===a.id?'selected':''}" data-avatar="${a.id}" type="button" aria-pressed="${profile.avatar===a.id}" title="${escapeHTML(a.description)}">${avatarSVG(a.id)}<strong>${escapeHTML(a.label)}</strong></button>`).join('');
  $('#frame-options').innerHTML=FRAMES.map(a=>{const locked=p.level<a.level;return `<button class="frame-option ${profile.frame===a.id?'selected':''}" data-frame="${a.id}" type="button" ${locked?'disabled':''} aria-pressed="${profile.frame===a.id}"><span class="frame-icon ${a.id}"></span><span>${escapeHTML(a.label)}</span><small>${locked?'LV '+a.level+' TO UNLOCK':profile.frame===a.id?'EQUIPPED':'UNLOCKED'}</small></button>`}).join('');
  $('#title-options').innerHTML=TITLES.map(a=>{const locked=p.level<a.level;return `<button class="title-option ${profile.title===a.id?'selected':''}" data-title="${a.id}" type="button" ${locked?'disabled':''} aria-pressed="${profile.title===a.id}"><span>${escapeHTML(a.label)}</span><small>${locked?'LV '+a.level:profile.title===a.id?'EQUIPPED':'SELECT'}</small></button>`;}).join('');
  const earned=ACHIEVEMENTS.filter(x=>save.achievements[x.id]);$('#profile-awards').innerHTML=earned.length?earned.slice(-3).map(x=>`<span class="mini-award">${escapeHTML(x.name)}</span>`).join(''):'<span style="color:#b9d7c2;font-size:11px">Your first treasure is waiting in the games.</span>';
 }
-function renderTreasures(){const owned=earnedCount(save);$('#treasure-owned').textContent=owned;$('#treasure-progress-fill').style.width=owned/ACHIEVEMENTS.length*100+'%';
+function renderTreasures(){const owned=earnedCount(save),prism=prismArcadeSummary(),total=ACHIEVEMENTS.length+prism.totalAchievements;
+ $('#treasure-owned').textContent=prism.available?owned+prism.earned:String(owned)+'+';
+ $('#treasure-total').textContent=' / '+total+' achievements';
+ $('#treasure-progress-fill').style.width=(prism.available?(owned+prism.earned)/total:owned/ACHIEVEMENTS.length)*100+'%';
+ $('#treasure-prism-summary').textContent=prism.available?prism.completed+' / '+prism.totalLevels+' mosaics restored · '+prism.earned+' / '+prism.totalAchievements+' trophies earned':'Prism Garden progress could not be verified. Open Prism Garden Settings to recover the original save.';
+ $('#prism-achievement-grid').innerHTML=prism.available?prism.awards.map(a=>`<article class="prism-trophy ${a.unlocked?'earned':'locked'}"><span class="prism-trophy-status">${a.unlocked?'EARNED':'UNDISCOVERED'}</span><strong>${escapeHTML(a.name)}</strong></article>`).join(''):'<p class="prism-progress-unreadable" role="status">Prism Garden trophies are hidden until its saved data is recovered. Existing Glimmer Pop achievements remain intact.</p>';
  $('#achievement-grid').innerHTML=ACHIEVEMENTS.map(a=>{const yes=!!save.achievements[a.id],value=Math.min(a.goal,metric(save,a));const stamp=yes?new Date(save.achievements[a.id]).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):`${value} / ${a.goal}`;
  return `<article class="achievement ${yes?'earned':'locked'}"><span class="rarity">${escapeHTML(a.rarity).toUpperCase()}</span><div class="achievement-icon">${medalSVG(a.icon)}</div><h3>${escapeHTML(a.name)}</h3><p>${escapeHTML(a.description)}</p><div class="ach-track" aria-label="${yes?'Unlocked':value+' of '+a.goal}"><span style="width:${value/a.goal*100}%"></span></div><div class="ach-footer"><span>${yes?'UNLOCKED':'IN PROGRESS'}</span><span>${escapeHTML(stamp)}</span></div></article>`;}).join('');
 }

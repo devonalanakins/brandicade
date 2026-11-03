@@ -16,3 +16,10 @@ Select an exposed gem in any of three stacks, then choose a glowing matching col
 - Progress can be lost if Safari website data is cleared. The client does not migrate or alter older saves.
 - Complex native 3D dioramas, voiced soundtrack, authoritative cross-device identity and full user-verified iPhone experience are follow-up quality work.
 - Source/license provenance from the older Brandicade recovery remains unresolved.
+
+## Product destination: Brandicade, not another game site
+Prism Garden is Brandicade's **third arcade game**, alongside Glimmer Pop and Brandle. Both Home and Games library link to the native `/prism-garden.html` route on the **same Brandicade origin**. The Brandicade Brandi profile and Treasures gallery also display read-only Prism Garden mosaics and achievements using `src/prism-garden/arcade-summary.mjs`. The arcade only reads a validated Prism Garden local save and never writes to it. This is a shared presentation surface, not cross-game XP, a cloud account, or an import of Brandle progress.
+
+The isolated `prism.anevum.com` Worker, PR #11 and preview bundle are **temporary QA infrastructure only** and are not a second game destination or a release requirement for the finished player experience. The intended final URL is `brandicade.anevum.com/prism-garden.html`. The Brandicade legacy backup exports Glimmer Pop progress only; Prism Garden retains its independent Settings backup until migration is explicitly verified.
+
+The recovered static worker still omits the *live* Access/D1 API and must never overwrite production. Production launch requires safe recovery of the live Worker source, actual encrypted owner backup/restore, license/source parity, signed Access acceptance, an authorized rollback procedure and physical iPhone QA.
