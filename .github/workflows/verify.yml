@@ -19,5 +19,8 @@ jobs:
       - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs tests/prism-run-safety.test.mjs
       - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - run: python3 build_worker.py
-      - run: python3 -m py_compile build_worker.py
-# Verification only: the recovered static bundle must not overwrite production.
+      - run: python3 -m py_compile build_worker.py scripts/build_brandicade_protected.py
+      - run: python3 scripts/build_brandicade_protected.py
+      - run: node --check dist/brandicade-protected.candidate.mjs
+      - run: node --test tests/brandicade-protected-worker.test.mjs tests/legacy-recovery-integration.test.mjs tests/legacy-write-api.test.mjs
+# Verification only: NO deploy step. Protected Worker candidate is UNBUNDLED and requires owner-key, Access, D1, license and on-device release acceptance.
