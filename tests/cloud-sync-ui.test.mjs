@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import {newSave,SAVE_KEY} from '../src/progression.mjs';
 import {mountCloudSync} from '../src/cloud-sync.mjs';
 
-function browserFixture({local=null,remote=null,revision=0,role='player',failSave=false}={}){
+function browserFixture({local=null,remote=null,revision=0,role='player',failSave=false,mutateRemoteAfterCheck=false}={}){
  const previous={document:globalThis.document,localStorage:globalThis.localStorage,
   fetch:globalThis.fetch,location:globalThis.location,
   setTimeout:globalThis.setTimeout};
  const values=new Map(local===null?[]:[[SAVE_KEY,JSON.stringify(local)]]);
  values.set('prism-garden:progress:v1','prism-unchanged');
  const buttons={};
- for(const action of ['check','local','remote','confirm-backup','upload','restore']){
+ for(const action of ['check','local','remote','confirm-backup','upload','restore','review-conflict','confirm-conflict-restore','cancel-conflict-restore']){
   buttons[action]={hidden:action!=='check',disabled:false,dataset:{cloudAction:action}};
  }
  const status={textContent:'initial'},listeners={},downloads=[];
@@ -21,7 +21,7 @@ function browserFixture({local=null,remote=null,revision=0,role='player',failSav
   addEventListener:(event,handler)=>{listeners[event]=handler}
  };
  const host={panel:null,querySelector(){return this.panel},append(p){this.panel=p}};
- let writes=0,uploads=0,reloads=0;
+ let writes=0,uploads=0,reloads=0,cloudGets=0;
  globalThis.document={
   readyState:'complete',
   querySelector:sel=>sel==='#profile .data-panel'?host:null,
@@ -47,15 +47,21 @@ function browserFixture({local=null,remote=null,revision=0,role='player',failSav
    remote=data.save;
    return new Response(JSON.stringify({ok:true,revision}),{status:200});
   }
-  if(path==='/api/save')return new Response(JSON.stringify({
-   revision,save:remote,updatedAt:null
-  }),{status:200});
+  if(path==='/api/save'){
+   cloudGets++;
+   if(mutateRemoteAfterCheck&&cloudGets===2){
+    revision++;
+    remote=structuredClone(remote);
+    remote.stats.played++;
+   }
+   return new Response(JSON.stringify({revision,save:remote,updatedAt:null}),{status:200});
+  }
   throw Error('Unexpected fetch '+path);
  };
  mountCloudSync();
  return {
   panel,buttons,status,values,downloads,
-  get writes(){return writes},get uploads(){return uploads},get reloads(){return reloads},
+  get writes(){return writes},get uploads(){return uploads},get reloads(){return reloads},get cloudGets(){return cloudGets},
   async click(action){await listeners.click({target:{closest(){return buttons[action]}}})},
   cleanup(){for(const [key,val] of Object.entries(previous))
     if(val===undefined)delete globalThis[key];else globalThis[key]=val}
@@ -141,5 +147,83 @@ test('admin never reads player save, and local progress is preserved',async()=>{
   assert.equal(f.buttons.restore.hidden,true);
   assert.equal(f.writes,0);
   assert.equal(f.values.get(SAVE_KEY),raw);
+ }finally{f.cleanup()}
+});
+
+test('fresh bootstrapped device save and existing cloud save can be resolved manually after both backed up',async()=>{
+ const local=newSave(),remote=structuredClone(local);
+ // The existing Glimmer Pop bootstrap persists a new "empty" device save on first load.
+ remote.stats.played=12;remote.progression.unlockedLevel=5;
+ const f=browserFixture({local,remote,revision:4});
+ try{
+  const original=f.values.get(SAVE_KEY);
+  await f.click('check');
+  assert.equal(f.buttons['review-conflict'].hidden,true);
+  await f.click('local');await f.click('confirm-backup');
+  assert.equal(f.buttons['review-conflict'].hidden,true);
+  await f.click('remote');await f.click('confirm-backup');
+  assert.equal(f.buttons['review-conflict'].hidden,false);
+  assert.equal(f.buttons['confirm-conflict-restore'].hidden,true);
+  assert.equal(f.values.get(SAVE_KEY),original);
+  await f.click('review-conflict');
+  assert.equal(f.buttons['confirm-conflict-restore'].hidden,false);
+  assert.match(f.status.textContent,/Final confirmation/);
+  assert.equal(f.writes,0);
+  await f.click('confirm-conflict-restore');
+  assert.equal(f.cloudGets,2,'Revalidate actual cloud revision immediately before restore');
+  assert.equal(f.writes,1);
+  assert.equal(f.reloads,1);
+  assert.equal(JSON.parse(f.values.get(SAVE_KEY)).stats.played,12);
+  assert.equal(f.values.get('prism-garden:progress:v1'),'prism-unchanged');
+  assert.equal(f.uploads,0,'Never upload to resolve a device conflict');
+ }finally{f.cleanup()}
+});
+
+test('a canceled conflict restore leaves both saves unchanged and review can restart',async()=>{
+ const local=newSave(),remote=structuredClone(local);remote.stats.played=5;
+ const f=browserFixture({local,remote,revision:2});
+ try{
+  const original=f.values.get(SAVE_KEY);
+  await f.click('check');
+  await f.click('local');await f.click('confirm-backup');
+  await f.click('remote');await f.click('confirm-backup');
+  await f.click('review-conflict');
+  await f.click('cancel-conflict-restore');
+  assert.equal(f.buttons['confirm-conflict-restore'].hidden,true);
+  assert.equal(f.buttons['review-conflict'].hidden,false);
+  assert.equal(f.writes,0);
+  assert.equal(f.reloads,0);
+  assert.equal(f.values.get(SAVE_KEY),original);
+ }finally{f.cleanup()}
+});
+
+test('remote save changed during conflict review fails closed without overwriting device progress',async()=>{
+ const local=newSave(),remote=structuredClone(local);remote.stats.played=5;
+ const f=browserFixture({local,remote,revision:2,mutateRemoteAfterCheck:true});
+ try{
+  const original=f.values.get(SAVE_KEY);
+  await f.click('check');
+  await f.click('local');await f.click('confirm-backup');
+  await f.click('remote');await f.click('confirm-backup');
+  await f.click('review-conflict');
+  await f.click('confirm-conflict-restore');
+  assert.equal(f.writes,0);
+  assert.equal(f.reloads,0);
+  assert.equal(f.values.get(SAVE_KEY),original);
+  assert.match(f.status.textContent,/progress changed/);
+ }finally{f.cleanup()}
+});
+
+test('cloud-only restore revalidates revision immediately before writing device data',async()=>{
+ const remote=newSave();remote.stats.played=5;
+ const f=browserFixture({remote,revision:2,mutateRemoteAfterCheck:true});
+ try{
+  await f.click('check');
+  await f.click('remote');await f.click('confirm-backup');
+  await f.click('restore');
+  assert.equal(f.cloudGets,2);
+  assert.equal(f.writes,0);
+  assert.equal(f.reloads,0);
+  assert.equal(f.values.get(SAVE_KEY),null);
  }finally{f.cleanup()}
 });

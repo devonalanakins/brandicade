@@ -60,7 +60,10 @@ export function mountCloudSync(){
   '<button type="button" data-cloud-action="remote" hidden>Download cloud backup</button>'+ 
   '<button type="button" data-cloud-action="confirm-backup" hidden>I saved the backup file</button>'+
   '<button type="button" data-cloud-action="upload" hidden>Upload device save</button>'+
-  '<button type="button" data-cloud-action="restore" hidden>Restore cloud save</button></div>';
+  '<button type="button" data-cloud-action="restore" hidden>Restore cloud save</button>'+
+  '<button type="button" data-cloud-action="review-conflict" hidden>Review replacing device progress</button>'+
+  '<button type="button" data-cloud-action="confirm-conflict-restore" hidden>Yes, replace this device with the cloud backup</button>'+
+  '<button type="button" data-cloud-action="cancel-conflict-restore" hidden>Cancel replacement</button></div>';
  const css=document.createElement('style');
  css.textContent=
   '.brandicade-cloud-bridge{margin-top:18px;padding:17px;border:1px solid #9ebd9b65;border-radius:19px;background:linear-gradient(135deg,#163c35,#102c30);box-shadow:inset 0 1px #ffffff15}'+
@@ -70,12 +73,13 @@ export function mountCloudSync(){
   '.brandicade-cloud-controls{display:flex;flex-wrap:wrap;gap:9px}'+
   '.brandicade-cloud-controls button{font:700 12px/1.25 system-ui;background:#365d4c;color:#f8f2e6;border:1px solid #a7cbb383;border-radius:11px;min-height:44px;padding:11px 13px;touch-action:manipulation}'+
   '.brandicade-cloud-controls button:focus-visible{outline:3px solid #f4dfb7;outline-offset:3px}'+
-  '.brandicade-cloud-controls button[hidden]{display:none}';
+  '.brandicade-cloud-controls button[hidden]{display:none}'+
+  '.brandicade-cloud-controls button[data-cloud-action="confirm-conflict-restore"]{background:#68452c;border-color:#f3d5a2;color:#fff4da}';
  document.head.append(css);host.append(panel);
  const status=panel.querySelector('.brandicade-cloud-status');
  const buttons=Object.fromEntries([...panel.querySelectorAll('[data-cloud-action]')]
   .map(b=>[b.dataset.cloudAction,b]));
- let state=null,localSnapshot=null,deviceBackupVerified=false,remoteBackupVerified=false,pendingBackup=null,busy=false;
+ let state=null,localSnapshot=null,deviceBackupVerified=false,remoteBackupVerified=false,pendingBackup=null,conflictRestoreReviewed=false,busy=false;
  function say(message){status.textContent=message}
  function show(...names){
   for(const [action,button] of Object.entries(buttons))
@@ -86,7 +90,7 @@ export function mountCloudSync(){
   catch{return false}
  }
  async function check(){
-  state=null;deviceBackupVerified=false;remoteBackupVerified=false;pendingBackup=null;
+  state=null;deviceBackupVerified=false;remoteBackupVerified=false;pendingBackup=null;conflictRestoreReviewed=false;
   show();say('Checking encrypted connection and save revision…');
   let raw;
   try{raw=globalThis.localStorage.getItem(SAVE_KEY)}
@@ -107,7 +111,7 @@ export function mountCloudSync(){
     say('Cloud progress exists but this browser has no device save. Download a cloud backup before restoring.');
    }else if(state.kind==='conflict'){
     show('local','remote');
-    say('Device and cloud saves differ. Neither will be replaced automatically. Download both backups and resolve the conflict before syncing.');
+    say('Device and cloud saves differ. No copy will be replaced automatically. Download and confirm both backups before you can review a manual device restore.');
    }else if(state.kind==='equal'){
     show('local','remote');
     say('Device and cloud copies match. Changes after this check still require a new manual sync.');
@@ -144,16 +148,42 @@ export function mountCloudSync(){
    say('Cloud write could not be confirmed. Check cloud status before trying again; device progress is unchanged.');
   }
  }
- function restore(){
-  if(state?.kind!=='restore'||!remoteBackupVerified||!unchanged()||localSnapshot!==null){
-   say('A device save appeared or backup is not confirmed. No restore occurred.');return;
+ function reviewConflict(){
+  if(state?.kind!=='conflict'||!deviceBackupVerified||!remoteBackupVerified||!unchanged()){
+   say('Both backups must be confirmed and device progress unchanged. Check cloud again.');return;
+  }
+  conflictRestoreReviewed=true;
+  show('local','remote','confirm-conflict-restore','cancel-conflict-restore');
+  say('Final confirmation: this will replace only the Glimmer Pop save on this device with the cloud copy. Both exported backups should be kept. Prism Garden is not changed.');
+ }
+ async function restore({conflict=false}={}){
+  const allowed=conflict
+    ?state?.kind==='conflict'&&deviceBackupVerified&&remoteBackupVerified&&conflictRestoreReviewed
+    :state?.kind==='restore'&&remoteBackupVerified&&localSnapshot===null;
+  if(!allowed||!unchanged()){
+   say('Save changed or backup confirmation incomplete. No restore occurred; check cloud again.');return;
   }
   try{
+   // A restore must not use an older cloud copy after another device writes.
+   const latest=planCloudSync(localSnapshot,await jsonGet('/api/save'));
+   if(!state||latest.revision!==state.revision||
+      JSON.stringify(latest.remote)!==JSON.stringify(state.remote)||
+      !unchanged()){
+    state=null;show();
+    say('Cloud or device progress changed. Nothing was replaced; check cloud again.');
+    return;
+   }
+   if(conflict&&latest.kind!=='conflict' || !conflict&&latest.kind!=='restore'){
+    state=null;show();say('Save state changed. Check cloud again.');return;
+   }
    globalThis.localStorage.setItem(SAVE_KEY,JSON.stringify(state.remote));
-   state=null;
+   state=null;show();
    say('Cloud save restored on this device. Refreshing the arcade…');
    location.reload();
-  }catch{say('Device storage write failed. The cloud save remains unchanged.')}
+  }catch{
+   state=null;show();
+   say('Restore could not be confirmed. Inspect the device save before trying again.');
+  }
  }
  panel.addEventListener('click',async event=>{
   const button=event.target.closest('[data-cloud-action]');
@@ -177,18 +207,33 @@ export function mountCloudSync(){
      state=null;pendingBackup=null;show();
      say('Device save changed. Check cloud again before proceeding.');return;
     }
-    if(pendingBackup==='local'){
-     deviceBackupVerified=true;
-     show('local',...(state.kind==='conflict'||state.kind==='equal'?['remote']:[]),...(state.kind==='upload'?['upload']:[]));
-     say('Backup file acknowledged. You may now choose to upload. No data has changed.');
+    if(pendingBackup==='local')deviceBackupVerified=true;
+    else remoteBackupVerified=true;
+    conflictRestoreReviewed=false;
+    if(state.kind==='conflict'){
+     show('local','remote',...(deviceBackupVerified&&remoteBackupVerified?['review-conflict']:[]));
+     say(deviceBackupVerified&&remoteBackupVerified
+       ?'Both backups acknowledged. Review the device replacement carefully before continuing.'
+       :'Backup acknowledged. Download and confirm the other copy before any replacement.');
+    }else if(state.kind==='upload'){
+     show('local',...(deviceBackupVerified?['upload']:[]));
+     say('Device backup acknowledged. Upload is optional and requires your selection.');
+    }else if(state.kind==='restore'){
+     show('remote',...(remoteBackupVerified?['restore']:[]));
+     say('Cloud backup acknowledged. Restore is optional and requires your selection.');
     }else{
-     remoteBackupVerified=true;
-     show('remote',...(state.kind==='conflict'||state.kind==='equal'?['local']:[]),...(state.kind==='restore'?['restore']:[]));
-     say('Backup file acknowledged. You may now choose to restore. No data has changed.');
+     show('local','remote');
+     say('Backup acknowledged. No saved progress was changed.');
     }
     pendingBackup=null;
    }else if(action==='upload')await upload();
-   else if(action==='restore')restore();
+   else if(action==='review-conflict')reviewConflict();
+   else if(action==='cancel-conflict-restore'){
+    conflictRestoreReviewed=false;show('local','remote','review-conflict');
+    say('Replacement canceled. Both Glimmer Pop saves remain unchanged.');
+   }
+   else if(action==='confirm-conflict-restore')await restore({conflict:true});
+   else if(action==='restore')await restore();
   }finally{busy=false;button.disabled=false}
  });
 }

@@ -193,3 +193,31 @@ unsupported, oversized, unavailable storage, existing valid progress,
 explicit recovery success/failure, and static recovery UI controls; actual
 iPhone Safari storage-denial and Files-download tests remain outstanding.
 Do not merge/deploy before these tests and the rest of the release gates pass.
+
+## Manual cloud-restore deadlock correction — November 3, 2026
+
+The original local-first application initializes and persists a new
+Glimmer Pop record on first visit. If an earlier cloud save exists, a new
+browser may therefore have both a newly initialized local record and a real
+remote record. A purely "restore only when localStorage is null" workflow
+would refuse the restore indefinitely. This was a **demonstrable product
+dead end**, even though the conservative conflict detection was working.
+
+The protected-release cloud bridge now permits an explicit, manual
+**replace-device-with-cloud** operation *only* after the player has separately
+downloaded and acknowledged saving **both** the device and cloud copies.
+A separate review step displays the destructive effect, followed by a final
+confirmation button. Cancel is always available. This never overwrites the
+remote save; it only replaces the local Glimmer Pop key, preserving Prism
+Garden and Brandle namespaces. The restore re-fetches the cloud save and
+compares the revision and validated content before any local write; changing
+the device save or remote revision forces a new review rather than silently
+overwriting either side. Cloud-only restores receive the same immediate
+revision re-check. No automatic merge, guessing by play count or activity
+timestamp, or network retry after an uncertain write is introduced.
+
+Synthetic DOM interaction tests cover fresh local bootstrap + older cloud
+progress, both exports and acknowledgments, cancel, remote concurrent change,
+and cloud-only restore revalidation. Actual Safari Files export, signed
+player Access, staging D1 and cross-device recovery remain unverified. The
+existing production Worker is unchanged.
