@@ -3,7 +3,7 @@ import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hi
 import {ACHIEVEMENTS,loadProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
 const app=document.querySelector('#prism-app');
 const progress=loadProgress();
-let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null;
+let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary';
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gem=(color,small=false)=>'<span class="crystal '+(small?'small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
 const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
@@ -42,8 +42,8 @@ function showGame() {
  const destinations=selected?validDestinations(level,run,selected):[];
  const valid=(kind,index)=>destinations.some(d=>d.kind===kind&&d.index===index);
  const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
- const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color):'<span class="pg-empty">·</span>')+'</button>').join('');
- const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+'">'+(entry?gem(entry.color):'<span class="pg-empty">+</span>')+'</button>').join('');
+ const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[stack[0].color].label+'</span>':''):'<span class="pg-empty">·</span>')+'</button>').join('');
+ const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+'">'+(entry?gem(entry.color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[entry.color].label+'</span>':''):'<span class="pg-empty">+</span>')+'</button>').join('');
  const count=run.placed.filter(Boolean).length,total=run.placed.length;
  return '<div class="pg-game"><div class="pg-topline"><button class="pg-icon-button" data-nav="home" aria-label="Return to Prism Garden home">←</button><div><small>'+escape(world.short)+' · '+escape(run.mode)+'</small><h2>'+escape(level.name)+'</h2></div><button class="pg-icon-button" data-nav="settings" aria-label="Settings">⚙</button></div>'+
  '<div class="pg-progress"><span>Restoration <b>'+count+'/'+total+'</b></span><div class="pg-progress-track"><i style="width:'+(count/total*100)+'%"></i></div></div>'+
@@ -51,7 +51,7 @@ function showGame() {
  '<div class="pg-task"><b>'+(area===level.colors.length?'Garden restored': 'Restore '+GEMS[level.colors[area]].label+' jewels')+'</b><span>'+(selected?'Choose a highlighted destination':'Choose an exposed jewel')+'</span></div>'+
  '<div class="pg-supplies"><div class="pg-supply-heading">JEWEL STACKS <span>Moves '+run.moves+'</span></div><div class="pg-stacks">'+stacks+'</div><div class="pg-supply-heading">HOLDING SHELF <span>'+run.shelf.filter(Boolean).length+' / '+run.shelf.length+'</span></div><div class="pg-shelf">'+shelf+'</div></div>'+
  '<div class="pg-tools"><button data-action="undo" '+(!run.history.length?'disabled':'')+'>↶ Undo</button><button data-action="hint">✧ Hint</button><button data-action="restart">Restart</button></div>'+
- '<p class="pg-live" role="status" aria-live="polite">'+escape(message||'Take your time. Nothing expires here.')+'</p></div>';
+ '<p class="pg-live" role="status" aria-live="polite">'+escape(message||'Take your time. Nothing expires here.')+'</p><p class="pg-game-mode-note">'+(run.mode==='mastery'?'Mastery: earn a gold medal through efficient moves without hints.':'Sanctuary: no timer, no penalties and unlimited undo.')+'</p></div>';
 }
 function showHome() {
  const complete=Object.keys(progress.completed).length,earnedCount=Object.keys(progress.awards).length;
@@ -59,7 +59,7 @@ function showHome() {
  '<div class="pg-home-links"><button data-nav="gallery"><span>◇</span><div><b>Living gallery</b><small>Your collected scenes</small></div>→</button><button data-nav="achievements"><span>✦</span><div><b>Achievement cabinet</b><small>Earned and undiscovered treasures</small></div>→</button><button data-nav="settings"><span>⚙</span><div><b>Settings</b><small>Sound, motion and accessibility</small></div>→</button></div>';
 }
 function showAtlas() {
- return '<div class="pg-page-head"><div class="pg-eyebrow">THE WORLD ATLAS</div><h1>Three living worlds.</h1><p>Choose a level. Every collected mosaic stays yours.</p></div>'+
+ return '<div class="pg-page-head"><div class="pg-eyebrow">THE WORLD ATLAS</div><h1>Three living worlds.</h1><p>Choose a level. Every collected mosaic stays yours.</p><div class="pg-mode-tabs" role="group" aria-label="Game mode"><button data-mode-choice="sanctuary" aria-pressed="'+(desiredMode==='sanctuary')+'">Sanctuary · Relax</button><button data-mode-choice="mastery" aria-pressed="'+(desiredMode==='mastery')+'">Mastery · Medals</button></div><small class="pg-mode-help">'+(desiredMode==='mastery'?'Mastery replays completed puzzles to earn move-efficiency medals.':'No timer, no lives, unlimited undo and optional hints.')+'</small></div>'+
  WORLDS.map((world,i)=>'<section class="pg-world-card" style="--accent:'+world.accent+'"><div class="pg-world-head"><div><small>CHAPTER 0'+(i+1)+'</small><h2>'+world.name+'</h2><p>'+world.detail+'</p></div><span>'+LEVELS.slice(i*6,i*6+6).filter(l=>progress.completed[l.id]).length+'/6</span></div><div class="pg-level-grid">'+LEVELS.slice(i*6,i*6+6).map(l=>'<button '+(!unlocked(l)?'disabled':'')+' data-level="'+l.number+'" aria-label="'+escape(l.name)+(unlocked(l)?'':', locked')+'" class="'+(progress.completed[l.id]?'cleared':'')+'"><small>'+String(l.number).padStart(2,'0')+'</small><b>'+(progress.completed[l.id]?'✦':unlocked(l)?'◇':'•')+'</b><span>'+escape(l.name)+'</span></button>').join('')+'</div></section>').join('');
 }
 function showGallery() {
@@ -98,7 +98,7 @@ function showWin(){
  const level=levelById(run.levelId);
  return '<div class="pg-win"><div class="pg-win-orbit">✦</div><div class="pg-eyebrow">MOSAIC RESTORED</div><h1>'+escape(level.name)+'</h1><p>You brought another little piece of the garden to life.</p><div class="pg-win-stats"><span>'+run.moves+' moves</span><span>'+run.undos+' undos</span><span>'+run.hints+' hints</span></div>'+
  (newAwards.length?'<h2>New treasures</h2><div class="pg-win-awards">'+newAwards.map(a=>badge(a,true)).join('')+'</div>':'<p>Your gallery has grown a little brighter.</p>')+
- '<div class="pg-main-actions"><button class="pg-primary" data-action="next">Next puzzle →</button><button data-nav="gallery">View gallery</button><button data-nav="achievements">Achievements</button></div></div>';
+ '<div class="pg-main-actions"><button class="pg-primary" data-action="next">Next puzzle →</button><button data-action="replay-mastery">Replay in Mastery</button><button data-nav="gallery">View gallery</button><button data-nav="achievements">Achievements</button></div></div>';
 }
 function render(){
  const motion=progress.settings.motion;
@@ -109,10 +109,12 @@ function render(){
 app.addEventListener('click',(event)=>{
  const button=event.target.closest('button');if(!button||button.disabled)return;
  if(button.dataset.nav){nav(button.dataset.nav);return;}
- if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level))reset(level);return;}
+ if(button.dataset.modeChoice){desiredMode=button.dataset.modeChoice;render();return;}
+ if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level)){if(desiredMode==='mastery'&&!progress.completed[level.id]){message='Complete this level in Sanctuary first.';desiredMode='sanctuary';render();return;}reset(level,desiredMode);}return;}
  const action=button.dataset.action;
  if(action==='continue'){resume();return;}
  if(action==='next'){const next=levelByNumber(Math.min(18,levelById(run.levelId).number+1));reset(next);return;}
+ if(action==='replay-mastery'){const level=levelById(run.levelId);if(progress.completed[level.id])reset(level,'mastery');return;}
  if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;message='Last move undone.';commit();render();}return;}
  if(action==='restart'&&run){reset(levelById(run.levelId),run.mode);return;}
  if(action==='hint'&&run){const level=levelById(run.levelId),move=hint(level,run);run.hints++;progress.active=run;commit();selected=move?.source||null;message=move?'Try the highlighted jewel, then its glowing destination.':'Undo or restart to open a new route.';render();return;}

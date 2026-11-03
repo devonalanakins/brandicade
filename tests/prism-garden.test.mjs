@@ -72,3 +72,13 @@ test('Prism Garden is isolated from old saves and launcher targets its native pa
  assert.match(prism,/src\/prism-garden\/app.mjs/);
  assert.match(prism,/viewport-fit=cover/);
 });
+
+test('both gameplay modes and accessibility switches are represented in the game interface',()=>{
+ const app=readFileSync(new URL('../src/prism-garden/app.mjs',import.meta.url),'utf8');
+ assert.match(app,/data-mode-choice="sanctuary"/);
+ assert.match(app,/data-mode-choice="mastery"/);
+ assert.match(app,/data-action="replay-mastery"/);
+ assert.match(app,/progress\.settings\.colorAssist/);
+ assert.match(app,/data-setting="motion"/);
+ assert.match(app,/data-setting="sound"/);
+});
