@@ -1,0 +1,141 @@
+import {GEMS,LEVELS,WORLDS,levelByNumber,levelById} from './content.mjs';
+import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hint,solve,isComplete} from './engine.mjs';
+import {ACHIEVEMENTS,loadProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
+const app=document.querySelector('#prism-app');
+const progress=loadProgress();
+let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null;
+const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const gem=(color,small=false)=>'<span class="crystal '+(small?'small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
+const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
+const worldDone=(worldIndex)=>LEVELS.slice(worldIndex*6,worldIndex*6+6).every(l=>progress.completed[l.id]);
+const nextLevel=()=>LEVELS.find(l=>!progress.completed[l.id])||LEVELS[17];
+const unlocked=(level)=>level.number===1||!!progress.completed[LEVELS[level.number-2].id]||!!progress.completed[level.id];
+function playSound(freq=470) {
+ if(!progress.settings.sound)return;
+ try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+ soundContext??=new Audio();if(soundContext.state==='suspended')void soundContext.resume();
+ const oscillator=soundContext.createOscillator(),gain=soundContext.createGain();
+ oscillator.type='sine';oscillator.frequency.setValueAtTime(freq,soundContext.currentTime);
+ oscillator.frequency.exponentialRampToValueAtTime(freq*1.3,soundContext.currentTime+.12);
+ gain.gain.setValueAtTime(.035,soundContext.currentTime);
+ gain.gain.exponentialRampToValueAtTime(.001,soundContext.currentTime+.14);
+ oscillator.connect(gain).connect(soundContext.destination);oscillator.start();oscillator.stop(soundContext.currentTime+.15);
+ }catch{}
+}
+function commit() {
+ if(!persistProgress(progress)){message='Your browser is not saving. Avoid clearing website data until storage is available.';}
+}
+function nav(target) {screen=target;selected=null;newAwards=[];message='';render();}
+function reset(level,mode='sanctuary') {
+ const id='pg-'+level.id+'-'+String(Date.now());
+ run=createRun(level,{mode,runId:id});selected=null;newAwards=[];message='';
+ progress.active=run;commit();screen='game';render();
+}
+function resume() {
+ const saved=progress.active,level=saved&&levelById(saved.levelId);
+ if(level&&saved.stacks&&saved.placed&&!saved.finished){run=saved;screen='game';selected=null;render();}
+ else reset(nextLevel());
+}
+function showGame() {
+ const level=levelById(run.levelId),world=WORLDS[level.worldIndex];
+ const area=activeRegion(run,level);
+ const destinations=selected?validDestinations(level,run,selected):[];
+ const valid=(kind,index)=>destinations.some(d=>d.kind===kind&&d.index===index);
+ const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
+ const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color):'<span class="pg-empty">·</span>')+'</button>').join('');
+ const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+'">'+(entry?gem(entry.color):'<span class="pg-empty">+</span>')+'</button>').join('');
+ const count=run.placed.filter(Boolean).length,total=run.placed.length;
+ return '<div class="pg-game"><div class="pg-topline"><button class="pg-icon-button" data-nav="home" aria-label="Return to Prism Garden home">←</button><div><small>'+escape(world.short)+' · '+escape(run.mode)+'</small><h2>'+escape(level.name)+'</h2></div><button class="pg-icon-button" data-nav="settings" aria-label="Settings">⚙</button></div>'+
+ '<div class="pg-progress"><span>Restoration <b>'+count+'/'+total+'</b></span><div class="pg-progress-track"><i style="width:'+(count/total*100)+'%"></i></div></div>'+
+ '<div class="pg-world-scene pg-scene-'+world.scene+'"><div class="pg-scene-glow"></div><div class="pg-arch"><div class="pg-mosaic">'+sockets+'</div></div><div class="pg-scene-floor"></div></div>'+
+ '<div class="pg-task"><b>'+(area===level.colors.length?'Garden restored': 'Restore '+GEMS[level.colors[area]].label+' jewels')+'</b><span>'+(selected?'Choose a highlighted destination':'Choose an exposed jewel')+'</span></div>'+
+ '<div class="pg-supplies"><div class="pg-supply-heading">JEWEL STACKS <span>Moves '+run.moves+'</span></div><div class="pg-stacks">'+stacks+'</div><div class="pg-supply-heading">HOLDING SHELF <span>'+run.shelf.filter(Boolean).length+' / '+run.shelf.length+'</span></div><div class="pg-shelf">'+shelf+'</div></div>'+
+ '<div class="pg-tools"><button data-action="undo" '+(!run.history.length?'disabled':'')+'>↶ Undo</button><button data-action="hint">✧ Hint</button><button data-action="restart">Restart</button></div>'+
+ '<p class="pg-live" role="status" aria-live="polite">'+escape(message||'Take your time. Nothing expires here.')+'</p></div>';
+}
+function showHome() {
+ const complete=Object.keys(progress.completed).length,earnedCount=Object.keys(progress.awards).length;
+ return '<div class="pg-intro"><div class="pg-eyebrow">A LIVING JEWEL GARDEN</div><h1>Prism <em>Garden.</em></h1><p>Every jewel finds its place. Every puzzle brings a little world back to life.</p><div class="pg-home-art" aria-hidden="true"><div class="pg-halo"></div><span class="pg-art-gem a">'+gem('fern')+'</span><span class="pg-art-gem b">'+gem('dew')+'</span><span class="pg-art-gem c">'+gem('ember')+'</span><span class="pg-art-gem d">'+gem('orchid')+'</span><span class="pg-art-gem e">'+gem('moon')+'</span></div><div class="pg-main-actions"><button class="pg-primary" data-action="continue">'+(progress.active&&!progress.active.finished?'Continue your garden':'Begin the next puzzle')+' →</button><button data-nav="atlas">Choose a world</button></div><div class="pg-summary"><div><b>'+complete+' / 18</b><small>Mosaics restored</small></div><div><b>'+earnedCount+' / 18</b><small>Achievements</small></div></div></div>'+
+ '<div class="pg-home-links"><button data-nav="gallery"><span>◇</span><div><b>Living gallery</b><small>Your collected scenes</small></div>→</button><button data-nav="achievements"><span>✦</span><div><b>Achievement cabinet</b><small>Earned and undiscovered treasures</small></div>→</button><button data-nav="settings"><span>⚙</span><div><b>Settings</b><small>Sound, motion and accessibility</small></div>→</button></div>';
+}
+function showAtlas() {
+ return '<div class="pg-page-head"><div class="pg-eyebrow">THE WORLD ATLAS</div><h1>Three living worlds.</h1><p>Choose a level. Every collected mosaic stays yours.</p></div>'+
+ WORLDS.map((world,i)=>'<section class="pg-world-card" style="--accent:'+world.accent+'"><div class="pg-world-head"><div><small>CHAPTER 0'+(i+1)+'</small><h2>'+world.name+'</h2><p>'+world.detail+'</p></div><span>'+LEVELS.slice(i*6,i*6+6).filter(l=>progress.completed[l.id]).length+'/6</span></div><div class="pg-level-grid">'+LEVELS.slice(i*6,i*6+6).map(l=>'<button '+(!unlocked(l)?'disabled':'')+' data-level="'+l.number+'" aria-label="'+escape(l.name)+(unlocked(l)?'':', locked')+'" class="'+(progress.completed[l.id]?'cleared':'')+'"><small>'+String(l.number).padStart(2,'0')+'</small><b>'+(progress.completed[l.id]?'✦':unlocked(l)?'◇':'•')+'</b><span>'+escape(l.name)+'</span></button>').join('')+'</div></section>').join('');
+}
+function showGallery() {
+ const completed=LEVELS.filter(l=>progress.completed[l.id]);
+ return '<div class="pg-page-head"><div class="pg-eyebrow">THE LIVING GALLERY</div><h1>Every light you found.</h1><p>Collected scenes never expire. Revisit any finished world.</p></div>'+
+ WORLDS.map((world,i)=>'<section class="pg-gallery-world"><div class="pg-gallery-scene pg-scene-'+world.scene+'"><div class="pg-gallery-light"></div><div class="pg-gallery-bloom">'+(worldDone(i)?'✦':'◇')+'</div><span>'+escape(world.short)+'</span></div><div class="pg-gallery-details"><h2>'+escape(world.name)+'</h2><p>'+(worldDone(i)?'A whole world awake.':'Restore all six mosaics to bring this world to life.')+'</p><div class="pg-collectibles">'+LEVELS.slice(i*6,i*6+6).map(l=>'<span class="'+(progress.completed[l.id]?'owned':'')+'" title="'+escape(l.name)+'">'+(progress.completed[l.id]?'✦':'·')+'</span>').join('')+'</div>'+(worldDone(i)?'<button data-action="night" data-world="'+i+'">'+(progress.settings.night?'Return to daylight':'View by moonlight')+'</button><button data-action="secret" data-world="'+i+'" class="pg-secret" aria-label="Inspect the hidden garden light">✧</button>':'')+'</div></section>').join('');
+}
+function showAchievements() {
+ const count=Object.keys(progress.awards).length;
+ return '<div class="pg-page-head"><div class="pg-eyebrow">THE TROPHY CONSERVATORY</div><h1>Earned in your own time.</h1><p>'+count+' of 18 treasures discovered. No paid rewards, expiring badges or streaks.</p></div><div class="pg-award-summary"><span>✶</span><div><b>'+count+' / 18</b><small>Permanent achievements</small></div></div><div class="pg-badges">'+ACHIEVEMENTS.map(a=>badge(a,!!progress.awards[a.id])).join('')+'</div>';
+}
+function showSettings() {
+ const s=progress.settings;
+ return '<div class="pg-page-head"><div class="pg-eyebrow">YOUR GAME, YOUR PACE</div><h1>Little adjustments.</h1><p>Every setting stays on this device.</p></div><div class="pg-options">'+
+ '<label>Music and jewel sounds<input type="checkbox" data-setting="sound" '+(s.sound?'checked':'')+'></label>'+
+ '<label>Show gem names<input type="checkbox" data-setting="colorAssist" '+(s.colorAssist?'checked':'')+'></label>'+
+ '<label>Moonlight gallery<input type="checkbox" data-setting="night" '+(s.night?'checked':'')+'></label>'+
+ '<label>Motion <select data-setting="motion"><option value="system" '+(s.motion==='system'?'selected':'')+'>Follow device</option><option value="off" '+(s.motion==='off'?'selected':'')+'>Reduced</option><option value="on" '+(s.motion==='on'?'selected':'')+'>On</option></select></label>'+
+ '</div><p class="pg-settings-note">Progress is saved independently of Glimmer Pop and Brandle. Clearing browser data can delete this device-only progress; cloud sync is not yet enabled.</p>';
+}
+function finish(level,previouslyCompleted) {
+ const current=run;
+ progress.completed[level.id]??=new Date().toISOString();
+ if(current.mode==='sanctuary'&&!progress.sanctuary.includes(level.id))progress.sanctuary.push(level.id);
+ if(current.mode==='mastery'){
+   const par=level.stacks.reduce((sum,s)=>sum+s.length,0)+level.colors.length;
+   const medal=current.hints===0&&current.moves<=par?'gold':current.moves<=par+3?'silver':'bronze';
+   const rank={bronze:1,silver:2,gold:3};
+   if(rank[medal]>rank[progress.mastery[level.id]||'bronze']||!progress.mastery[level.id])progress.mastery[level.id]=medal;
+ }
+ newAwards=evaluateAchievements(progress,current,{replay:previouslyCompleted});
+ progress.active=null;commit();sound(660);screen='win';render();
+}
+function sound(f){playSound(f);}
+function showWin(){
+ const level=levelById(run.levelId);
+ return '<div class="pg-win"><div class="pg-win-orbit">✦</div><div class="pg-eyebrow">MOSAIC RESTORED</div><h1>'+escape(level.name)+'</h1><p>You brought another little piece of the garden to life.</p><div class="pg-win-stats"><span>'+run.moves+' moves</span><span>'+run.undos+' undos</span><span>'+run.hints+' hints</span></div>'+
+ (newAwards.length?'<h2>New treasures</h2><div class="pg-win-awards">'+newAwards.map(a=>badge(a,true)).join('')+'</div>':'<p>Your gallery has grown a little brighter.</p>')+
+ '<div class="pg-main-actions"><button class="pg-primary" data-action="next">Next puzzle →</button><button data-nav="gallery">View gallery</button><button data-nav="achievements">Achievements</button></div></div>';
+}
+function render(){
+ const motion=progress.settings.motion;
+ app.dataset.motion=motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches?'off':motion;
+ app.dataset.night=progress.settings.night?'yes':'no';
+ app.innerHTML='<div class="pg-shell"><header class="pg-header"><a href="/#home" class="pg-back">← Brandicade</a><button data-nav="home" class="pg-brand"><span class="pg-brand-mark">✧</span><span>PRISM <b>GARDEN</b></span></button><button data-nav="achievements" class="pg-header-awards" aria-label="Open achievements">✦ <b>'+Object.keys(progress.awards).length+'</b></button></header><main>'+({home:showHome,atlas:showAtlas,game:showGame,gallery:showGallery,achievements:showAchievements,settings:showSettings,win:showWin}[screen]||showHome)()+'</main><footer>MADE FOR BRANDI · NO ADS · NO CLOCKS · ALL YOURS</footer></div>';
+}
+app.addEventListener('click',(event)=>{
+ const button=event.target.closest('button');if(!button||button.disabled)return;
+ if(button.dataset.nav){nav(button.dataset.nav);return;}
+ if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level))reset(level);return;}
+ const action=button.dataset.action;
+ if(action==='continue'){resume();return;}
+ if(action==='next'){const next=levelByNumber(Math.min(18,levelById(run.levelId).number+1));reset(next);return;}
+ if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;message='Last move undone.';commit();render();}return;}
+ if(action==='restart'&&run){reset(levelById(run.levelId),run.mode);return;}
+ if(action==='hint'&&run){const level=levelById(run.levelId),move=hint(level,run);run.hints++;progress.active=run;commit();selected=move?.source||null;message=move?'Try the highlighted jewel, then its glowing destination.':'Undo or restart to open a new route.';render();return;}
+ if(action==='night'){progress.settings.night=!progress.settings.night;if(progress.settings.night&&WORLDS.some((_,i)=>worldDone(i)))earned(progress,'PG-ACH-018');commit();render();return;}
+ if(action==='secret'){if(worldDone(Number(button.dataset.world))){earned(progress,'PG-ACH-015');commit();message='You found the hidden glimmer.';render();}return;}
+ if(screen!=='game'||!run||!button.dataset.kind)return;
+ const level=levelById(run.levelId),kind=button.dataset.kind,index=Number(button.dataset.index);
+ const target={kind,index};
+ if(selected&&validDestinations(level,run,selected).some(d=>d.kind===kind&&d.index===index)){
+   const result=tryMove(level,run,selected,target);
+   if(result.ok){
+     run=result.run;selected=null;message=result.regionCompleted?'A little more of the garden is awake.':'Beautifully placed.';
+     if(run.finished){finish(level,!!progress.completed[level.id]);return;}
+     progress.active=run;commit();playSound(450);render();return;
+   }
+ }
+ if(kind!=='socket'&&selectedGem(run,target)){selected=selected&&selected.kind===kind&&selected.index===index?null:target;message='Choose a glowing destination.';}
+ else message='That jewel does not fit there. Pick a highlighted place.';
+ render();
+});
+app.addEventListener('change',(event)=>{
+ const key=event.target.dataset.setting;if(!key)return;
+ progress.settings[key]=key==='motion'?event.target.value:event.target.checked;
+ commit();render();
+});
+render();
