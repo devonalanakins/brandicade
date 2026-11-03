@@ -25,10 +25,10 @@ jobs:
       - run: node --test tests/brandicade-protected-worker.test.mjs tests/legacy-recovery-integration.test.mjs tests/legacy-write-api.test.mjs
       - run: npx --yes wrangler@4.156.2 deploy dist/brandicade-protected.candidate.mjs --name brandicade-protected-candidate --compatibility-date 2026-10-29 --dry-run --outdir dist/protected-bundle
       - run: |
+          set -eu
           files=$(find dist/protected-bundle -maxdepth 1 -type f -name '*.js')
-          test "$(printf '%s\n' "$files" | grep -c '\.js
-# Verification only: NO deploy step. Protected Worker candidate is UNBUNDLED and requires owner-key, Access, D1, license and on-device release acceptance.
-)" -eq 1
+          count=$(find dist/protected-bundle -maxdepth 1 -type f -name '*.js' | wc -l)
+          test "$count" -eq 1
           node --check "$files"
           BRANDICADE_BUNDLED_WORKER="$PWD/$files" node --test tests/brandicade-protected-worker.test.mjs
 # Verification only: NO deploy step. Protected Worker candidate is UNBUNDLED and requires owner-key, Access, D1, license and on-device release acceptance.
