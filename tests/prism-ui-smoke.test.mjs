@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {GEMS} from '../src/prism-garden/content.mjs';
 
 test('Prism Garden boots, opens gameplay and persists an actual jewel move without DOM frameworks', async()=>{
   const handlers={};
@@ -10,6 +12,7 @@ test('Prism Garden boots, opens gameplay and persists an actual jewel move witho
   globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
   await import('../src/prism-garden/app.mjs');
   assert.match(element.innerHTML,/Prism/);
+  assert.match(element.innerHTML,/crystal shape-leaf/);
   const click=(dataset)=>{
     handlers.click({target:{closest:()=>({dataset,disabled:false})}});
   };
@@ -60,4 +63,18 @@ test('hint identifies an exact accessible destination and clears after placement
  assert.equal(after.active.hints,2);
  assert.doesNotMatch(element.innerHTML,/\bhint-destination\b/);
  assert.equal(memory.has('brandicade:save:v1'),false);
+});
+
+test('every jewel family has an independent silhouette instead of color-only styling',()=>{
+ const css=readFileSync(new URL('../src/prism-garden/prism.css',import.meta.url),'utf8');
+ const seen=new Set();
+ for(const {symbol} of Object.values(GEMS)){
+  const match=css.match(new RegExp('\\.crystal\\.shape-'+symbol+'\\s*\\{clip-path:(polygon\\([^;]+\\))\\}'));
+  assert.ok(match,'Missing jewel shape: '+symbol);
+  assert.ok(!seen.has(match[1]),'Jewel shape is duplicated: '+symbol);
+  seen.add(match[1]);
+ }
+ assert.equal(seen.size,6);
+ const appSource=readFileSync(new URL('../src/prism-garden/app.mjs',import.meta.url),'utf8');
+ assert.ok(appSource.includes("shape-'+GEMS[color].symbol"));
 });

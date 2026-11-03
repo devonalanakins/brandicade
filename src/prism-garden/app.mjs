@@ -5,7 +5,7 @@ const app=document.querySelector('#prism-app');
 const progress=loadProgress();
 let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null;
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const gem=(color,small=false)=>'<span class="crystal '+(small?'small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
+const gem=(color,small=false)=>'<span class="crystal shape-'+GEMS[color].symbol+(small?' small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
 const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
 const worldDone=(worldIndex)=>LEVELS.slice(worldIndex*6,worldIndex*6+6).every(l=>progress.completed[l.id]);
 const nextLevel=()=>LEVELS.find(l=>!progress.completed[l.id])||LEVELS[17];

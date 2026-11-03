@@ -60,3 +60,11 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
 .pg-confirm-actions button{min-height:48px;flex:1;min-width:145px;border-radius:12px;padding:10px 16px;border:1px solid #8aa899;background:#224b3d;font-weight:600}
 .pg-confirm-actions .pg-confirm-replace{border-color:#e8c68d;background:#e8c68d;color:#132b24}
 @media(max-width:530px){.pg-confirm-actions{flex-direction:column}.pg-confirm-actions button{width:100%}}
+
+/* Distinctive vector silhouettes: jewel types remain recognizable without color. */
+.crystal.shape-leaf{clip-path:polygon(48% 0,75% 9%,95% 32%,91% 56%,72% 81%,39% 98%,9% 100%,20% 69%,7% 44%,19% 22%)}
+.crystal.shape-drop{clip-path:polygon(50% 0,63% 21%,78% 43%,86% 65%,81% 81%,66% 95%,50% 100%,34% 95%,19% 81%,14% 65%,22% 43%,37% 21%)}
+.crystal.shape-flame{clip-path:polygon(53% 0,67% 21%,63% 38%,79% 24%,85% 49%,97% 70%,81% 91%,50% 100%,19% 91%,3% 70%,20% 43%,25% 59%,42% 32%)}
+.crystal.shape-flower{clip-path:polygon(50% 0,64% 19%,86% 11%,85% 35%,100% 50%,85% 65%,86% 89%,64% 81%,50% 100%,36% 81%,14% 89%,15% 65%,0 50%,15% 35%,14% 11%,36% 19%)}
+.crystal.shape-crescent{clip-path:polygon(74% 0,53% 8%,37% 24%,30% 45%,32% 60%,43% 78%,62% 89%,82% 92%,62% 100%,38% 92%,19% 78%,9% 54%,14% 31%,31% 11%,52% 1%)}
+.crystal.shape-heart{clip-path:polygon(50% 100%,8% 61%,0 41%,4% 22%,17% 11%,33% 11%,50% 25%,67% 11%,83% 11%,96% 22%,100% 41%,92% 61%)}
