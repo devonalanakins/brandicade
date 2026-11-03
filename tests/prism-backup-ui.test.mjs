@@ -57,3 +57,39 @@ test('Settings backup controls export, cancel import and confirm restore without
   URL.createObjectURL=oldURL.create;URL.revokeObjectURL=oldURL.revoke;
  }
 });
+
+test('damaged original can be exported as-is without accepting it as a valid backup',async()=>{
+ const broken='{"version":1';
+ const storage=new Map([[KEY,broken],['brandicade:save:v1','safe-legacy']]);
+ const handlers={};let downloaded=false,downloads=0;
+ const controls={
+  '#pg-backup-export':{disabled:false,addEventListener(type,fn){handlers.export=fn;}},
+  '#pg-backup-raw':{disabled:false,addEventListener(type,fn){handlers.raw=fn;}},
+  '#pg-backup-import':{files:[],value:'',addEventListener(type,fn){handlers.import=fn;}},
+  '#pg-backup-status':{textContent:'',dataset:{}}
+ };
+ const panel={setAttribute(){},querySelector:s=>controls[s]};
+ const settings={after(element){host.panel=element;}};
+ const host={panel:null,querySelector(s){return s==='#pg-backup-tools'?this.panel:s==='.pg-options'?settings:null;}};
+ const old={document:globalThis.document,MutationObserver:globalThis.MutationObserver,window:globalThis.window,localStorage:globalThis.localStorage};
+ const oldURL={create:URL.createObjectURL,revoke:URL.revokeObjectURL};
+ globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)};
+ globalThis.MutationObserver=class{observe(){}};
+ globalThis.window={confirm:()=>false,location:{reload(){throw Error('reload not allowed');}}};
+ globalThis.document={getElementById:s=>s==='prism-app'?host:s==='pg-backup-status'?controls['#pg-backup-status']:null,
+  createElement:()=>({...panel,click(){downloaded=true;downloads++;},remove(){}}),body:{appendChild(){}}};
+ URL.createObjectURL=()=>'blob:raw-test';URL.revokeObjectURL=()=>{};
+ try{
+  await import('../src/prism-garden/backup-ui.mjs?damaged-recovery');
+  assert.equal(typeof handlers.raw,'function');
+  await handlers.raw({currentTarget:controls['#pg-backup-raw']});
+  assert.equal(downloaded,true);
+  assert.equal(downloads,1);
+  assert.equal(storage.get(KEY),broken);
+  assert.equal(storage.get('brandicade:save:v1'),'safe-legacy');
+  assert.equal(controls['#pg-backup-status'].dataset.kind,'success');
+ }finally{
+  for(const [key,value]of Object.entries(old)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}
+  URL.createObjectURL=oldURL.create;URL.revokeObjectURL=oldURL.revoke;
+ }
+});

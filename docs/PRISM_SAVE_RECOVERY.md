@@ -11,3 +11,10 @@ The static Worker route manifest and offline PWA cache include the backup module
 **Checks:** `node --test tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs` plus the existing Prism Garden, legacy backend, Python and deterministic Worker build checks from `.github/workflows/verify.yml`.
 
 **Still required before launch:** real iPhone Safari download/picker/restore acceptance; artwork and animation polish; full recovered production Access identity and encrypted D1 restore verification; source provenance and release owner approval.
+
+## Save corruption and stale-tab protection (November 3, 2026)
+On startup, Prism Garden now validates the device-local current run against the existing level catalog, gem inventory and replayable move history. Unreadable saves are preserved without replacement. Gameplay writes are blocked with a visible explanation and a link to Settings, where the original bytes can be downloaded as an **unverified, as-is text file** or a known-good verified backup can be restored with player confirmation.
+
+A best-effort localStorage snapshot check also refuses a save when another tab has changed the stored bytes since this tab loaded. This is not a transaction across simultaneous tabs, and does not replace full storage-concurrency testing. The user can reload to inspect the latest saved version. Existing Brandle, Glimmer Pop and production D1 records are outside the affected namespace.
+
+Targeted Node regression tests cover corrupt JSON, inconsistent jewel history, normal saved runs, stale-tab writes, blocked Continue and raw file export. Hosted exact-head GitHub CI and real iPhone Safari recovery and backup acceptance remain outstanding. No production Worker, Access policy, private D1 or game-origin migration is authorized.

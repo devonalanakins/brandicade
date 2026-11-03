@@ -1,8 +1,11 @@
 import {GEMS,LEVELS,WORLDS,levelByNumber,levelById} from './content.mjs';
 import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hint,solve,isComplete} from './engine.mjs';
-import {ACHIEVEMENTS,loadProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
+import {ACHIEVEMENTS,readStoredProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
 const app=document.querySelector('#prism-app');
-const progress=loadProgress();
+const initialSave=readStoredProgress();
+const progress=initialSave.progress;
+let saveBlocked=initialSave.recoveryRequired,saveSnapshot=initialSave.raw;
+const SAVE_WARNING='Your saved game could not be verified or another tab updated it. The original data remains untouched. Open Settings to download your data or restore a verified backup.';
 let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null;
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gem=(color,small=false)=>'<span class="crystal shape-'+GEMS[color].symbol+(small?' small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
@@ -23,10 +26,15 @@ function playSound(freq=470) {
  }catch{}
 }
 function commit() {
- if(!persistProgress(progress)){message='Your browser is not saving. Avoid clearing website data until storage is available.';}
+ if(saveBlocked){message=SAVE_WARNING;return;}
+ if(!persistProgress(progress,globalThis.localStorage,saveSnapshot)){
+  saveBlocked=true;message=SAVE_WARNING;return;
+ }
+ saveSnapshot=JSON.stringify(progress);
 }
 function nav(target) {screen=target;selected=null;hintTarget=null;newAwards=[];message='';render();}
 function reset(level,mode='sanctuary') {
+ if(saveBlocked){screen='settings';message=SAVE_WARNING;render();return;}
  const id='pg-'+level.id+'-'+String(Date.now());
  run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;pendingChange=null;newAwards=[];message='';
  progress.active=run;commit();screen='game';render();
@@ -135,7 +143,8 @@ function render(){
  const motion=progress.settings.motion;
  app.dataset.motion=motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches?'off':motion;
  app.dataset.night=progress.settings.night?'yes':'no';
- app.innerHTML='<div class="pg-shell"><header class="pg-header"><a href="/#home" class="pg-back">← Brandicade</a><button data-nav="home" class="pg-brand"><span class="pg-brand-mark">✧</span><span>PRISM <b>GARDEN</b></span></button><button data-nav="achievements" class="pg-header-awards" aria-label="Open achievements">✦ <b>'+Object.keys(progress.awards).length+'</b></button></header><main>'+({home:showHome,atlas:showAtlas,game:showGame,gallery:showGallery,achievements:showAchievements,settings:showSettings,win:showWin}[screen]||showHome)()+'</main><footer>MADE FOR BRANDI · NO ADS · NO CLOCKS · ALL YOURS</footer></div>'+showConfirmation();
+ const storageNotice=saveBlocked?'<section class="pg-storage-warning" role="alert"><b>Saved-game protection is on</b><p>'+escape(SAVE_WARNING)+'</p><button type="button" data-nav="settings">Open recovery tools</button></section>':'';
+ app.innerHTML='<div class="pg-shell"><header class="pg-header"><a href="/#home" class="pg-back">← Brandicade</a><button data-nav="home" class="pg-brand"><span class="pg-brand-mark">✧</span><span>PRISM <b>GARDEN</b></span></button><button data-nav="achievements" class="pg-header-awards" aria-label="Open achievements">✦ <b>'+Object.keys(progress.awards).length+'</b></button></header><main>'+storageNotice+({home:showHome,atlas:showAtlas,game:showGame,gallery:showGallery,achievements:showAchievements,settings:showSettings,win:showWin}[screen]||showHome)()+'</main><footer>MADE FOR BRANDI · NO ADS · NO CLOCKS · ALL YOURS</footer></div>'+showConfirmation();
  if(pendingChange){
   const shell=app.querySelector?.('.pg-shell');if(shell)shell.inert=true;
   app.querySelector?.('[data-action="cancel-run-change"]')?.focus?.();
@@ -143,6 +152,7 @@ function render(){
 }
 app.addEventListener('click',(event)=>{
  const button=event.target.closest('button');if(!button||button.disabled)return;
+ if(saveBlocked&&!button.dataset.nav){screen='settings';message=SAVE_WARNING;render();return;}
  if(pendingChange){
   if(button.dataset.action==='cancel-run-change')cancelRunChange();
   else if(button.dataset.action==='accept-run-change'){
@@ -206,6 +216,7 @@ app.addEventListener('keydown',(event)=>{
 });
 app.addEventListener('change',(event)=>{
  const key=event.target.dataset.setting;if(!key)return;
+ if(saveBlocked){render();return;}
  progress.settings[key]=key==='motion'?event.target.value:event.target.checked;
  commit();render();
 });

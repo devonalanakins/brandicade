@@ -8,3 +8,5 @@
 .pg-backup-buttons input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
 #pg-backup-status{font-size:11px;line-height:1.55;color:#bed2c5;min-height:34px;margin:5px 0 0}#pg-backup-status[data-kind=error]{color:#ffd0c2}#pg-backup-status[data-kind=success]{color:#bff5d1}
 @media(max-width:360px){.pg-backup-panel{padding:15px}.pg-backup-buttons{grid-template-columns:1fr}}
+#pg-backup-raw{display:block;width:100%;min-height:47px;margin:3px 0 10px;border:1px solid #e9c789;border-radius:12px;background:#453927;color:#fff4db;font-size:12px;font-weight:700;padding:11px}
+#pg-backup-raw:focus-visible{outline:3px solid #e9d7a2;outline-offset:3px}

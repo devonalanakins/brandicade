@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {LEVELS,levelById} from '../src/prism-garden/content.mjs';
 import {createRun,validDestinations,tryMove,undoMove,solve} from '../src/prism-garden/engine.mjs';
-import {validateProgress,newProgress,KEY} from '../src/prism-garden/achievements.mjs';
+import {validateProgress,newProgress,readStoredProgress,persistProgress,KEY} from '../src/prism-garden/achievements.mjs';
 import {validateSavedRun,sanitizeImportedProgress} from '../src/prism-garden/save-guard.mjs';
 import {makeBackup,parseBackup,MAX_BACKUP_BYTES} from '../src/prism-garden/backup.mjs';
 
@@ -114,4 +114,43 @@ test('static host and PWA include backup files without overwriting the offline m
  assert.match(sw,/route==='\/prism-garden\.html'/);
  assert.match(sw,/cache\.put\(key,copy\)/);
  assert.doesNotMatch(sw,/cache\.put\('\/index\.html',copy\)/);
+});
+
+test('unreadable local saves and forged unfinished runs are never silently replaced',()=>{
+ const raw='{"version":1,"active":';
+ const values=new Map([[KEY,raw],['brandicade:save:v1','preserve-original']]);
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
+ const invalid=readStoredProgress(storage);
+ assert.equal(invalid.recoveryRequired,true);
+ assert.equal(invalid.raw,raw);
+ assert.equal(invalid.progress.active,null);
+ assert.equal(values.get(KEY),raw);
+ const forged=newProgress();forged.active=sampleRun();
+ forged.active.placed[0]={id:'not-a-jewel',color:'fern'};
+ const forgedRaw=JSON.stringify(forged);values.set(KEY,forgedRaw);
+ assert.equal(readStoredProgress(storage).recoveryRequired,true);
+ assert.equal(values.get(KEY),forgedRaw);
+ assert.equal(values.get('brandicade:save:v1'),'preserve-original');
+});
+test('stale-tab storage snapshot does not overwrite another tab progress',()=>{
+ const first=newProgress(),raw=JSON.stringify(first);
+ const values=new Map([[KEY,raw],['brandicade:save:v1','preserve-original']]);
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
+ const state=readStoredProgress(storage);
+ assert.equal(state.recoveryRequired,false);
+ const fresh=newProgress();fresh.completed['PG-001']='2026-11-03T20:00:00.000Z';
+ const changed=JSON.stringify(fresh);values.set(KEY,changed);
+ assert.equal(persistProgress(first,storage,state.raw),false);
+ assert.equal(values.get(KEY),changed);
+ assert.equal(persistProgress(first,storage,changed),true);
+ assert.equal(values.get(KEY),JSON.stringify(first));
+ assert.equal(values.get('brandicade:save:v1'),'preserve-original');
+});
+test('legitimate active move histories remain valid on startup',()=>{
+ const progress=newProgress();progress.active=sampleRun();
+ const value=JSON.stringify(progress);
+ const storage={getItem:k=>k===KEY?value:null};
+ const loaded=readStoredProgress(storage);
+ assert.equal(loaded.recoveryRequired,false);
+ assert.deepEqual(loaded.progress,progress);
 });

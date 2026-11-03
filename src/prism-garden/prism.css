@@ -68,3 +68,8 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
 .crystal.shape-flower{clip-path:polygon(50% 0,64% 19%,86% 11%,85% 35%,100% 50%,85% 65%,86% 89%,64% 81%,50% 100%,36% 81%,14% 89%,15% 65%,0 50%,15% 35%,14% 11%,36% 19%)}
 .crystal.shape-crescent{clip-path:polygon(74% 0,53% 8%,37% 24%,30% 45%,32% 60%,43% 78%,62% 89%,82% 92%,62% 100%,38% 92%,19% 78%,9% 54%,14% 31%,31% 11%,52% 1%)}
 .crystal.shape-heart{clip-path:polygon(50% 100%,8% 61%,0 41%,4% 22%,17% 11%,33% 11%,50% 25%,67% 11%,83% 11%,96% 22%,100% 41%,92% 61%)}
+/* Unreadable local saves stay untouched; recovery is visible without color reliance. */
+.pg-storage-warning{margin:12px auto 8px;padding:16px;max-width:540px;border:1px solid #e9c78988;border-radius:16px;background:#473a28;color:#fff4db}
+.pg-storage-warning b{display:block;font-size:15px;margin-bottom:7px}
+.pg-storage-warning p{font-size:13px;line-height:1.55;margin:0 0 12px}
+.pg-storage-warning button{min-height:46px;padding:10px 16px;border-radius:12px;border:1px solid #e9c789;background:#e9c789;color:#1a3129;font-weight:700}
