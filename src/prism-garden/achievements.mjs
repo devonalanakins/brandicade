@@ -1,4 +1,6 @@
-import {LEVELS} from './content.mjs';
+import {LEVELS,levelById} from './content.mjs';
+import {createRun,validDestinations,tryMove} from './engine.mjs';
+import {sanitizeImportedProgress} from './save-guard.mjs';
 export const ACHIEVEMENTS = Object.freeze([
  {id:'PG-ACH-001',name:'First Spark',description:'Complete your first Prism Garden puzzle.',icon:'✦',kind:'discovery'},
  {id:'PG-ACH-002',name:'Petal Collector',description:'Complete five unique mosaics.',icon:'❀',kind:'collection'},
@@ -38,12 +40,30 @@ export function validateProgress(value) {
   if(candidate&&validIDs.has(candidate.levelId)&&candidate.schema===1&&Array.isArray(candidate.stacks)&&Array.isArray(candidate.shelf)&&Array.isArray(candidate.placed)&&Array.isArray(candidate.history)&&candidate.history.length<500&&candidate.stacks.length===3&&candidate.shelf.length<=4&&candidate.placed.length<=15)out.active=candidate;
   return out;
 }
-export function loadProgress(storage=globalThis.localStorage) {
-  try {const raw=storage.getItem(KEY);return raw?validateProgress(JSON.parse(raw)):store();}
-  catch{return store();}
+/** A damaged save is never silently replaced by the empty starter profile. */
+export function readStoredProgress(storage=globalThis.localStorage) {
+ let raw=null;
+ try{
+  raw=storage.getItem(KEY);
+  if(raw===null)return {progress:store(),raw:null,recoveryRequired:false};
+  const progress=sanitizeImportedProgress(JSON.parse(raw),{
+   validateProgress,levelById,createRun,validDestinations,tryMove
+  });
+  return {progress,raw,recoveryRequired:false};
+ }catch{
+  return {progress:store(),raw,recoveryRequired:true};
+ }
 }
-export function persistProgress(progress,storage=globalThis.localStorage) {
-  try {storage.setItem(KEY,JSON.stringify(progress));return true;}catch{return false;}
+export function loadProgress(storage=globalThis.localStorage) {
+ return readStoredProgress(storage).progress;
+}
+/** Refuse stale-tab writes when the stored bytes changed since the last read. */
+export function persistProgress(progress,storage=globalThis.localStorage,expectedRaw=undefined) {
+ try{
+  if(expectedRaw!==undefined&&storage.getItem(KEY)!==expectedRaw)return false;
+  storage.setItem(KEY,JSON.stringify(progress));
+  return true;
+ }catch{return false;}
 }
 export function earned(progress,id,date=new Date().toISOString()) {
   if(!progress.awards[id]){progress.awards[id]=date;return true;}return false;

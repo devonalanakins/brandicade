@@ -1,7 +1,7 @@
 /** Accessible device-local backups, mounted in Prism Garden's existing Settings screen. */
 import {levelById} from './content.mjs';
 import {createRun,validDestinations,tryMove} from './engine.mjs';
-import {validateProgress,KEY} from './achievements.mjs';
+import {validateProgress,readStoredProgress,KEY} from './achievements.mjs';
 import {sanitizeImportedProgress} from './save-guard.mjs';
 import {makeBackup,parseBackup,writeDownload,MAX_BACKUP_BYTES} from './backup.mjs';
 const dependencies={levelById,createRun,validDestinations,tryMove,validateProgress};
@@ -22,6 +22,12 @@ async function exportCurrent(){
  writeDownload(contents);
  notify('Backup downloaded. Keep the file somewhere private and safe.','success');
 }
+async function exportUnreadable(){
+ const raw=localStorage.getItem(KEY);
+ if(typeof raw!=='string')throw Error('No saved data is available to export.');
+ writeDownload(raw,'prism-garden-unverified-original-'+new Date().toISOString().slice(0,10)+'.txt');
+ notify('Original data downloaded as-is. This is not a verified backup; retain it privately for recovery.','success');
+}
 async function importSelected(input){
  const file=input.files?.[0];input.value='';
  if(!file)return;
@@ -39,6 +45,7 @@ function mount(){
  if(!host||host.querySelector('#pg-backup-tools'))return;
  const settings=host.querySelector('.pg-options');
  if(!settings)return;
+ const recoveryRequired=readStoredProgress().recoveryRequired;
  const panel=document.createElement('section');
  panel.id='pg-backup-tools';panel.className='pg-backup-panel';
  panel.setAttribute('aria-labelledby','pg-backup-title');
@@ -48,6 +55,7 @@ function mount(){
   '<div class="pg-backup-buttons"><button type="button" id="pg-backup-export">Download backup</button>'+
   '<label for="pg-backup-import">Restore from file</label>'+
   '<input id="pg-backup-import" type="file" accept=".json,application/json" aria-label="Select Prism Garden backup file"></div>'+
+  (recoveryRequired?'<button type="button" id="pg-backup-raw">Download original unreadable save</button>':'')+
   '<p id="pg-backup-status" role="status" aria-live="polite">'+
   'Backups include achievements, completed levels and your current puzzle. '+
   'They remain on your device unless you choose to share the file.</p>';
@@ -55,6 +63,11 @@ function mount(){
  panel.querySelector('#pg-backup-export').addEventListener('click',async event=>{
   const button=event.currentTarget;button.disabled=true;
   try{await exportCurrent();}catch(error){notify(error?.message||'Backup could not be created.','error');}
+  finally{button.disabled=false;}
+ });
+ if(recoveryRequired)panel.querySelector('#pg-backup-raw').addEventListener('click',async event=>{
+  const button=event.currentTarget;button.disabled=true;
+  try{await exportUnreadable();}catch(error){notify(error?.message||'Original save export failed.','error');}
   finally{button.disabled=false;}
  });
  panel.querySelector('#pg-backup-import').addEventListener('change',async event=>{

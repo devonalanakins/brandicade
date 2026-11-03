@@ -7,7 +7,7 @@ import {newProgress,KEY} from '../src/prism-garden/achievements.mjs';
 let instance=0;
 async function mount(progress){
  const old={document:globalThis.document,localStorage:globalThis.localStorage,matchMedia:globalThis.matchMedia};
- const storage=new Map([[KEY,JSON.stringify(progress)],['brandicade:save:v1','unchanged-legacy']]);
+ const storage=new Map([[KEY,typeof progress==='string'?progress:JSON.stringify(progress)],['brandicade:save:v1','unchanged-legacy']]);
  const handlers={};
  let focusCount=0;
  const app={
@@ -93,5 +93,17 @@ test('A brand-new unplayed puzzle does not force confirmation to restart',async(
   ui.click({action:'restart'});
   assert.doesNotMatch(ui.app.innerHTML,/pg-confirm-backdrop/);
   assert.equal(ui.saved.active.moves,0);
+ }finally{ui.restore();}
+});
+
+test('Continue on a damaged local save opens recovery without overwriting any bytes',async()=>{
+ const corrupt='{"version":1,"active":';
+ const ui=await mount(corrupt);
+ try{
+  assert.match(ui.app.innerHTML,/Saved-game protection is on/);
+  ui.click({action:'continue'});
+  assert.match(ui.app.innerHTML,/Open recovery tools/);
+  assert.equal(ui.storage.get(KEY),corrupt);
+  assert.equal(ui.storage.get('brandicade:save:v1'),'unchanged-legacy');
  }finally{ui.restore();}
 });
