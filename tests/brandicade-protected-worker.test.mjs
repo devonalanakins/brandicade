@@ -131,7 +131,7 @@ test('signed player sees first-party Prism assets and legacy read contracts; adm
   const sw=await hit('/sw.js',user,config);
   assert.equal(sw.status,200);
   const swContent=await sw.text();
-  assert.match(swContent,/brandicade-prism-bloom-cloud-bridge-v6/);
+  assert.match(swContent,/brandicade-glimmer-cascade-cloud-bridge-v7/);
   assert.match(swContent,/ASSETS=\['\/src\/cloud-sync\.mjs'/);
   assert.equal((await hit('/src/cloud-sync.mjs',user,config,'HEAD')).status,200);
   assert.equal((await hit('/src/prism-garden/app.mjs',user,config)).status,200);
