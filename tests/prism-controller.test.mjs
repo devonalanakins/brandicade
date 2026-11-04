@@ -31,10 +31,11 @@ test('Prism priority prefers live game jewels over retreat and never chooses sea
 
 test('Prism controller scope never leaks focus outside an active run-change confirmation',()=>{
  const cancel=node({action:'cancel-run-change'}), replace=node({action:'accept-run-change'});
- const confirm={querySelectorAll:()=>[cancel,replace]};
+ const confirm={querySelectorAll:()=>[cancel,replace],querySelector:selector=>selector==='[data-action="cancel-run-change"]'?cancel:null};
  const host={querySelector:s=>s==='.pg-confirm[role="alertdialog"]'?confirm:null};
  const overlay={hidden:true};
  assert.deepEqual(prismControls(host,overlay),[cancel,replace]);
+ assert.equal(prismPreferred(host,overlay),cancel,'controller default must preserve the interrupted puzzle');
 });
 
 test('controller stays UI-only and Prism page serves its script through first-party protected assets',()=>{
@@ -53,7 +54,7 @@ test('controller stays UI-only and Prism page serves its script through first-pa
  assert.match(file,/readGamepad/);
 });
 
-test('physical controller polling focuses before confirming, opens pause, and supports safe return',()=>{
+test('simulated controller polling focuses before confirming, opens pause, and supports safe return',()=>{
  const callbacks=[],events={},bodyNodes=[];
  let doc,held=[0],denied=false,connected=true;
  const start=node({action:'continue'}),resume=node(),returnHome=node();
