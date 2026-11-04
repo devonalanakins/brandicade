@@ -113,6 +113,39 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     }finally{await context.close();}
    });
   }
+  await t.test('Kahlua-only companion hub uses real progress and preserves legacy saves',async()=>{
+   const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',e=>errors.push(e.message));
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    const dog=page.locator('.kahlua-stage img');
+    assert.ok(await dog.count(),'Kahlua companion portrait must load');
+    assert.ok(await dog.evaluate(img=>img.complete&&img.naturalWidth>0),'companion art must render');
+    const before=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+    await page.locator('#kahlua-greet').click();
+    assert.match(await page.locator('#kahlua-response').innerText(),/Kahlua/);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),before,'greeting is transient, never an achievement or save');
+    await page.locator('#level-chip').click();
+    assert.ok(await page.locator('#profile-avatar img').evaluate(img=>img.complete&&img.naturalWidth>0));
+    assert.equal(await page.locator('[data-avatar], #avatar-options').count(),0,'no alternate avatar controls');
+    const title=await page.locator('#profile-title').innerText();
+    assert.match(title,/Brandi/i,'player profile identity still belongs to Brandi');
+    assert.deepEqual(errors,[],'Kahlua hub and profile must not throw');
+   }finally{await context.close();}
+  });
+  await t.test('Kahlua home remains accessible in portrait',async()=>{
+   const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+   const page=await context.newPage();
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    assert.ok(await page.locator('#kahlua-greet').isVisible());
+    assert.ok(await page.locator('#home [data-action="play"]').isVisible());
+    assert.ok(await page.locator('#home a[href="/prism-garden.html"]').first().isVisible());
+    const width=await page.evaluate(()=>document.documentElement.scrollWidth);
+    assert.ok(width<=392,'Kahlua portrait hub cannot horizontally overflow');
+   }finally{await context.close();}
+  });
   await t.test('portrait remains usable, not a forced-orientation dead end',async()=>{
    const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
    const page=await context.newPage(),errors=[];

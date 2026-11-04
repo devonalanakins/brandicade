@@ -1,5 +1,5 @@
 import {SIZE,TYPES,LEVEL_NAMES,levelSpec,makeRun,findMove,trySwap,adjacent} from './engine.mjs';
-import {AVATARS,FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
+import {FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
 import {prismArcadeSummary} from './prism-garden/arcade-summary.mjs';
 import {ARCADE_PASSPORT,deriveArcadePassport} from './arcade-passport.mjs';
 
@@ -38,13 +38,6 @@ const ICON_PATHS={
  moon:`<path d="M66 14C24 12 6 49 24 73c18 22 45 12 56-9C43 74 24 43 66 14Z" fill="#a9c8ee" stroke="#e2f5ff" stroke-width="3"/><path d="m70 23 3 7 7 3-7 3-3 8-3-8-8-3 8-3Z" fill="#edc98a"/>`
 };
 function medalSVG(icon){return `<svg viewBox="0 0 100 100" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#0f3030" stroke="#dcb17a" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="none" stroke="#8ec9b0" stroke-dasharray="2 5" stroke-width="1.4"/>${ICON_PATHS[icon]||ICON_PATHS.spark}</svg>`;}
-const AVATAR_SHAPES={
- moth:`<svg viewBox="0 0 128 128" aria-hidden="true"><defs><linearGradient id="wing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c999"/><stop offset="1" stop-color="#548d84"/></linearGradient></defs><path d="M64 48Q29-4 10 32Q-7 69 45 78Q11 87 40 108Q54 120 64 87Q74 120 88 108Q117 87 83 78Q135 69 118 32Q99-4 64 48Z" fill="url(#wing)" stroke="#f4dcaa" stroke-width="3"/><path d="M64 47Q35 20 28 42Q21 68 56 67M64 47Q93 20 100 42Q107 68 72 67" fill="none" stroke="#fff3c3" stroke-width="3" opacity=".9"/><ellipse cx="64" cy="70" rx="9" ry="29" fill="#135f61" stroke="#9fead0" stroke-width="3"/><path d="M61 46Q46 29 40 31M67 46q15-17 21-15" stroke="#ffe5b5" stroke-width="3" fill="none"/><circle cx="64" cy="63" r="4" fill="#fff0c8"/></svg>`,
- fox:`<svg viewBox="0 0 128 128" aria-hidden="true"><path d="M20 14 49 37l16-3 16 3 27-23 4 66Q102 114 65 116 28 113 16 80Z" fill="#b65d38" stroke="#f1bf89" stroke-width="4"/><path d="m30 29 16 16-23 18m75-34-16 16 23 18" fill="#f8c6a0"/><path d="M28 68Q47 56 64 75Q82 56 100 68L94 98Q63 123 34 98Z" fill="#f6dcc1"/><path d="m40 69 14 5-12 5m46-10-14 5 12 5" fill="#17362f"/><path d="M64 88 56 85h16Z" fill="#6f342d"/><path d="M57 97q7 7 14 0" fill="none" stroke="#6c382e" stroke-width="2.5"/></svg>`,
- flower:`<svg viewBox="0 0 128 128" aria-hidden="true"><g fill="#b573aa" stroke="#ffdbd8" stroke-width="3">${[0,60,120,180,240,300].map(a=>`<ellipse cx="64" cy="32" rx="20" ry="30" transform="rotate(${a} 64 64)"/>`).join('')}</g><circle cx="64" cy="64" r="27" fill="#eecb91" stroke="#885b42" stroke-width="3"/><circle cx="64" cy="64" r="17" fill="#d48959"/><g fill="#ffedbe">${[0,72,144,216,288].map(a=>`<circle cx="64" cy="51" r="3.4" transform="rotate(${a} 64 64)"/>`).join('')}</g></svg>`
-};
-function avatarSVG(type){return AVATAR_SHAPES[type]||AVATAR_SHAPES.moth;}
-
 function applySettings(){const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  document.body.classList.toggle('calm',save.settings.motion==='off');document.body.classList.toggle('force-motion',save.settings.motion==='on'&&reduced);
  document.body.classList.toggle('high-contrast',save.settings.contrast);document.body.classList.toggle('color-assist',save.settings.colorAssist);
@@ -100,12 +93,11 @@ function renderGame(){const run=ensureRun(),spec=levelSpec(run.level),board=$('#
  }else{$('#game-live').textContent='Tap two neighboring charms, or swipe one into its neighbor.';}
 }
 function renderProfile(){const p=save.progression,profile=save.profile,prism=prismArcadeSummary(),passport=deriveArcadePassport(save,prism,ACHIEVEMENTS);
- $('#profile-avatar').innerHTML=avatarSVG(profile.avatar);$('.profile-hero').dataset.frame=profile.frame;
+ $('.profile-hero').dataset.frame=profile.frame; // Kahlua is an image asset, not a mutable player avatar.
  $('#profile-equipped-title').textContent=levelTitle(save);$('#profile-level').textContent='LEVEL '+p.level;$('#profile-xp').textContent=`${p.xp} / ${xpThreshold(p.level)} XP`;$('#xp-fill').style.width=Math.max(0,Math.min(100,p.xp/xpThreshold(p.level)*100))+'%';$('#profile-petals').textContent=p.petals.toLocaleString();
  $('#stat-wins').textContent=save.stats.wins.toLocaleString();$('#stat-stars').textContent=p.totalStars;$('#stat-badges').textContent=passport.available?earnedCount(save)+prism.earned+passport.earned:String(earnedCount(save))+'+';
  $('#profile-prism-summary').textContent=prism.available?prism.completed+' / '+prism.totalLevels+' mosaics restored · '+prism.earned+' / '+prism.totalAchievements+' Prism Garden trophies':'Prism Garden save needs recovery. Open Prism Garden Settings to protect your progress.';
  $('#profile-passport-summary').textContent=passport.available?passport.earned+' / '+passport.total+' Arcade Passport trophies earned across both gardens.':'Arcade Passport progress is unavailable until Prism Garden recovers its save.';$('#stat-levels').textContent=Object.keys(p.levels).length;
- $('#avatar-options').innerHTML=AVATARS.map(a=>`<button class="avatar-option ${profile.avatar===a.id?'selected':''}" data-avatar="${a.id}" type="button" aria-pressed="${profile.avatar===a.id}" title="${escapeHTML(a.description)}">${avatarSVG(a.id)}<strong>${escapeHTML(a.label)}</strong></button>`).join('');
  $('#frame-options').innerHTML=FRAMES.map(a=>{const locked=p.level<a.level;return `<button class="frame-option ${profile.frame===a.id?'selected':''}" data-frame="${a.id}" type="button" ${locked?'disabled':''} aria-pressed="${profile.frame===a.id}"><span class="frame-icon ${a.id}"></span><span>${escapeHTML(a.label)}</span><small>${locked?'LV '+a.level+' TO UNLOCK':profile.frame===a.id?'EQUIPPED':'UNLOCKED'}</small></button>`}).join('');
  $('#title-options').innerHTML=TITLES.map(a=>{const locked=p.level<a.level;return `<button class="title-option ${profile.title===a.id?'selected':''}" data-title="${a.id}" type="button" ${locked?'disabled':''} aria-pressed="${profile.title===a.id}"><span>${escapeHTML(a.label)}</span><small>${locked?'LV '+a.level:profile.title===a.id?'EQUIPPED':'SELECT'}</small></button>`;}).join('');
  const earned=ACHIEVEMENTS.filter(x=>save.achievements[x.id]);$('#profile-awards').innerHTML=earned.length?earned.slice(-3).map(x=>`<span class="mini-award">${escapeHTML(x.name)}</span>`).join(''):'<span style="color:#b9d7c2;font-size:11px">Your first treasure is waiting in the games.</span>';
@@ -233,7 +225,6 @@ document.addEventListener('click',event=>{const target=event.target;
   case 'confirm-import':{if(!importPending)return;const result=restoreConfirmedBackup(importPending);if(!result.ok){toast('Restore failed. Original saved data is unchanged.');return;}save=result.save;saveBlocked=false;storageWarningShown=false;importPending=null;$('#brandicade-save-recovery')?.remove();closeModal();renderAll();navigate('home');toast('Your saved garden has been restored.');break;}
  }return;}
  const nav=target.closest?.('[data-go]');if(nav){closeModal();navigate(nav.dataset.go);sound();return;}
- const avatar=target.closest?.('[data-avatar]');if(avatar){const id=avatar.dataset.avatar;if(AVATARS.some(x=>x.id===id)){save.profile.avatar=id;commit();renderProfile();sound();}return;}
  const frame=target.closest?.('[data-frame]');if(frame){const id=frame.dataset.frame,def=FRAMES.find(x=>x.id===id);if(def&&save.progression.level>=def.level){save.profile.frame=id;commit();renderProfile();sound();}return;}
  const title=target.closest?.('[data-title]');if(title){const id=title.dataset.title,def=TITLES.find(x=>x.id===id);if(def&&save.progression.level>=def.level){save.profile.title=id;commit();renderProfile();sound();}return;}
  const toggle=target.closest?.('[data-toggle]');if(toggle){settingsToggle(toggle.dataset.toggle);sound();return;}
