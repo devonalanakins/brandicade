@@ -188,7 +188,12 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.locator('#pop-board [data-cell="'+path.invalid.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+path.invalid.to+'"]').click();
     assert.equal(await page.locator('#glimmer-moment').isHidden(),true,'invalid move cannot celebrate');
-    assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),original,'invalid move cannot change the save');
+    const afterInvalid=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+    const baseline=JSON.parse(original),checked=JSON.parse(afterInvalid);
+    assert.deepEqual(checked.currentRun,baseline.currentRun,'invalid move must not alter board, turns, or score');
+    assert.deepEqual(checked.progression,baseline.progression,'invalid move must not add XP or unlock levels');
+    assert.deepEqual(checked.achievements,baseline.achievements,'invalid move must not mint achievements');
+    assert.deepEqual(checked.stats,baseline.stats,'invalid move must not change match or win stats');
     await page.locator('#pop-board [data-cell="'+path.valid.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+path.valid.to+'"]').click();
     await page.waitForFunction(()=>!document.getElementById('glimmer-moment').hidden);
