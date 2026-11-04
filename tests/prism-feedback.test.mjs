@@ -79,9 +79,11 @@ test('selection and invalid attempt do not save; legitimate placement and undo d
   const before=storage.get(KEY);
   click({kind:'stack',index:'0'});
   assert.match(host.innerHTML,/data-feedback="select"/);
+  assert.doesNotMatch(host.innerHTML,/data-kahlua-event="region"/,'selection is not an earned reaction');
   assert.equal(storage.get(KEY),before);
   click({kind:'socket',index:'14'}); // invalid even if called programmatically
   assert.match(host.innerHTML,/data-feedback="invalid"/);
+  assert.doesNotMatch(host.innerHTML,/data-kahlua-event="region"/,'invalid move is not rewarded');
   assert.equal(storage.get(KEY),before);
   click({kind:'socket',index:'0'}); // the source selection survived the invalid attempt
   assert.match(host.innerHTML,/data-feedback="place"/);
@@ -108,6 +110,8 @@ test('only actual region completion illuminates a newly restored region',async()
   }
   assert.equal(earned,true);
   assert.match(host.innerHTML,/recently-restored/);
+  assert.match(host.innerHTML,/data-kahlua-event="region"/);
+  assert.match(host.innerHTML,/assets\/kahlua-companion\.svg/);
   assert.equal(storage.get('brandicade:save:v1'),'glimmer-preserved');
   assert.equal(Object.keys(JSON.parse(storage.get(KEY)).awards).length,0);
  });

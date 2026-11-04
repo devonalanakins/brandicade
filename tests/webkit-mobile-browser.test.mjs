@@ -145,11 +145,16 @@ test('WebKit landscape/portrait and state preservation: disposable local preview
       page.on('pageerror',e=>errors.push(e.message));
       try{
         await page.goto(url+'/prism-garden.html',{waitUntil:'networkidle'});
+        const kahlua=page.locator('.pg-kahlua-welcome img');
+        assert.equal(await kahlua.count(),1,'Kahlua appears in the Prism welcome');
+        assert.equal(await kahlua.evaluate(el=>el.complete&&el.naturalWidth>0),true,'Kahlua artwork loads in WebKit');
+        assert.equal(await page.locator('[data-avatar],#avatar-options').count(),0);
         await seedPrismProgress(page);
         await page.reload({waitUntil:'networkidle'});
         await page.getByRole('button',{name:/Continue your garden/}).tap();
         await page.locator('.pg-game').waitFor();
         assert.equal(await page.locator('.pg-socket').count(),15);
+        assert.equal(await page.locator('[data-kahlua-event]').count(),0,'no fake earned celebration on loading');
         let m=await geometry(page);
         assert.ok(m.docWidth<=m.width+2,'Prism landscape cannot overflow');
         assert.ok(m.prism?.width>=m.width-60,'Prism landscape must be a full-width two-column experience');
@@ -158,6 +163,7 @@ test('WebKit landscape/portrait and state preservation: disposable local preview
         const before=await page.evaluate(()=>localStorage.getItem('brandicade:prism-garden:v1'));
         await page.locator('.pg-stack:not([disabled])').first().tap();
         assert.equal(await page.locator('.pg-game').getAttribute('data-feedback'),'select');
+        assert.equal(await page.locator('[data-kahlua-event]').count(),0,'mere selection is not a reward');
         assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:prism-garden:v1')),before,
           'mere touch selection cannot persist progress');
         await page.setViewportSize(portrait);

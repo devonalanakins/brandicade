@@ -130,6 +130,9 @@ test('victory reveals exactly the newly completed mosaic without changing Glimme
   assert.ok(save.completed[level.id]);
   assert.equal(save.active,null);
   assert.match(app.innerHTML,/MOSAIC RESTORED/);
+  assert.match(app.innerHTML,/data-kahlua-event="win"/);
+  assert.match(app.innerHTML,/pg-kahlua-celebration/);
+  assert.match(app.innerHTML,/Kahlua is here for the celebration/);
   assert.match(app.innerHTML,/is-awake is-new" data-mosaic="PG-001"/);
   assert.match(app.innerHTML,/1 of 6 world mosaics restored/);
   assert.equal(map.get('brandicade:save:v1'),'original');

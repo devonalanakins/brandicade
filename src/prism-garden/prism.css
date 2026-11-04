@@ -259,3 +259,21 @@ body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active
  #prism-app .pg-game .pg-socket{height:44px}
  #prism-app .pg-game .pg-topline{margin-top:0;margin-bottom:5px}
 }
+
+
+/* Kahlua-only illustrated feedback: earns its moment from actual gameplay. */
+.pg-kahlua-welcome{display:flex;align-items:center;gap:14px;max-width:540px;margin:8px auto 18px;padding:11px 15px 11px 7px;text-align:left;border:1px solid #a1ff875c;border-radius:19px;background:linear-gradient(118deg,#265d3dc9,#12392f90 75%);box-shadow:inset 0 1px #dbffc01e,0 14px 40px #021b1490}
+.pg-kahlua-welcome img{width:76px;height:70px;object-fit:contain;flex:none;filter:drop-shadow(0 5px 14px #95ff6960)}
+.pg-kahlua-welcome small{display:block;color:#c5ff95;font-size:9px;font-weight:800;letter-spacing:.13em;margin-bottom:4px}
+.pg-kahlua-welcome p{font-size:12px;line-height:1.45;color:#e2f5dd;margin:0}
+.pg-game .pg-live.pg-kahlua-region{display:flex;align-items:center;justify-content:center;gap:9px;padding:3px 9px;border-radius:14px;color:#e4ffcf;border:1px solid #aaff8e65;background:linear-gradient(115deg,#164b37cc,#2f6849ba);box-shadow:0 0 24px #81fc8050;text-align:left;animation:pg-kahlua-arrival .48s ease-out both}
+.pg-kahlua-region img{width:43px;height:38px;object-fit:contain;flex:none;filter:drop-shadow(0 0 10px #b2ff8d5c)}
+.pg-kahlua-region span{font-weight:700;font-size:11px;line-height:1.3}
+.pg-win-orbit.pg-kahlua-celebration{position:relative;width:166px;height:166px;margin-bottom:21px;background:radial-gradient(circle at 50% 45%,#2c895b9c,#1352369c 65%,#073426);border:1px solid #cdff9eaa;box-shadow:0 0 0 15px #a7f77c11,0 0 65px #98f56755;animation:pg-kahlua-arrival .8s cubic-bezier(.18,.85,.32,1) both}
+.pg-kahlua-celebration::after{content:"";position:absolute;inset:-9px;pointer-events:none;border:1px dashed #ceff9d70;border-radius:50%}
+.pg-kahlua-celebration img{width:152px;height:138px;max-width:100%;object-fit:contain;filter:drop-shadow(0 10px 17px #001c1cbb)}
+@keyframes pg-kahlua-arrival{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){#prism-app .pg-game .pg-live.pg-kahlua-region{margin:0;min-height:43px;padding:2px 7px}#prism-app .pg-game .pg-kahlua-region img{width:37px;height:34px}#prism-app .pg-game .pg-kahlua-region span{font-size:10px}}
+@media(max-width:530px){.pg-kahlua-welcome{gap:8px;padding:9px;margin:7px auto 13px}.pg-kahlua-welcome img{width:59px;height:58px}.pg-kahlua-welcome p{font-size:11px}.pg-win-orbit.pg-kahlua-celebration{width:130px;height:130px}.pg-kahlua-celebration img{width:122px;height:118px}}
+@media(prefers-reduced-motion:reduce){.pg-kahlua-region,.pg-kahlua-celebration{animation:none!important}}
+#prism-app[data-motion="off"] .pg-kahlua-region,#prism-app[data-motion="off"] .pg-kahlua-celebration{animation:none!important}
