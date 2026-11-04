@@ -255,10 +255,13 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.locator('#pop-board [data-cell="0"]').waitFor();
     await page.evaluate(()=>{
      const board=document.getElementById('pop-board');
-     window.__cascadeWitness={clearing:false,refilling:false,busy:false};
+     window.__cascadeWitness={clearing:false,refilling:false,busy:false,savedAtStart:null};
      new MutationObserver(()=>{
       const w=window.__cascadeWitness;
-      if(board.dataset.animating==='true')w.busy=true;
+      if(board.dataset.animating==='true'){
+       w.busy=true;
+       w.savedAtStart??=JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun;
+      }
       if(board.querySelector('.clearing'))w.clearing=true;
       if(board.querySelector('.refilling'))w.refilling=true;
      }).observe(board,{subtree:true,attributes:true,attributeFilter:['class','data-animating'],childList:true});
@@ -278,9 +281,9 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.ok(first.waves>0);
     await page.locator('#pop-board [data-cell="'+first.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+first.to+'"]').click();
-    await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true');
-    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
-      first.expected,'the accepted turn must be durable while its first cascade is visibly playing');
+    await page.waitForFunction(()=>window.__cascadeWitness?.busy===true,null,{timeout:5000});
+    assert.deepEqual(await page.evaluate(()=>window.__cascadeWitness.savedAtStart),
+      first.expected,'the accepted turn must be durable when its first cascade starts');
     await page.waitForFunction(()=>!document.getElementById('pop-board')?.hasAttribute('data-animating'),
       {timeout:5000});
     const witness=await page.evaluate(()=>window.__cascadeWitness);
@@ -295,11 +298,12 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.screenshot({path:'.artifacts/landscape/glimmer-cascade-844x390.png',animations:'disabled'});
 
     const second=await predict();
+    await page.evaluate(()=>{window.__cascadeWitness.busy=false;window.__cascadeWitness.savedAtStart=null;});
     await page.locator('#pop-board [data-cell="'+second.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+second.to+'"]').click();
-    await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true');
-    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
-      second.expected,'a second accepted turn is persisted immediately');
+    await page.waitForFunction(()=>window.__cascadeWitness?.busy===true,null,{timeout:5000});
+    assert.deepEqual(await page.evaluate(()=>window.__cascadeWitness.savedAtStart),
+      second.expected,'a second accepted turn is persisted when its cascade starts');
     await page.reload({waitUntil:'networkidle'});
     await page.locator('#home .hero-text [data-action="play"]').click();
     assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
@@ -311,9 +315,16 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.locator('#game .game-tools [data-action="restart"]').click();
     await page.locator('#modal [data-action="confirm-restart"]').click();
     const third=await predict();
+    await page.evaluate(()=>{
+      const board=document.getElementById('pop-board');
+      window.__thirdCascadeSeen=false;
+      new MutationObserver(()=>{
+        if(board.dataset.animating==='true')window.__thirdCascadeSeen=true;
+      }).observe(board,{attributes:true,attributeFilter:['data-animating']});
+    });
     await page.locator('#pop-board [data-cell="'+third.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+third.to+'"]').click();
-    await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true');
+    await page.waitForFunction(()=>window.__thirdCascadeSeen===true,null,{timeout:5000});
     await page.evaluate(()=>{
       document.querySelector('#game .game-tools [data-action="restart"]').click();
       document.querySelector('#modal [data-action="confirm-restart"]').click();
