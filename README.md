@@ -23,4 +23,4 @@ The archive's MIT license and a GPLv3 notice emitted by its build script conflic
 
 Until then, preserve the existing live Worker and original source history. This repository is not a substitute for the running application.
 
-Project index: [Anevum project registry](https://github.com/devonalanakins/anevum) · Historical handoff: [GitHub reorganization](https://github.com/devonalanakins/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md)
+Portfolio context: [Devon Alan Akins](https://github.com/devonalanakins/anevum) · [October 2026 historical source handoff](https://github.com/devonalanakins/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md). Brandicade is an independent family project, not part of Anevum's creative studio.
