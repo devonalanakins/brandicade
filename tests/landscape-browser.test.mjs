@@ -281,7 +281,20 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.ok(first.waves>0);
     await page.locator('#pop-board [data-cell="'+first.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+first.to+'"]').click();
-    await page.waitForFunction(()=>window.__cascadeWitness?.busy===true,null,{timeout:5000});
+    await page.waitForTimeout(620);
+    const diagnostic=await page.evaluate(()=>({
+      hidden:document.hidden,
+      reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
+      gameActive:document.getElementById('game')?.classList.contains('active'),
+      run:JSON.parse(localStorage.getItem('brandicade:save:v1'))?.currentRun?.movesMade,
+      boardBusy:document.getElementById('pop-board')?.getAttribute('aria-busy'),
+      animations:[...document.querySelectorAll('#pop-board .charm')].flatMap(el=>el.getAnimations()).slice(0,5).map(a=>({state:a.playState,time:a.currentTime})),
+      witness:window.__cascadeWitness
+    }));
+    assert.equal(diagnostic.run,first.expected.movesMade,'valid swap must persist: '+JSON.stringify({diagnostic,errors}));
+    assert.equal(diagnostic.hidden,false,'Chromium test page must be visible: '+JSON.stringify({diagnostic,errors}));
+    assert.equal(diagnostic.reduced,false,'motion-enabled test environment: '+JSON.stringify({diagnostic,errors}));
+    assert.equal(diagnostic.witness.busy,true,'the real cascade did not start: '+JSON.stringify({diagnostic,errors}));
     assert.deepEqual(await page.evaluate(()=>window.__cascadeWitness.savedAtStart),
       first.expected,'the accepted turn must be durable when its first cascade starts');
     await page.waitForFunction(()=>!document.getElementById('pop-board')?.hasAttribute('data-animating'),
