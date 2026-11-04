@@ -3,7 +3,7 @@
  * Invokes the game's native, accessible buttons; it never reads or writes saves.
  * The Prism renderer owns puzzle rules, undo, awards, and recovery.
  */
-import {readGamepad, createRepeater, spatialTarget, DIRECTIONS, chooseControllerAction} from '../arcade-controller.mjs';
+import {readGamepad, createRepeater, spatialTarget, DIRECTIONS, chooseControllerAction, createControllerInputGate} from '../arcade-controller.mjs';
 
 const SELECTABLE = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled])';
 const DEFAULT_ID = 'prism-gamepad-overlay';
@@ -56,7 +56,7 @@ export function startPrismController({doc = document, win = window, nav = naviga
     '<button type="button" data-controller-resume>Resume puzzle · A</button>' +
     '<button type="button" data-controller-home>Return to Prism Garden</button></section>';
   doc.body.append(indicator, overlay);
-  const repeat = createRepeater();
+  const repeat = createRepeater(), inputGate = createControllerInputGate();
   let running = true, connected = false, restoreFocus = null;
   let pausedShell = null, pausedShellWasInert = false;
   const controls = () => prismControls(host, overlay);
@@ -186,6 +186,7 @@ export function startPrismController({doc = document, win = window, nav = naviga
     indicator.hidden = !on;
     doc.body.classList.toggle('pg-gamepad-active', on);
     repeat.reset();
+    inputGate.reset();
   };
   const tick = (now) => {
     if (!running) return;
@@ -207,9 +208,14 @@ export function startPrismController({doc = document, win = window, nav = naviga
         if (indicator.textContent !== hint) indicator.textContent = hint;
       }
       const held = readGamepad(pad);
-      const action = chooseControllerAction(repeat.step(held, now), held);
-      if (action) handle(action);
-    } else repeat.reset();
+      if (inputGate.accept(held, Boolean(pad))) {
+        const action = chooseControllerAction(repeat.step(held, now), held);
+        if (action) handle(action);
+      } else repeat.reset();
+    } else {
+      repeat.reset();
+      inputGate.reset();
+    }
     win.requestAnimationFrame(tick);
   };
   overlay.addEventListener('click', onOverlayClick);

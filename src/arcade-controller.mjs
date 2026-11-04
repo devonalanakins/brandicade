@@ -41,6 +41,28 @@ export function chooseControllerAction(fired, held = new Set()) {
   return fired.find(action => ['SECONDARY','ACHIEVEMENTS','PREV_TAB','NEXT_TAB'].includes(action)) || null;
 }
 
+
+/**
+ * Prevent pressed controls from generating accidental actions when a browser
+ * first reports a controller, restores a tab, or reconnects Bluetooth input.
+ * Only an observed neutral sample arms input. A visible press must then be
+ * NEW, rather than carried across a lifecycle boundary.
+ */
+export function createControllerInputGate() {
+  let armed=false;
+  return {
+    accept(held, connected=true) {
+      if (!connected) {armed=false;return false;}
+      if (!armed) {
+        if (held?.size === 0) armed=true;
+        return false;
+      }
+      return true;
+    },
+    reset() {armed=false;}
+  };
+}
+
 export function createRepeater({delay = 310, interval = 135} = {}) {
   const held = new Map();
   return {
@@ -106,7 +128,7 @@ export function startArcadeController({doc = document, win = window, nav = navig
   const backLabel = doc.getElementById('controller-back-label');
   const pause = doc.getElementById('controller-pause');
   if (!badge || !legend || !pause || typeof win.requestAnimationFrame !== 'function') return () => {};
-  const repeater = createRepeater();
+  const repeater = createRepeater(), inputGate = createControllerInputGate();
   let running = true, connected = false, previousFocus = null, pausedInert = [];
   const activeSection = () => doc.querySelector('.section.active');
   const originalModal = () => doc.querySelector('#modal.open .dialog');
@@ -118,6 +140,7 @@ export function startArcadeController({doc = document, win = window, nav = navig
     legend.hidden = !on;
     doc.body.classList.toggle('has-gamepad', on);
     repeater.reset();
+    inputGate.reset();
   };
   const visible = (el) => Boolean(el) && !el.disabled && !el.closest('[hidden], [aria-hidden="true"], [inert]') &&
     (typeof el.getClientRects !== 'function' || el.getClientRects().length > 0);
@@ -276,9 +299,14 @@ export function startArcadeController({doc = document, win = window, nav = navig
         if (backLabel.textContent !== label) backLabel.textContent = label;
       }
       const held = readGamepad(pad);
-      const action = chooseControllerAction(repeater.step(held, time), held);
-      if (action) act(action);
-    } else repeater.reset();
+      if (inputGate.accept(held, Boolean(pad))) {
+        const action = chooseControllerAction(repeater.step(held, time), held);
+        if (action) act(action);
+      } else repeater.reset();
+    } else {
+      repeater.reset();
+      inputGate.reset(); // A held while the app is backgrounded cannot act on resume.
+    }
     win.requestAnimationFrame(poll);
   };
   pause.addEventListener('click', onClick);

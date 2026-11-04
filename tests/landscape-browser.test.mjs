@@ -257,6 +257,20 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.goto(url+'/',{waitUntil:'networkidle'});
     await page.waitForSelector('#controller-indicator:not([hidden])',{timeout:5000});
     const baseline=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+    // After reconnect, a button carried over from Bluetooth pairing must
+    // be released before it is treated as a new press.
+    await page.evaluate(()=>{window.__syntheticGamepad.connected=false;});
+    await page.waitForSelector('#controller-indicator[hidden]',{state:'attached'});
+    await page.evaluate(()=>{
+      window.__syntheticGamepad.buttons[0].pressed=true;
+      window.__syntheticGamepad.connected=true;
+    });
+    await page.waitForSelector('#controller-indicator:not([hidden])');
+    await page.waitForTimeout(85);
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'home',
+      'reconnecting with held A cannot unexpectedly launch a game');
+    await page.evaluate(()=>{window.__syntheticGamepad.buttons[0].pressed=false;});
+    await page.waitForTimeout(80);
     await press(0); // A first focuses Play instead of unexpectedly launching a game.
     assert.ok(await page.locator('#home [data-action="play"]').first().evaluate(el=>document.activeElement===el),
      'first controller confirm should focus the real primary Play action');
@@ -270,6 +284,21 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-cell')),'1');
     await press(0); // Select the focused jewel (not an actual move).
     assert.ok(await page.locator('#pop-board .charm.selected').count(),'A should select jewel');
+    // A held while the tab is hidden must not act on foregrounding.
+    await page.evaluate(()=>{
+      Object.defineProperty(document,'visibilityState',{
+        configurable:true,get(){return window.__testVisibility||'visible';}
+      });
+      window.__testVisibility='hidden';
+      window.__syntheticGamepad.buttons[0].pressed=true;
+    });
+    await page.waitForTimeout(75);
+    await page.evaluate(()=>{window.__testVisibility='visible';});
+    await page.waitForTimeout(90);
+    assert.equal(await page.locator('#pop-board .charm.selected').count(),1,
+      'a held A cannot activate a jewel after returning to the tab');
+    await page.evaluate(()=>{window.__syntheticGamepad.buttons[0].pressed=false;});
+    await page.waitForTimeout(75);
     await press(1); // B cancels jewel selection before leaving the active game.
     assert.equal(await page.locator('#pop-board .charm.selected').count(),0);
     assert.equal(await page.locator('.section.active').getAttribute('id'),'game');

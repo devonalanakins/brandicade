@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController, chooseControllerAction, gridCellTarget} from '../src/arcade-controller.mjs';
+import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController, chooseControllerAction, gridCellTarget, createControllerInputGate} from '../src/arcade-controller.mjs';
 
 function pad(indices = [], axes = [0, 0], mapping = 'standard') {
   return {mapping, connected: true, buttons: Array.from({length:16}, (_,i) => ({pressed:indices.includes(i)})), axes};
@@ -42,6 +42,21 @@ test('one action per frame protects confirmations while a stick is held', () => 
   assert.equal(chooseControllerAction(['CONFIRM','PAUSE'],new Set(['CONFIRM','PAUSE'])),'PAUSE');
   assert.equal(chooseControllerAction(['ACHIEVEMENTS'],new Set(['ACHIEVEMENTS'])),'ACHIEVEMENTS');
   assert.equal(chooseControllerAction([],new Set()),null);
+});
+
+
+test('first held buttons never activate on connection, reconnect or tab restore', () => {
+  const gate=createControllerInputGate(), idle=new Set(), a=new Set(['CONFIRM']);
+  assert.equal(gate.accept(a,true),false,'held A on connection is ignored');
+  assert.equal(gate.accept(a,true),false,'continued hold stays blocked');
+  assert.equal(gate.accept(idle,true),false,'neutral sample arms but never activates');
+  assert.equal(gate.accept(a,true),true,'fresh A after release can activate');
+  assert.equal(gate.accept(a,false),false,'disconnect unarms input');
+  assert.equal(gate.accept(a,true),false,'reconnected held A cannot activate');
+  gate.reset(); // tab went into the background
+  assert.equal(gate.accept(a,true),false,'background held A remains blocked');
+  assert.equal(gate.accept(idle,true),false);
+  assert.equal(gate.accept(a,true),true,'fresh press on restored tab works');
 });
 
 test('buttons are edge-triggered but directional movement repeats at a bounded cadence', () => {
@@ -122,10 +137,13 @@ test('real controller loop: pause and resume work without an existing focus targ
   const tick=(t)=>raf.shift()(t);
   tick(0);
   assert.equal(indicator.hidden,false);
+  assert.equal(pause.hidden,true,'held Menu on connection must not pause');
+  pressed=[];tick(10); // neutral arms input
+  pressed=[9];tick(20);
   assert.equal(pause.hidden,false);
   assert.equal(doc.activeElement,resume);
   assert.deepEqual(underlying.map(el=>el.inert),[true,true,true]);
-  pressed=[];tick(20);
+  pressed=[];tick(30);
   pressed=[1];tick(40);
   assert.equal(pause.hidden,true); // previously crashed on missing previousFocus
   assert.deepEqual(underlying.map(el=>el.inert),[false,true,false],'prior inert state restored');
@@ -153,11 +171,14 @@ test('first A in Glimmer Pop focuses a board cell; it cannot accidentally exit',
   const win={requestAnimationFrame:(fn)=>raf.push(fn)};
   const stop=startArcadeController({doc,nav,win});
   raf.shift()(0);
+  assert.equal(doc.activeElement,null,'held A at connect must not establish focus');
+  pressed=[];raf.shift()(20); // neutral arms
+  pressed=[0];raf.shift()(40); // first NEW A focuses the board
   assert.equal(doc.activeElement,board);
   assert.equal(board.clickCount,0);
   assert.equal(back.clickCount,0);
-  pressed=[];raf.shift()(20);
-  pressed=[0];raf.shift()(40);
+  pressed=[];raf.shift()(60);
+  pressed=[0];raf.shift()(80); // second new A selects
   assert.equal(board.clickCount,1);
   assert.equal(back.clickCount,0);
   stop();
@@ -187,10 +208,13 @@ test('B clears Glimmer Pop jewel selection before returning to the arcade', () =
   const win={requestAnimationFrame:fn=>queue.push(fn)};
   const stop=startArcadeController({doc,win,nav});
   queue.shift()(0);
+  assert.equal(cleared,0,'held B on connection cannot clear a jewel');
+  pressed=[];queue.shift()(20); // neutral arms
+  pressed=[1];queue.shift()(40);
   assert.equal(cleared,1);
   assert.equal(exited,0);
-  pressed=[];queue.shift()(20);
-  pressed=[1];queue.shift()(40);
+  pressed=[];queue.shift()(60);
+  pressed=[1];queue.shift()(80);
   assert.equal(cleared,1);
   assert.equal(exited,1);
   stop();

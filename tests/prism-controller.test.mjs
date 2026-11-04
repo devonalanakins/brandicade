@@ -91,18 +91,22 @@ test('simulated controller polling focuses before confirming, opens pause, and s
  const nav={getGamepads(){if(denied)throw Error('not permitted');return [{connected,mapping:'standard',axes:[0,0],buttons:Array.from({length:16},(_,i)=>({pressed:held.includes(i)}))}]}};
  const stop=startPrismController({doc,win,nav});
  const tick=t=>callbacks.shift()(t);
- tick(0); // A only focuses.
+ tick(0); // held A at connection is deliberately ignored.
+ assert.equal(doc.activeElement,null);
+ assert.equal(start.clicked,0);
+ held=[];tick(20); // neutral arms
+ held=[0];tick(40); // new A focuses but does not activate
  assert.equal(doc.activeElement,start);
  assert.equal(start.clicked,0);
- held=[];tick(20);
- held=[0];tick(40);
- assert.equal(start.clicked,1);
  held=[];tick(50);
- held=[9];tick(60);
+ held=[0];tick(60); // second new A legitimately clicks
+ assert.equal(start.clicked,1);
+ held=[];tick(70);
+ held=[9];tick(80);
  assert.equal(overlayNode.hidden,false);
  assert.equal(shell.inert,true,'paused game is removed from background focus');
  assert.equal(doc.activeElement,resume);
- held=[];tick(80);
+ held=[];tick(90);
  held=[1];tick(100);
  assert.equal(overlayNode.hidden,true);
  assert.equal(shell.inert,false,'game interaction returns on resume');
