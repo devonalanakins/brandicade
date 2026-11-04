@@ -190,6 +190,10 @@ function animateMove(a,b){const board=$('#pop-board');const one=board.querySelec
  const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]);}
 async function performSwap(a,b){if(moving||ensureRun().ended)return;const current=save.currentRun;const result=trySwap(current,a,b);
  if(!result.ok){sound('wrong');haptic();setSelection();toast(result.reason==='no-match'?'That swap needs to make a match.':'Choose two neighboring charms.');return;}
+ const lastToast=$('#toast');
+ if(lastToast&&['That swap needs to make a match.','Choose two neighboring charms.'].includes(lastToast.textContent)){
+  clearTimeout(noticeTimeout);lastToast.classList.remove('visible');
+ }
  const restoreFocusedCell=Boolean(document.activeElement?.closest?.('#pop-board [data-cell]'));
  moving=true;await animateMove(a,b);save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
  commit();renderGame();renderHome();renderProfile();renderTreasures();moving=false;

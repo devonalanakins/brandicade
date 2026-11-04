@@ -222,6 +222,8 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.locator('#pop-board [data-cell="'+path.valid.from+'"]').click();
     await page.locator('#pop-board [data-cell="'+path.valid.to+'"]').click();
     await page.waitForFunction(()=>!document.getElementById('glimmer-moment').hidden);
+    assert.equal(await page.locator('#toast').evaluate(el=>el.classList.contains('visible')),false,
+      'a prior rejected-swap warning must not contradict the successful match');
     assert.match(await page.locator('#glimmer-moment-title').innerText(),/MATCH|CASCADE|CHAIN|GARDEN COMPLETE/);
     assert.match(await page.locator('#glimmer-moment-detail').innerText(),/charms.+points/);
     assert.equal(await page.locator('#glimmer-moment').getAttribute('aria-hidden'),'true');
