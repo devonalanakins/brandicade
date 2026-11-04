@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget} from '../src/arcade-controller.mjs';
+import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController} from '../src/arcade-controller.mjs';
 
 function pad(indices = [], axes = [0, 0], mapping = 'standard') {
   return {mapping, connected: true, buttons: Array.from({length:16}, (_,i) => ({pressed:indices.includes(i)})), axes};
@@ -74,4 +74,72 @@ test('integration is confined to UI assets and preserves independent save bounda
   assert.match(workflow, /tests\/arcade-controller\.test\.mjs/);
   assert.doesNotMatch(controller,/localStorage|\.setItem\(|\/api\/save|persist\(/);
   assert.match(html,/brandle-glimmer-grove\.devonakins\.workers\.dev/);
+});
+
+
+test('real controller loop: pause and resume work without an existing focus target', () => {
+  const raf = [];
+  const pause = {hidden:true,querySelector:()=>resume,querySelectorAll:()=>[resume],addEventListener(){},removeEventListener(){}};
+  const indicator = {hidden:true}, legend = {hidden:true};
+  const section = {id:'game',querySelectorAll:()=>[],querySelector:()=>null};
+  let doc;
+  const resume = {
+    focus(){doc.activeElement=this;},scrollIntoView(){},
+    getClientRects(){return [{}];},closest(){return null;},click(){}
+  };
+  doc = {
+    activeElement:null,visibilityState:'visible',
+    body:{classList:{toggle(){}}},
+    getElementById:(id)=>({'controller-pause':pause,'controller-indicator':indicator,'controller-legend':legend}[id]||null),
+    querySelector:(s)=>s==='.section.active'?section:null,
+    querySelectorAll:()=>[],
+    addEventListener(){},removeEventListener(){}
+  };
+  let pressed=[9],fail=false;
+  const nav={getGamepads(){
+    if(fail)throw Error('Gamepad API unavailable');
+    return [{mapping:'standard',connected:true,axes:[0,0],buttons:Array.from({length:16},(_,i)=>({pressed:pressed.includes(i)}))}];
+  }};
+  const win={requestAnimationFrame:(fn)=>raf.push(fn)};
+  const stop=startArcadeController({doc,win,nav});
+  const tick=(t)=>raf.shift()(t);
+  tick(0);
+  assert.equal(indicator.hidden,false);
+  assert.equal(pause.hidden,false);
+  assert.equal(doc.activeElement,resume);
+  pressed=[];tick(20);
+  pressed=[1];tick(40);
+  assert.equal(pause.hidden,true); // previously crashed on missing previousFocus
+  fail=true;tick(60);
+  assert.equal(indicator.hidden,true);
+  stop();
+});
+
+test('first A in Glimmer Pop focuses a board cell; it cannot accidentally exit', () => {
+  const raf=[];
+  let doc, pressed=[0];
+  const board={dataset:{cell:'0'},clickCount:0,focus(){doc.activeElement=this;},
+    click(){this.clickCount++;},scrollIntoView(){},getClientRects(){return [{}];},
+    closest(){return null;},getBoundingClientRect(){return {left:10,top:10,width:44,height:44};}};
+  const back={clickCount:0,click(){this.clickCount++;},getClientRects(){return [{}];},closest(){return null;}};
+  const section={id:'game',querySelectorAll:()=>[back,board],querySelector:()=>null};
+  const pause={hidden:true,addEventListener(){},removeEventListener(){}};
+  const docObj={activeElement:null,visibilityState:'visible',
+    body:{classList:{toggle(){}}},
+    getElementById:(id)=>({'controller-pause':pause,'controller-indicator':{hidden:true},'controller-legend':{hidden:true}}[id]||null),
+    querySelector:(s)=>s==='.section.active'?section:s==='#pop-board [data-cell]'?board:null,
+    querySelectorAll:()=>[],addEventListener(){},removeEventListener(){}};
+  doc=docObj;
+  const nav={getGamepads:()=>[{mapping:'standard',connected:true,axes:[0,0],buttons:Array.from({length:16},(_,i)=>({pressed:pressed.includes(i)}))}]};
+  const win={requestAnimationFrame:(fn)=>raf.push(fn)};
+  const stop=startArcadeController({doc,nav,win});
+  raf.shift()(0);
+  assert.equal(doc.activeElement,board);
+  assert.equal(board.clickCount,0);
+  assert.equal(back.clickCount,0);
+  pressed=[];raf.shift()(20);
+  pressed=[0];raf.shift()(40);
+  assert.equal(board.clickCount,1);
+  assert.equal(back.clickCount,0);
+  stop();
 });
