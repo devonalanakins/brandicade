@@ -147,11 +147,12 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
       const rect=s=>document.querySelector(s)?.getBoundingClientRect();
       const copy=rect('#home .hero-text'),stage=rect('#home .kahlua-stage'),
         action=rect('#home .hero-text .actions'),greet=rect('#kahlua-greet');
-      return {copy:copy?.bottom,stageTop:stage?.top,actionBottom:action?.bottom,greetTop:greet?.top};
+      return {copy:copy?.bottom,stageTop:stage?.top,actionBottom:action?.bottom,greetTop:greet?.top,greetBottom:greet?.bottom,navTop:rect('.bottom-nav')?.top};
     });
     assert.ok(order.copy<=order.stageTop+2,'portrait copy must not overlap dog artwork: '+JSON.stringify(order));
     assert.ok(order.actionBottom<=order.stageTop+2,'portrait Play buttons must be above Kahlua: '+JSON.stringify(order));
     assert.ok(order.greetTop>=order.stageTop+6,'Kahlua greeting must remain inside her own scene');
+    assert.ok(order.greetBottom<=order.navTop-3,'greeting must stay above fixed mobile navigation: '+JSON.stringify(order));
     assert.ok(await page.locator('#home .hero-text [data-action="play"]').isVisible());
     assert.ok(await page.locator('#home a[href="/prism-garden.html"]').first().isVisible());
     const width=await page.evaluate(()=>document.documentElement.scrollWidth);

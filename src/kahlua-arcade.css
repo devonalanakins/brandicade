@@ -83,8 +83,8 @@ body.calm .kahlua-stage .portal{animation:none!important}
  #home .kahlua-hero .hero-text{display:flex!important;flex-direction:column!important;align-items:center!important;order:0!important;position:relative!important;min-width:0}
  #home .kahlua-hero .hero-text .actions{position:static!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:10px!important;order:0!important;margin:6px auto 8px!important}
  #home .kahlua-hero .hero-text .hero-metrics{margin-top:16px!important}
- #home .kahlua-hero .kahlua-stage{order:1!important;position:relative!important;width:100%!important;min-height:290px!important;height:315px!important;margin:0!important;overflow:visible!important}
- #home .kahlua-hero .kahlua-stage .portal{width:min(75vw,288px)!important;max-height:255px!important;height:255px!important;margin:0!important}
- #home .kahlua-hero .kahlua-stage-footer{bottom:19px!important}
+ #home .kahlua-hero .kahlua-stage{order:1!important;position:relative!important;width:100%!important;min-height:228px!important;height:240px!important;margin:0!important;overflow:visible!important}
+ #home .kahlua-hero .kahlua-stage .portal{width:min(75vw,288px)!important;max-height:205px!important;height:205px!important;margin:0!important}
+ #home .kahlua-hero .kahlua-stage-footer{bottom:17px!important}
  #home .kahlua-hero .kahlua-response{bottom:0!important}
 }
