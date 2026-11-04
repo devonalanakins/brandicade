@@ -198,7 +198,7 @@ function animateMove(a,b){const board=$('#pop-board');const one=board.querySelec
  ]).finally(()=>{clearTimeout(timeout);p1.cancel();p2.cancel();});}
 /** Visual-only cascade rendering, independent of earned rewards and saved runs. */
 function paintGlimmerPreview(types) {
- const cells=$('#pop-board [data-cell]');
+ const cells=$$('#pop-board [data-cell]');
  if(cells.length!==SIZE*SIZE||!Array.isArray(types)||types.length!==cells.length||
     !types.every(type=>TYPES.includes(type)))return false;
  for(let i=0;i<cells.length;i++){
