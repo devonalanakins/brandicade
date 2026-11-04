@@ -71,7 +71,7 @@ function renderHome(){const p=save.progression,prism=prismArcadeSummary(),passpo
  $('#atrium-prism-caption').textContent=prism.available?
   `${prism.completed} of 18 jewel mosaics restored across three living worlds. ${passport.earned} Arcade Passport ${passport.earned===1?'trophy':'trophies'} earned.`:
   'Prism Garden progress needs recovery. Your existing games are still available.';
- $('.prism-world-orb').forEach(orb=>{
+ $$('.prism-world-orb').forEach(orb=>{
   const number=prism.worldProgress?.[orb.dataset.prismWorld]??0;
   orb.classList.toggle('awakening',prism.available&&number>0);
   orb.classList.toggle('restored',prism.available&&number===6);
