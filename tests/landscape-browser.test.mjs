@@ -318,7 +318,11 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.deepEqual(await page.evaluate(()=>window.__cascadeWitness.savedAtStart),
       second.expected,'a second accepted turn is persisted when its cascade starts');
     await page.reload({waitUntil:'networkidle'});
-    await page.locator('#home .hero-text [data-action="play"]').click();
+    // Brandicade preserves #game in the URL. Reload may restore gameplay
+    // directly, so do not attempt to click the now-hidden home Play button.
+    if(!await page.locator('#game.section.active').count())
+      await page.locator('#home .hero-text [data-action="play"]').click();
+    await page.locator('#pop-board [data-cell="0"]').waitFor();
     assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
       second.expected,'reload during a cascade must not lose an earned turn');
     assert.equal(await page.locator('#pop-board [data-cell]').count(),49);
