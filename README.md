@@ -1,4 +1,10 @@
+<p align="center"><img src=".github/assets/readme-hero.svg" alt="Original Brandicade project banner" width="100%" /></p>
+
 # Brandicade
+
+> **Repository status · November 3, 2026:** The default branch is still a recovery landing page. Game, progression and protected-storage updates are in draft PRs. Production parity and license provenance remain release gates.
+
+[Current development PRs](https://github.com/devonalanakins/brandicade/pulls) · [Prism Bloom review](https://github.com/devonalanakins/brandicade/pull/12)
 
 Brandicade is an independent personal game collection under development. This repository is the intended source home for its game interface, shared progression, tests, and release documentation.
 
@@ -17,4 +23,4 @@ The archive's MIT license and a GPLv3 notice emitted by its build script conflic
 
 Until then, preserve the existing live Worker and original source history. This repository is not a substitute for the running application.
 
-Project index: [Anevum project registry](https://github.com/devonalanakins/anevum) · Historical handoff: [GitHub reorganization](https://github.com/devonalanakins/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md)
+Portfolio context: [Devon Alan Akins](https://github.com/devonalanakins/anevum) · [October 2026 historical source handoff](https://github.com/devonalanakins/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md). Brandicade is an independent family project, not part of Anevum's creative studio.
