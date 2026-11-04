@@ -143,7 +143,7 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.goto(url+'/',{waitUntil:'networkidle'});
     await page.screenshot({path:'.artifacts/landscape/kahlua-hub-390x844.png',fullPage:false,animations:'disabled'});
     assert.ok(await page.locator('#kahlua-greet').isVisible());
-    assert.ok(await page.locator('#home [data-action="play"]').isVisible());
+    assert.ok(await page.locator('#home .hero-text [data-action="play"]').isVisible());
     assert.ok(await page.locator('#home a[href="/prism-garden.html"]').first().isVisible());
     const width=await page.evaluate(()=>document.documentElement.scrollWidth);
     assert.ok(width<=392,'Kahlua portrait hub cannot horizontally overflow');
