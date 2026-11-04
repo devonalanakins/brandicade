@@ -190,16 +190,16 @@ body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active
  #prism-app .pg-back{min-width:75px;font-size:10px}
  #prism-app .pg-brand{font-size:10px;letter-spacing:.12em}
  #prism-app .pg-shell>footer{display:none}
- #prism-app .pg-game{display:grid;grid-template-columns:minmax(310px,1.35fr) minmax(245px,.85fr);grid-template-areas:"top progress" "scene supplies" "scene tools" "task message" "rail-head rail-head" "rail rail" "note note";column-gap:12px;row-gap:4px;align-items:start}
+ #prism-app .pg-game{width:100%;max-width:none;min-width:0;margin:0;display:grid;grid-template-columns:minmax(310px,1.35fr) minmax(245px,.85fr);grid-template-areas:"top progress" "scene supplies" "scene tools" "task message" "rail-head rail-head" "rail rail" "note note";column-gap:12px;row-gap:4px;align-items:start}
  #prism-app .pg-game .pg-topline{grid-area:top;min-height:42px}
  #prism-app .pg-game .pg-topline h2{font-size:18px;line-height:1.1;margin:3px 0}
  #prism-app .pg-game .pg-topline small{font-size:9px}
  #prism-app .pg-game .pg-progress{grid-area:progress;margin:0;align-self:center}
  #prism-app .pg-game .pg-progress span{font-size:10px}
  #prism-app .pg-game .pg-progress-track{margin:5px 0 0}
- #prism-app .pg-game .pg-world-scene{grid-area:scene;margin:0;height:max(277px,var(--pg-board-height,277px));min-height:277px}
+ #prism-app .pg-game .pg-world-scene{grid-area:scene;min-width:0;margin:0;height:max(277px,var(--pg-board-height,277px));min-height:277px}
  #prism-app .pg-game .pg-arch{height:88%;width:min(75%,270px)}
- #prism-app .pg-game .pg-supplies{grid-area:supplies;margin:0;padding:8px 10px}
+ #prism-app .pg-game .pg-supplies{grid-area:supplies;min-width:0;margin:0;padding:8px 10px}
  #prism-app .pg-game .pg-stacks,#prism-app .pg-game .pg-shelf{gap:7px;padding:5px 0}
  #prism-app .pg-game .pg-stack,#prism-app .pg-game .pg-shelf-slot{width:52px;height:53px;min-height:52px;min-width:44px}
  #prism-app .pg-game .pg-tools{grid-area:tools;padding:4px 0}
@@ -240,3 +240,9 @@ body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active
 @keyframes pg-region-arrival{0%{box-shadow:0 0 0 1px #C5FF9A3B}48%{box-shadow:0 0 0 3px #C9FFB588,0 0 25px #A5F78B88}100%{box-shadow:0 0 0 2px #9BF99265,0 0 18px #B8F49C3D}}
 @media(prefers-reduced-motion:reduce){.pg-feedback-bloom,.pg-game .pg-region-step.recently-restored,.pg-game[data-feedback="invalid"] .pg-task{animation:none!important}}
 #prism-app[data-motion="off"] .pg-feedback-bloom,#prism-app[data-motion="off"] .pg-region-step.recently-restored,#prism-app[data-motion="off"] .pg-game[data-feedback="invalid"] .pg-task{animation:none!important}
+
+/* Narrow-landscape guard: never shrink jewels below 44px to satisfy a fixed grid. */
+@media(orientation:landscape) and (min-width:670px) and (max-width:740px) and (max-height:540px){
+ #prism-app .pg-game{grid-template-columns:minmax(310px,1.15fr) minmax(245px,.85fr);column-gap:8px}
+ #prism-app .pg-shell{padding-inline:max(10px,env(safe-area-inset-left)) max(10px,env(safe-area-inset-right))}
+}

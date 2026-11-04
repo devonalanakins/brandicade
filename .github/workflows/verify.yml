@@ -33,6 +33,20 @@ jobs:
           test "$count" -eq 1
           node --check "$files"
           BRANDICADE_BUNDLED_WORKER="$PWD/$files" node --test tests/brandicade-protected-worker.test.mjs tests/cloud-sync.test.mjs tests/cloud-sync-ui.test.mjs
+      # Browser-level source-preview QA only; not an authenticated production test.
+      - name: Install pinned Chromium browser for responsive QA
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify phone landscape layout in a real browser
+        run: node --test tests/landscape-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: brandicade-landscape-preview
+          path: .artifacts/landscape/*.png
+          if-no-files-found: warn
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: brandicade-protected-candidate
