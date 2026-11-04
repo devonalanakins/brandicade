@@ -354,6 +354,87 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.deepEqual(errors,[],'no browser errors during cascade, reload or restart');
    }finally{await context.close();}
   });
+
+  await t.test('Xbox pause and Help interrupt visual cascades without losing genuine progress',async()=>{
+   const context=await browser.newContext({
+     viewport:{width:844,height:390},serviceWorkers:'block',reducedMotion:'no-preference'
+   });
+   await context.addInitScript(()=>{
+     const pad={index:0,id:'Synthetic Xbox pause acceptance - not physical hardware',
+       mapping:'standard',connected:true,axes:[0,0],
+       buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0}))};
+     Object.defineProperty(window,'__testPad',{value:pad});
+     Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[pad]});
+   });
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',error=>errors.push(error.message));
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    await page.evaluate(async()=>{
+      const [{newSave,SAVE_KEY},{makeRun}]=await Promise.all([
+        import('/src/progression.mjs'),import('/src/engine.mjs')
+      ]);
+      const save=newSave();save.currentRun=makeRun(1);save.settings.sound=false;
+      localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+    });
+    await page.reload({waitUntil:'networkidle'});
+    await page.locator('#home .hero-text [data-action="play"]').click();
+    await page.locator('#controller-indicator:not([hidden])').waitFor();
+    await page.waitForTimeout(90); // neutral gamepad sample arms the input gate
+    const predict=()=>page.evaluate(async()=>{
+      const {findMove,trySwap}=await import('/src/engine.mjs');
+      const run=JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun;
+      const move=findMove(run.board),result=trySwap(run,move.from,move.to);
+      if(!result.ok)throw new Error('No valid move in test board');
+      return {move,expected:result.run};
+    });
+    const playMove=async(action)=>{
+      await page.locator('#pop-board [data-cell="'+action.move.from+'"]').click();
+      await page.locator('#pop-board [data-cell="'+action.move.to+'"]').click();
+      await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true',
+        null,{timeout:5000});
+    };
+    const first=await predict();
+    await playMove(first);
+    await page.evaluate(()=>{window.__testPad.buttons[9].pressed=true;});
+    await page.locator('#controller-pause:not([hidden])').waitFor({timeout:3000});
+    await page.evaluate(()=>{window.__testPad.buttons[9].pressed=false;});
+    await page.waitForFunction(()=>!document.getElementById('pop-board')?.hasAttribute('data-animating'),
+      null,{timeout:5000});
+    assert.equal(await page.locator('#glimmer-moment').isHidden(),true,
+      'an earned animation cannot appear over the paused gameplay overlay');
+    assert.equal(await page.locator('#pop-board').getAttribute('aria-busy'),null,
+      'visual replay must release its busy indicator when paused');
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
+      first.expected,'the accepted move remains durable even though visual replay stopped');
+    assert.deepEqual(await page.evaluate(()=>{
+      const TYPES=['fern','aqua','ember','sun','orchid','luna'];
+      return [...document.querySelectorAll('#pop-board [data-cell]')].map(
+        el=>TYPES.find(t=>el.classList.contains(t)));
+    }),first.expected.board,'the final rendered board reflects the committed run during pause');
+    await page.locator('#controller-pause [data-controller-resume]').click();
+    assert.equal(await page.locator('#controller-pause').isHidden(),true);
+    const second=await predict();
+    await playMove(second);
+    await page.locator('#game [data-action="game-help"]').click();
+    assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('open')),true);
+    await page.waitForFunction(()=>!document.getElementById('pop-board')?.hasAttribute('data-animating'),
+      null,{timeout:5000});
+    assert.equal(await page.locator('#glimmer-moment').isHidden(),true,
+      'an earned celebration may not overlay the Help modal');
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
+      second.expected,'opening the Help modal during a cascade cannot corrupt progress');
+    await page.locator('#modal-close').click();
+    const third=await predict();
+    await page.locator('#pop-board [data-cell="'+third.move.from+'"]').click();
+    await page.locator('#pop-board [data-cell="'+third.move.to+'"]').click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun.movesMade===3,
+      null,{timeout:5000});
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
+      third.expected,'gameplay remains functional after both interruptions');
+    assert.deepEqual(errors,[],'no runtime errors during pause, dialog, and resumed gameplay');
+   }finally{await context.close();}
+  });
   await t.test('synthetic Xbox input navigates Kahlua, games, pause, and treasures without accidental saves',async()=>{
    const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block'});
    await context.addInitScript(()=>{

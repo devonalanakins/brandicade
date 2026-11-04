@@ -36,6 +36,13 @@ test('cascade visuals precisely reflect genuine engine waves without entering sa
  }
 });
 
+test('paused controller and modal overlays suppress a stale cascade celebration',()=>{
+ const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+ assert.match(app,/const presentationUnobstructed=/);
+ assert.match(app,/#controller-pause'\)\?\.hidden===false\|\|document\.hidden/);
+ assert.match(app,/if\(!stillPlaying\(\)\)break/);
+});
+
 test('cascade preview is optional and reduced-motion gets the same deterministic rewards',()=>{
  const run=makeRun(2),m=findMove(run.board),res=trySwap(run,m.from,m.to);
  assert.ok(res.ok);

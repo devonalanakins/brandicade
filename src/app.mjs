@@ -217,7 +217,10 @@ const glimmerSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function animateGlimmerCascades(previous,from,to,event,committedRun) {
  const board=$('#pop-board'),waves=event?.visualWaves;
  if(!board||!activeMotion()||!Array.isArray(waves)||!waves.length)return;
- const stillPlaying=()=>save.currentRun===committedRun&&$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion();
+ // Pause overlays take precedence over optional visual playback. The accepted
+ // move was already saved; skip remaining waves and show its true final board.
+ const presentationUnobstructed=()=>$('#controller-pause')?.hidden!==false&&!$('#modal')?.classList.contains('open');
+ const stillPlaying=()=>save.currentRun===committedRun&&$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion()&&presentationUnobstructed();
  if(!stillPlaying())return;
  let preview=[...previous.board];[preview[from],preview[to]]=[preview[to],preview[from]];
  if(!paintGlimmerPreview(preview))return;
@@ -263,7 +266,7 @@ async function performSwap(a,b){if(moving||ensureRun().ended)return;const curren
   moving=false;
  }
  if(save.currentRun!==result.run||!$('#game').classList.contains('active')||
-    $('#modal').classList.contains('open')||document.hidden)return;
+    $('#modal').classList.contains('open')||$('#controller-pause')?.hidden===false||document.hidden)return;
  if(restoreFocusedCell&&!result.run.ended)$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
  showGlimmerMoment(result.event);
  const ev=result.event;const msg=ev.chain>=3?`Incredible chain ×${ev.chain}! +${ev.gained.toLocaleString()}`:ev.chain>=2?`Gorgeous cascade ×${ev.chain}! +${ev.gained.toLocaleString()}`:`+${ev.gained.toLocaleString()} · ${ev.goal} collected`;
