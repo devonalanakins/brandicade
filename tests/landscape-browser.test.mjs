@@ -237,6 +237,70 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.deepEqual(errors,[]);
    }finally{await context.close();}
   });
+  await t.test('synthetic Xbox input navigates Kahlua, games, pause, and treasures without accidental saves',async()=>{
+   const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block'});
+   await context.addInitScript(()=>{
+    const mock={index:0,id:'Synthetic Xbox standard layout - not physical hardware',mapping:'standard',
+     connected:true,axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0}))};
+    Object.defineProperty(window,'__syntheticGamepad',{configurable:false,value:mock});
+    Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>[mock]});
+   });
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',e=>errors.push(e.message));
+   const press=async(index)=>{
+    await page.evaluate(i=>{window.__syntheticGamepad.buttons[i].pressed=true;},index);
+    await page.waitForTimeout(100);
+    await page.evaluate(i=>{window.__syntheticGamepad.buttons[i].pressed=false;},index);
+    await page.waitForTimeout(55);
+   };
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    await page.waitForSelector('#controller-indicator:not([hidden])',{timeout:5000});
+    const unchanged=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+    await press(0); // A first focuses Play instead of unexpectedly launching a game.
+    assert.ok(await page.locator('#home [data-action="play"]').first().evaluate(el=>document.activeElement===el),
+     'first controller confirm should focus the real primary Play action');
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'home');
+    await press(0); // Second A genuinely launches existing Glimmer Pop.
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'game');
+    assert.equal(await page.locator('#pop-board [data-cell]').count(),49);
+    await press(15); // Right D-pad establishes board focus.
+    assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-cell')),'0');
+    await press(15);
+    assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-cell')),'1');
+    await press(0); // Select the focused jewel (not an actual move).
+    assert.ok(await page.locator('#pop-board .charm.selected').count(),'A should select jewel');
+    await press(1); // B cancels jewel selection before leaving the active game.
+    assert.equal(await page.locator('#pop-board .charm.selected').count(),0);
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'game');
+    await press(9); // Menu pause in-game.
+    assert.equal(await page.locator('#controller-pause').isHidden(),false);
+    assert.equal(await page.locator('#content').evaluate(el=>el.inert),true,
+     'paused game controls must not be keyboard/touch/controller reachable');
+    await press(1);
+    assert.equal(await page.locator('#controller-pause').isHidden(),true);
+    assert.equal(await page.locator('#content').evaluate(el=>el.inert),false);
+    await press(1); // B returns home only when there is no selected jewel.
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'home');
+    await press(3); // Y opens the legitimate trophy gallery.
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'treasures');
+    await press(1);
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'home');
+    await press(5); // RB -> Games, focus must be INSIDE new section.
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'library');
+    assert.equal(await page.evaluate(()=>document.activeElement?.closest('.section')?.id),'library');
+    await press(5); // RB again -> Treasures.
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'treasures');
+    await press(5); // RB -> Brandi profile, which illustrates only Kahlua.
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'profile');
+    assert.equal(await page.locator('[data-avatar]').count(),0);
+    await press(1);
+    assert.equal(await page.locator('.section.active').getAttribute('id'),'home');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),unchanged,
+     'controller UI navigation and selecting jewels must not persist any fake progress');
+    assert.deepEqual(errors,[],'synthetic controller path must not throw browser exceptions');
+   }finally{await context.close();}
+  });
   await t.test('portrait remains usable, not a forced-orientation dead end',async()=>{
    const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
    const page=await context.newPage(),errors=[];

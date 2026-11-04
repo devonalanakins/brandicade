@@ -148,7 +148,11 @@ export function startArcadeController({doc = document, win = window, nav = navig
     const next = NAV_PAGES[(Math.max(0, idx) + step + NAV_PAGES.length) % NAV_PAGES.length];
     const button = doc.querySelector('.bottom-nav [data-go="'+next+'"]');
     button?.click();
-    focus(button);
+    // The global dock sits outside the active section. Restore controller
+    // focus inside the destination page, otherwise the next A press is lost.
+    const options = choices();
+    const preferred = scope()?.querySelector('[data-action="play"], [data-go="library"], [data-game-launch], a[href="/prism-garden.html"]');
+    focus(preferred && options.includes(preferred) ? preferred : options[0]);
   };
   const move = (direction) => {
     if (activeSection()?.id === 'game' && !pauseOpen() && !originalModal()) {
