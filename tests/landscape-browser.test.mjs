@@ -173,6 +173,31 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await page.reload({waitUntil:'networkidle'});
     await page.locator('#home .hero-text [data-action="play"]').click();
     await page.locator('#pop-board [data-cell="0"]').waitFor();
+    const geometry=await page.evaluate(()=>{
+      const rect=q=>document.querySelector(q)?.getBoundingClientRect();
+      const tiles=[...document.querySelectorAll('#pop-board .charm')].map(el=>el.getBoundingClientRect());
+      const board=rect('.game-board-outer'),back=rect('#game .back-button'),
+        help=rect('#game .utility-button'),tools=rect('#game .game-tools'),
+        nav=document.querySelector('.bottom-nav');
+      return {count:tiles.length,minWidth:Math.min(...tiles.map(x=>x.width)),
+        minHeight:Math.min(...tiles.map(x=>x.height)),
+        boardRight:board?.right,boardBottom:board?.bottom,
+        backLeft:back?.left,backTop:back?.top,helpBottom:help?.bottom,
+        toolsBottom:tools?.bottom,navDisplay:getComputedStyle(nav).display,
+        scrollWidth:document.documentElement.scrollWidth,height:innerHeight,width:innerWidth};
+    });
+    assert.equal(geometry.count,49);
+    assert.ok(geometry.minWidth>=43.5&&geometry.minHeight>=43.5,
+      '7x7 board must retain 44px jewels: '+JSON.stringify(geometry));
+    assert.ok(geometry.boardBottom<=geometry.height-10,
+      'every Glimmer jewel must remain visible without scrolling: '+JSON.stringify(geometry));
+    assert.ok(geometry.boardRight+7<=geometry.backLeft,
+      'board and control rail cannot overlap: '+JSON.stringify(geometry));
+    assert.ok(geometry.toolsBottom<=geometry.height-10,
+      'Hint and Restart must fit on the landscape play screen: '+JSON.stringify(geometry));
+    assert.equal(geometry.navDisplay,'none','arcade nav cannot obscure live gameplay');
+    assert.ok(geometry.scrollWidth<=geometry.width+2,'no horizontal overflow');
+
     const path=await page.evaluate(async()=>{
       const {findMove,adjacent,trySwap}=await import('/src/engine.mjs');
       const run=JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun;
@@ -205,7 +230,7 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.equal(updated.currentRun.movesMade,1);
     assert.equal(updated.currentRun.level,path.level);
     if(!updated.currentRun.ended)assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-cell')),String(path.valid.to),'controller focus must survive board redraw');
-    await page.screenshot({path:'.artifacts/landscape/glimmer-kahlua-844x390.png',fullPage:false,animations:'disabled'});
+    await page.screenshot({path:'.artifacts/landscape/glimmer-kahlua-844x390.png',fullPage:false,animations:'allow'});
     await page.waitForFunction(()=>document.getElementById('glimmer-moment').hidden,{timeout:5000});
     assert.deepEqual(errors,[]);
    }finally{await context.close();}

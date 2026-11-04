@@ -106,3 +106,34 @@ body.calm .kahlua-stage .portal{animation:none!important}
 @media(orientation:landscape) and (max-height:540px){.glimmer-moment{width:min(84%,240px);padding:5px 8px;gap:6px;top:36%}.glimmer-moment img{width:43px;height:43px}.glimmer-moment strong{font-size:14px}.glimmer-moment span{font-size:9px}}
 body.calm .glimmer-moment{animation:none!important}
 @media(prefers-reduced-motion:reduce){body:not(.force-motion) .glimmer-moment{animation:none!important}}
+
+
+/* Phone sideways: a dedicated, fully visible 7x7 Glimmer Pop stage.
+ * The game has its own Back button; the global bottom dock is hidden only during play.
+ * 44px jewels remain touch accessible even at 720x390. */
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){
+ body:has(#game.section.active) .topbar,
+ body:has(#game.section.active) .bottom-nav,
+ body:has(#game.section.active) .app-footnote{display:none!important}
+ body:has(#game.section.active) .viewport{min-height:100dvh;padding-bottom:max(4px,env(safe-area-inset-bottom))}
+ #game.section.active{width:100%;max-width:none}
+ #game .game-shell{
+  display:grid;grid-template-columns:minmax(332px,auto) minmax(0,1fr);
+  grid-template-areas:"board header" "board info" "board goal" "board tools";
+  align-content:center;align-items:center;column-gap:clamp(10px,2vw,22px);row-gap:clamp(4px,1.5dvh,9px);
+  max-width:none;width:100%;min-height:0;margin:4px auto 0;padding:9px 12px 10px;overflow:visible;border-radius:20px
+ }
+ #game .game-top{grid-area:header;min-width:0;align-items:center}
+ #game .game-top .back-button{min-width:45px;min-height:44px}
+ #game .game-top .utility-button{min-height:44px}
+ #game .game-info{grid-area:info;min-width:0;margin:0;align-items:center}
+ #game .challenge-strip{grid-area:goal;min-width:0;max-width:none;width:100%;margin:0;padding:8px 10px}
+ #game .game-board-outer{grid-area:board;justify-self:center;align-self:center;margin:0;padding:7px;min-width:0;max-width:none}
+ #game .game-board{--square:clamp(44px,11dvh,49px)!important;gap:2px}
+ #game .game-bottom{grid-area:tools;min-width:0;max-width:none;width:100%;margin:0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+ #game .game-tools{flex-wrap:wrap}
+ #game .game-tools .small-button{min-height:44px}
+ #game .game-live{max-width:none;flex:1 1 170px;min-width:0;text-align:left}
+ #game .game-end{inset:8px 5px 5px;border-radius:18px;z-index:18}
+ body:has(#game.section.active) .controller-legend{bottom:7px;right:14px;max-width:calc(100vw - 360px);opacity:.92}
+}
