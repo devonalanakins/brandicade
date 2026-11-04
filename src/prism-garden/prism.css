@@ -221,3 +221,22 @@ body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active
  #prism-app .pg-game .pg-task{padding-block:2px}
 }
 @media(prefers-reduced-motion:reduce){.pg-controller-overlay *, .pg-controller-indicator{animation:none!important;transition:none!important}}
+
+
+/* Single-event earned feedback. Respects motion settings; never loops rewards. */
+.pg-feedback-bloom{position:absolute;inset:0;border-radius:inherit;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 42%,#C8FFD44B,transparent 58%)}
+.pg-game[data-feedback="place"] .pg-feedback-bloom{animation:pg-placement-glow .54s ease-out both}
+.pg-game[data-feedback="region"] .pg-feedback-bloom{background:radial-gradient(ellipse at 50% 41%,#C8FF8E63,transparent 63%);animation:pg-region-glow .72s ease-out both}
+.pg-game[data-feedback="undo"] .pg-feedback-bloom{background:radial-gradient(ellipse at 50% 41%,#B2D9EF2C,transparent 65%);animation:pg-placement-glow .35s ease-out both}
+.pg-game[data-feedback="invalid"] .pg-task{border-left:3px solid #E6C193;background:#6B482B30;padding-inline:12px;border-radius:10px;animation:pg-soft-warning .26s ease-out both}
+.pg-game[data-feedback="hint"] .pg-world-scene{border-color:#E6D5A0;box-shadow:0 0 0 1px #E2C68866,0 18px 52px #001f1d90}
+.pg-game[data-feedback="region"] .pg-region-step.recently-restored{border-color:#C9FFB6;background:linear-gradient(145deg,#376B43,#22513C);box-shadow:0 0 0 2px #9BF99265,0 0 18px #B8F49C3D;animation:pg-region-arrival .68s ease-out both}
+.pg-game[data-feedback="select"] .pg-stack.selected,.pg-game[data-feedback="select"] .pg-shelf-slot.selected{border-color:#CBFFC4;box-shadow:0 0 0 2px #A4FF8B7B,0 0 20px #9FFF8A64}
+.pg-game[data-feedback="invalid"] .pg-live{color:#FFDAA6;font-weight:650}
+.pg-game[data-feedback="region"] .pg-live{color:#D6FFC5;font-weight:700}
+@keyframes pg-placement-glow{0%{opacity:0;transform:scale(.94)}38%{opacity:.8}100%{opacity:0;transform:scale(1.05)}}
+@keyframes pg-region-glow{0%{opacity:0;transform:scale(.90)}36%{opacity:1}100%{opacity:0;transform:scale(1.08)}}
+@keyframes pg-soft-warning{0%{opacity:.7}100%{opacity:1}}
+@keyframes pg-region-arrival{0%{box-shadow:0 0 0 1px #C5FF9A3B}48%{box-shadow:0 0 0 3px #C9FFB588,0 0 25px #A5F78B88}100%{box-shadow:0 0 0 2px #9BF99265,0 0 18px #B8F49C3D}}
+@media(prefers-reduced-motion:reduce){.pg-feedback-bloom,.pg-game .pg-region-step.recently-restored,.pg-game[data-feedback="invalid"] .pg-task{animation:none!important}}
+#prism-app[data-motion="off"] .pg-feedback-bloom,#prism-app[data-motion="off"] .pg-region-step.recently-restored,#prism-app[data-motion="off"] .pg-game[data-feedback="invalid"] .pg-task{animation:none!important}
