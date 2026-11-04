@@ -137,3 +137,13 @@ body.calm .glimmer-moment{animation:none!important}
  #game .game-end{inset:8px 5px 5px;border-radius:18px;z-index:18}
  body:has(#game.section.active) .controller-legend{bottom:7px;right:14px;max-width:calc(100vw - 360px);opacity:.92}
 }
+
+
+/* Real per-wave cascade playback: no shrinking/reflow of 44px touch targets. */
+#pop-board[data-animating="true"] .charm{pointer-events:none}
+#pop-board .charm.clearing{animation:glimmer-clear .115s ease-in both;position:relative;z-index:2}
+#pop-board .charm.refilling{animation:glimmer-refill .125s cubic-bezier(.18,.88,.31,1) both}
+@keyframes glimmer-clear{from{opacity:1;filter:brightness(1.15) drop-shadow(0 0 6px #c8ff8b)}to{opacity:.04;filter:brightness(2) drop-shadow(0 0 17px #eaff9b);transform:scale(.58)}}
+@keyframes glimmer-refill{from{opacity:.2;transform:translateY(-16px) scale(.94);filter:brightness(1.6)}to{opacity:1;transform:translateY(0) scale(1);filter:brightness(1)}}
+body.calm #pop-board .charm.clearing,body.calm #pop-board .charm.refilling{animation:none!important}
+@media(prefers-reduced-motion:reduce){body:not(.force-motion) #pop-board .charm.clearing,body:not(.force-motion) #pop-board .charm.refilling{animation:none!important}}

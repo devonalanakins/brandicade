@@ -237,6 +237,78 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.deepEqual(errors,[]);
    }finally{await context.close();}
   });
+  await t.test('Glimmer Pop shows real cascade waves and persists before animation or reload',async()=>{
+   const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block',reducedMotion:'no-preference'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',e=>errors.push(e.message));
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    await page.evaluate(async()=>{
+     const [{newSave,SAVE_KEY},{makeRun}]=await Promise.all([
+       import('/src/progression.mjs'),import('/src/engine.mjs')
+     ]);
+     const save=newSave();save.currentRun=makeRun(1);save.settings.sound=false;
+     localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+    });
+    await page.reload({waitUntil:'networkidle'});
+    await page.locator('#home .hero-text [data-action="play"]').click();
+    await page.locator('#pop-board [data-cell="0"]').waitFor();
+    await page.evaluate(()=>{
+     const board=document.getElementById('pop-board');
+     window.__cascadeWitness={clearing:false,refilling:false,busy:false};
+     new MutationObserver(()=>{
+      const w=window.__cascadeWitness;
+      if(board.dataset.animating==='true')w.busy=true;
+      if(board.querySelector('.clearing'))w.clearing=true;
+      if(board.querySelector('.refilling'))w.refilling=true;
+     }).observe(board,{subtree:true,attributes:true,attributeFilter:['class','data-animating'],childList:true});
+    });
+    const predict=async()=>{
+     return page.evaluate(async()=>{
+      const {findMove,trySwap}=await import('/src/engine.mjs');
+      const run=JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun;
+      const move=findMove(run.board);
+      if(!move)throw new Error('Puzzle has no available move');
+      const predicted=trySwap(run,move.from,move.to);
+      if(!predicted.ok)throw new Error('Engine rejected a legal move');
+      return {from:move.from,to:move.to,expected:predicted.run,waves:predicted.event.visualWaves.length};
+     });
+    };
+    const first=await predict();
+    assert.ok(first.waves>0);
+    await page.locator('#pop-board [data-cell="'+first.from+'"]').click();
+    await page.locator('#pop-board [data-cell="'+first.to+'"]').click();
+    await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true');
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
+      first.expected,'the accepted turn must be durable while its first cascade is visibly playing');
+    await page.waitForFunction(()=>!document.getElementById('pop-board')?.hasAttribute('data-animating'),
+      {timeout:5000});
+    const witness=await page.evaluate(()=>window.__cascadeWitness);
+    assert.deepEqual([witness.busy,witness.clearing,witness.refilling],[true,true,true],
+      'an actual matched wave must clear, settle and refill before final redraw');
+    const onscreen=await page.evaluate(()=>{
+     const TYPES=['fern','aqua','ember','sun','orchid','luna'];
+     return [...document.querySelectorAll('#pop-board [data-cell]')].map(el=>TYPES.find(t=>el.classList.contains(t)));
+    });
+    assert.deepEqual(onscreen,first.expected.board,'final visible jewels match authoritative engine output');
+    assert.equal(await page.locator('#pop-board').getAttribute('aria-busy'),null);
+    await page.screenshot({path:'.artifacts/landscape/glimmer-cascade-844x390.png',animations:'disabled'});
+
+    const second=await predict();
+    await page.locator('#pop-board [data-cell="'+second.from+'"]').click();
+    await page.locator('#pop-board [data-cell="'+second.to+'"]').click();
+    await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true');
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
+      second.expected,'a second accepted turn is persisted immediately');
+    await page.reload({waitUntil:'networkidle'});
+    await page.locator('#home .hero-text [data-action="play"]').click();
+    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun),
+      second.expected,'reload during a cascade must not lose an earned turn');
+    assert.equal(await page.locator('#pop-board [data-cell]').count(),49);
+    assert.equal(await page.locator('#pop-board').getAttribute('aria-busy'),null);
+    assert.deepEqual(errors,[],'no browser errors during cascade or interrupted reload');
+   }finally{await context.close();}
+  });
   await t.test('synthetic Xbox input navigates Kahlua, games, pause, and treasures without accidental saves',async()=>{
    const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block'});
    await context.addInitScript(()=>{

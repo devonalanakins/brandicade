@@ -46,7 +46,7 @@ function toast(message){const el=$('#toast');el.textContent=message;el.classList
 let audioContext=null;
 function sound(kind='tap'){if(!save.settings.sound)return;try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;audioContext??=new A();if(audioContext.state==='suspended')void audioContext.resume();const t=audioContext.currentTime,notes=kind==='win'?[392,523.25,659.25,783.99,1046.5]:kind==='match'?[523.25,783.99]:kind==='award'?[440,554.37,659.25,880]:kind==='wrong'?[220,185]:[420];
  notes.forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type=kind==='wrong'?'triangle':'sine';const st=t+i*.075;o.frequency.value=hz;g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(kind==='tap'?.017:.035,st+.013);g.gain.exponentialRampToValueAtTime(.0001,st+.19);o.connect(g).connect(audioContext.destination);o.start(st);o.stop(st+.21);});}catch{}}
-function haptic(){if(!save.settings.sound&&!save.settings.motion)return;try{navigator.vibrate?.(9);}catch{}}
+function haptic(){if(!save.settings.sound&&!activeMotion())return;try{navigator.vibrate?.(9);}catch{}}
 function confetti(amount=32){if(!activeMotion())return;const el=$('#celebrations'),colors=['#e4b77e','#5ce9c5','#64a2a1','#f3dcc1','#e29abb'];el.replaceChildren();for(let i=0;i<amount;i++){const bit=document.createElement('span');bit.className='celebration-bit';bit.style.setProperty('--x',`${Math.random()*100}%`);bit.style.setProperty('--size',`${4+Math.random()*7}px`);bit.style.setProperty('--color',colors[i%colors.length]);bit.style.setProperty('--time',`${1.4+Math.random()*1.4}s`);el.append(bit);}setTimeout(()=>el.replaceChildren(),3100);}
 
 let momentTimeout=null;
@@ -108,6 +108,7 @@ function renderGame(){const run=ensureRun(),spec=levelSpec(run.level),board=$('#
  $('#game-level').textContent=String(run.level).padStart(2,'0');$('#game-level-name').textContent=spec.title;$('#game-score').textContent=run.score.toLocaleString();$('#game-moves').textContent=run.movesLeft;
  $('#game-goal-text').textContent=`${Math.min(run.collected,spec.target)} / ${spec.target} ${TYPE_LABELS[spec.targetType]}${spec.target!==1?'s':''}`;$('#goal-symbol').innerHTML=gemSVG(spec.targetType);
  $('#goal-fill').style.width=Math.min(100,run.collected/spec.target*100)+'%';
+ board.removeAttribute('aria-busy');delete board.dataset.animating;
  board.innerHTML=run.board.map((type,i)=>`<button class="charm ${type}" type="button" data-cell="${i}" data-letter="${type[0].toUpperCase()}" aria-label="Row ${Math.floor(i/SIZE)+1}, column ${i%SIZE+1}, ${TYPE_LABELS[type]}" aria-pressed="false" ${run.ended?'disabled':''}>${gemSVG(type)}</button>`).join('');
  const end=$('#game-end');end.hidden=!run.ended;if(run.ended){$('#end-eyebrow').textContent=run.won?'LEVEL COMPLETE':'A MOMENT TO REGROUP';$('#end-heading').textContent=run.won?'Beautifully done!':'The grove is still yours.';
  $('#end-stars').innerHTML=Array.from({length:3},(_,i)=>`<span class="${i<run.stars?'':'unearned'}" aria-hidden="true">★</span>`).join('');$('#end-stars').setAttribute('aria-label',`${run.stars} of 3 stars earned`);
@@ -188,6 +189,54 @@ function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){s
 function setSelection(){$$('#pop-board .charm').forEach(e=>{const on=Number(e.dataset.cell)===selected;e.classList.toggle('selected',on);e.setAttribute('aria-pressed',String(on))});}
 function animateMove(a,b){const board=$('#pop-board');const one=board.querySelector(`[data-cell="${a}"]`),two=board.querySelector(`[data-cell="${b}"]`);if(!one||!two||!activeMotion())return Promise.resolve();const ar=one.getBoundingClientRect(),br=two.getBoundingClientRect(),dx=br.left-ar.left,dy=br.top-ar.top;
  const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]);}
+/** Visual-only cascade rendering, independent of earned rewards and saved runs. */
+function paintGlimmerPreview(types) {
+ const cells=$('#pop-board [data-cell]');
+ if(cells.length!==SIZE*SIZE||!Array.isArray(types)||types.length!==cells.length||
+    !types.every(type=>TYPES.includes(type)))return false;
+ for(let i=0;i<cells.length;i++){
+  const type=types[i],cell=cells[i];
+  cell.className='charm '+type;
+  cell.dataset.letter=type[0].toUpperCase();
+  cell.setAttribute('aria-label','Row '+(Math.floor(i/SIZE)+1)+', column '+(i%SIZE+1)+', '+TYPE_LABELS[type]);
+  cell.setAttribute('aria-pressed','false');
+  cell.innerHTML=gemSVG(type);
+ }
+ return true;
+}
+const glimmerSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+/** Bounded animation of actual matched and refilled cells. If interrupted, the
+ * final authoritative board is always redrawn from the already committed run. */
+async function animateGlimmerCascades(previous,from,to,event) {
+ const board=$('#pop-board'),waves=event?.visualWaves;
+ if(!board||!activeMotion()||!Array.isArray(waves)||!waves.length)return;
+ const stillPlaying=()=>$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion();
+ if(!stillPlaying())return;
+ let preview=[...previous.board];[preview[from],preview[to]]=[preview[to],preview[from]];
+ if(!paintGlimmerPreview(preview))return;
+ board.setAttribute('aria-busy','true');board.dataset.animating='true';
+ try{
+  for(let step=0;step<Math.min(waves.length,6);step++){
+   if(!stillPlaying())break;
+   const wave=waves[step];
+   if(!Array.isArray(wave?.cleared)||!Array.isArray(wave.after)||wave.after.length!==SIZE*SIZE)break;
+   for(const index of wave.cleared){
+    if(Number.isInteger(index)&&index>=0&&index<SIZE*SIZE)board.querySelector('[data-cell="'+index+'"]')?.classList.add('clearing');
+   }
+   await glimmerSleep(115);
+   if(!stillPlaying())break;
+   const changed=wave.after.map((v,i)=>v!==preview[i]?i:-1).filter(i=>i>=0);
+   if(!paintGlimmerPreview(wave.after))break;
+   for(const index of changed)board.querySelector('[data-cell="'+index+'"]')?.classList.add('refilling');
+   preview=wave.after;
+   await glimmerSleep(125);
+  }
+ }finally{
+  board.removeAttribute('aria-busy');delete board.dataset.animating;
+  board.querySelectorAll('.clearing,.refilling').forEach(cell=>cell.classList.remove('clearing','refilling'));
+ }
+}
+
 async function performSwap(a,b){if(moving||ensureRun().ended)return;const current=save.currentRun;const result=trySwap(current,a,b);
  if(!result.ok){sound('wrong');haptic();setSelection();toast(result.reason==='no-match'?'That swap needs to make a match.':'Choose two neighboring charms.');return;}
  const lastToast=$('#toast');
@@ -195,9 +244,18 @@ async function performSwap(a,b){if(moving||ensureRun().ended)return;const curren
   clearTimeout(noticeTimeout);lastToast.classList.remove('visible');
  }
  const restoreFocusedCell=Boolean(document.activeElement?.closest?.('#pop-board [data-cell]'));
- moving=true;await animateMove(a,b);save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
- commit();renderGame();renderHome();renderProfile();renderTreasures();moving=false;
- if(restoreFocusedCell&&!result.run.ended)$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
+ moving=true;
+ save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
+ // Save the accepted move before any animation: a reload cannot lose earned progress.
+ commit();
+ try {
+  await animateMove(a,b);
+  await animateGlimmerCascades(current,a,b,result.event);
+ } finally {
+  renderGame();renderHome();renderProfile();renderTreasures();moving=false;
+ }
+ if(restoreFocusedCell&&!result.run.ended&&$('#game').classList.contains('active'))$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
+ if(!$('#game').classList.contains('active'))return;
  showGlimmerMoment(result.event);
  const ev=result.event;const msg=ev.chain>=3?`Incredible chain ×${ev.chain}! +${ev.gained.toLocaleString()}`:ev.chain>=2?`Gorgeous cascade ×${ev.chain}! +${ev.gained.toLocaleString()}`:`+${ev.gained.toLocaleString()} · ${ev.goal} collected`;
  $('#game-live').textContent=msg;sound(result.run.won?'win':ev.chain>=2?'award':'match');haptic();if(activeMotion()){$('#pop-board').classList.add('pulsing');setTimeout(()=>$('#pop-board').classList.remove('pulsing'),310);}
