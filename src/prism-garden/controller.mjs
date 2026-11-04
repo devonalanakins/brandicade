@@ -3,7 +3,7 @@
  * Invokes the game's native, accessible buttons; it never reads or writes saves.
  * The Prism renderer owns puzzle rules, undo, awards, and recovery.
  */
-import {readGamepad, createRepeater, spatialTarget, DIRECTIONS} from '../arcade-controller.mjs';
+import {readGamepad, createRepeater, spatialTarget, DIRECTIONS, chooseControllerAction} from '../arcade-controller.mjs';
 
 const SELECTABLE = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled])';
 const DEFAULT_ID = 'prism-gamepad-overlay';
@@ -58,6 +58,7 @@ export function startPrismController({doc = document, win = window, nav = naviga
   doc.body.append(indicator, overlay);
   const repeat = createRepeater();
   let running = true, connected = false, restoreFocus = null;
+  let pausedShell = null, pausedShellWasInert = false;
   const controls = () => prismControls(host, overlay);
   const focus = (el) => {
     if (!isVisible(el)) return false;
@@ -87,12 +88,18 @@ export function startPrismController({doc = document, win = window, nav = naviga
   const openPause = () => {
     if (!overlay.hidden || confirmOpen()) return;
     restoreFocus = doc.activeElement;
+    // Overlay is outside #prism-app; inert the rendered game while paused.
+    pausedShell = host.querySelector('.pg-shell');
+    pausedShellWasInert = Boolean(pausedShell?.inert);
+    if (pausedShell) pausedShell.inert = true;
     overlay.hidden = false;
     focus(overlay.querySelector('[data-controller-resume]'));
   };
   const closePause = () => {
     if (overlay.hidden) return;
     overlay.hidden = true;
+    if (pausedShell) pausedShell.inert = pausedShellWasInert;
+    pausedShell = null;
     if (isVisible(restoreFocus)) focus(restoreFocus);
     else afterAction();
     restoreFocus = null;
@@ -190,11 +197,18 @@ export function startPrismController({doc = document, win = window, nav = naviga
         }
       } catch { /* If browser denies gamepad access, native input still works. */ }
       setConnection(Boolean(pad));
-      const actions = repeat.step(readGamepad(pad), now);
-      // A simultaneous stick press + A must not fire an unseen menu item.
-      const movement = actions.find(a => DIRECTIONS.has(a));
-      if (movement) handle(movement);
-      for (const action of actions) if (!DIRECTIONS.has(action) && !(movement && action === 'CONFIRM')) handle(action);
+      if (connected) {
+        const hint = !overlay.hidden ? 'Paused · A Resume · B Back' :
+          confirmOpen() ? 'Keep playing · A Confirm · B Cancel' :
+          gameActive() ? (host.querySelector('.pg-clear-selection') ?
+            'Jewel selected · A Place · B Clear · X Undo' :
+            'Choose a jewel · A Select · B Back · X Undo') :
+            'Controller connected · A Select · B Back';
+        if (indicator.textContent !== hint) indicator.textContent = hint;
+      }
+      const held = readGamepad(pad);
+      const action = chooseControllerAction(repeat.step(held, now), held);
+      if (action) handle(action);
     } else repeat.reset();
     win.requestAnimationFrame(tick);
   };
@@ -203,6 +217,7 @@ export function startPrismController({doc = document, win = window, nav = naviga
   win.requestAnimationFrame(tick);
   return () => {
     running = false;
+    closePause();
     overlay.removeEventListener('click', onOverlayClick);
     doc.removeEventListener('keydown', onKey, true);
     indicator.remove(); overlay.remove();

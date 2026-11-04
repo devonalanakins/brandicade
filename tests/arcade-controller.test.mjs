@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController} from '../src/arcade-controller.mjs';
+import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController, chooseControllerAction} from '../src/arcade-controller.mjs';
 
 function pad(indices = [], axes = [0, 0], mapping = 'standard') {
   return {mapping, connected: true, buttons: Array.from({length:16}, (_,i) => ({pressed:indices.includes(i)})), axes};
@@ -26,6 +26,22 @@ test('analog deadzones, digital priority, and diagonal axis handling are determi
   assert.deepEqual([...readGamepad(pad([], [-0.7,0.8]))], ['LEFT','DOWN']);
   assert.deepEqual([...readGamepad(pad([14], [0.9,0]))], ['LEFT']);
   assert.deepEqual([...readGamepad(pad([12], [0,0.9]))], ['UP']);
+  assert.deepEqual([...readGamepad(pad([15], [-0.9,0]))], ['RIGHT'],
+    'Right D-pad must override a left-leaning stick');
+  assert.deepEqual([...readGamepad(pad([13], [0,-0.9]))], ['DOWN'],
+    'Down D-pad must override an upward stick');
+  assert.deepEqual([...readGamepad(pad([14,15], [0.9,0]))], [],
+    'Opposite D-pad directions must be neutral');
+  assert.equal(readGamepad(pad([], [Infinity,NaN])).size, 0);
+});
+
+test('one action per frame protects confirmations while a stick is held', () => {
+  assert.equal(chooseControllerAction(['CONFIRM'],new Set(['RIGHT','CONFIRM'])),null);
+  assert.equal(chooseControllerAction(['RIGHT','CONFIRM'],new Set(['RIGHT','CONFIRM'])),'RIGHT');
+  assert.equal(chooseControllerAction(['CONFIRM','BACK'],new Set(['CONFIRM','BACK'])),'BACK');
+  assert.equal(chooseControllerAction(['CONFIRM','PAUSE'],new Set(['CONFIRM','PAUSE'])),'PAUSE');
+  assert.equal(chooseControllerAction(['ACHIEVEMENTS'],new Set(['ACHIEVEMENTS'])),'ACHIEVEMENTS');
+  assert.equal(chooseControllerAction([],new Set()),null);
 });
 
 test('buttons are edge-triggered but directional movement repeats at a bounded cadence', () => {
@@ -81,6 +97,7 @@ test('real controller loop: pause and resume work without an existing focus targ
   const raf = [];
   const pause = {hidden:true,querySelector:()=>resume,querySelectorAll:()=>[resume],addEventListener(){},removeEventListener(){}};
   const indicator = {hidden:true}, legend = {hidden:true};
+  const underlying = [{inert:false},{inert:true},{inert:false}];
   const section = {id:'game',querySelectorAll:()=>[],querySelector:()=>null};
   let doc;
   const resume = {
@@ -92,7 +109,7 @@ test('real controller loop: pause and resume work without an existing focus targ
     body:{classList:{toggle(){}}},
     getElementById:(id)=>({'controller-pause':pause,'controller-indicator':indicator,'controller-legend':legend}[id]||null),
     querySelector:(s)=>s==='.section.active'?section:null,
-    querySelectorAll:()=>[],
+    querySelectorAll:()=>underlying,
     addEventListener(){},removeEventListener(){}
   };
   let pressed=[9],fail=false;
@@ -107,9 +124,11 @@ test('real controller loop: pause and resume work without an existing focus targ
   assert.equal(indicator.hidden,false);
   assert.equal(pause.hidden,false);
   assert.equal(doc.activeElement,resume);
+  assert.deepEqual(underlying.map(el=>el.inert),[true,true,true]);
   pressed=[];tick(20);
   pressed=[1];tick(40);
   assert.equal(pause.hidden,true); // previously crashed on missing previousFocus
+  assert.deepEqual(underlying.map(el=>el.inert),[false,true,false],'prior inert state restored');
   fail=true;tick(60);
   assert.equal(indicator.hidden,true);
   stop();
@@ -141,5 +160,38 @@ test('first A in Glimmer Pop focuses a board cell; it cannot accidentally exit',
   pressed=[0];raf.shift()(40);
   assert.equal(board.clickCount,1);
   assert.equal(back.clickCount,0);
+  stop();
+});
+
+
+test('B clears Glimmer Pop jewel selection before returning to the arcade', () => {
+  const queue=[];
+  let pressed=[1], selected=true, cleared=0, exited=0;
+  const selectedCell={click(){cleared++;selected=false;}};
+  const home={click(){exited++;}};
+  const pause={hidden:true,addEventListener(){},removeEventListener(){}};
+  const ui={hidden:true};
+  const doc={
+    visibilityState:'visible',body:{classList:{toggle(){}}},
+    getElementById:id=>id==='controller-pause'?pause:ui,
+    querySelector(selector){
+      if(selector==='.section.active')return {id:'game'};
+      if(selector==='#pop-board .charm.selected[data-cell]:not([disabled])')return selected?selectedCell:null;
+      if(selector==='.bottom-nav [data-go="home"]')return home;
+      return null;
+    },
+    querySelectorAll:()=>[],addEventListener(){},removeEventListener(){}
+  };
+  const nav={getGamepads:()=>[{mapping:'standard',connected:true,axes:[0,0],buttons:
+    Array.from({length:16},(_,i)=>({pressed:pressed.includes(i)}))}]};
+  const win={requestAnimationFrame:fn=>queue.push(fn)};
+  const stop=startArcadeController({doc,win,nav});
+  queue.shift()(0);
+  assert.equal(cleared,1);
+  assert.equal(exited,0);
+  pressed=[];queue.shift()(20);
+  pressed=[1];queue.shift()(40);
+  assert.equal(cleared,1);
+  assert.equal(exited,1);
   stop();
 });

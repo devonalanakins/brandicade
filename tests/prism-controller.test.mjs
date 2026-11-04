@@ -59,7 +59,7 @@ test('simulated controller polling focuses before confirming, opens pause, and s
  let doc,held=[0],denied=false,connected=true;
  const start=node({action:'continue'}),resume=node(),returnHome=node();
  const confirmDialog={querySelectorAll:()=>[]};
- const shell={querySelectorAll:()=>[start],querySelector:()=>null};
+ const shell={inert:false,querySelectorAll:()=>[start],querySelector:()=>null};
  const host={
   querySelector(s){
    if(s.includes('pg-confirm'))return null;
@@ -100,11 +100,30 @@ test('simulated controller polling focuses before confirming, opens pause, and s
  held=[];tick(50);
  held=[9];tick(60);
  assert.equal(overlayNode.hidden,false);
+ assert.equal(shell.inert,true,'paused game is removed from background focus');
  assert.equal(doc.activeElement,resume);
  held=[];tick(80);
  held=[1];tick(100);
  assert.equal(overlayNode.hidden,true);
+ assert.equal(shell.inert,false,'game interaction returns on resume');
  held=[];denied=true;tick(120);
  assert.equal(indicator.hidden,true);
  stop();
+});
+
+
+test('Prism controller shares single-action semantics with Glimmer Pop',()=>{
+ const file=readFileSync(new URL('../src/prism-garden/controller.mjs',import.meta.url),'utf8');
+ const shared=readFileSync(new URL('../src/arcade-controller.mjs',import.meta.url),'utf8');
+ assert.match(file,/chooseControllerAction\(repeat\.step\(held, now\), held\)/);
+ assert.match(shared,/export function chooseControllerAction\(/);
+ assert.doesNotMatch(file,/for \(const action of actions\)/);
+});
+
+test('Prism controller keeps the game inert on pause and restores original state',()=>{
+ const file=readFileSync(new URL('../src/prism-garden/controller.mjs',import.meta.url),'utf8');
+ assert.match(file,/pausedShellWasInert = Boolean\(pausedShell\?\.inert\)/);
+ assert.match(file,/if \(pausedShell\) pausedShell\.inert = true/);
+ assert.match(file,/if \(pausedShell\) pausedShell\.inert = pausedShellWasInert/);
+ assert.match(file,/closePause\(\);\s*overlay\.removeEventListener/);
 });

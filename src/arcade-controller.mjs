@@ -12,16 +12,33 @@ export function readGamepad(pad, deadzone = 0.58) {
   for (const [index, action] of Object.entries(BUTTON_BINDINGS)) {
     if (pad.buttons?.[Number(index)]?.pressed) actions.add(action);
   }
-  const x = Number(pad.axes?.[0]) || 0;
-  const y = Number(pad.axes?.[1]) || 0;
-  if (x <= -deadzone) actions.add('LEFT');
-  if (x >= deadzone) actions.add('RIGHT');
-  if (y <= -deadzone) actions.add('UP');
-  if (y >= deadzone) actions.add('DOWN');
-  // A digital D-pad takes precedence over a simultaneously deflected stick.
-  if (actions.has('LEFT') && actions.has('RIGHT')) actions.delete('RIGHT');
-  if (actions.has('UP') && actions.has('DOWN')) actions.delete('DOWN');
+  // The digital D-pad wins if the analog stick disagrees, either way.
+  const digitalX = actions.has('LEFT') || actions.has('RIGHT');
+  const digitalY = actions.has('UP') || actions.has('DOWN');
+  if (actions.has('LEFT') && actions.has('RIGHT')) {actions.delete('LEFT');actions.delete('RIGHT');}
+  if (actions.has('UP') && actions.has('DOWN')) {actions.delete('UP');actions.delete('DOWN');}
+  const x = Number(pad.axes?.[0]);
+  const y = Number(pad.axes?.[1]);
+  if (!digitalX && Number.isFinite(x)) {
+    if (x <= -deadzone) actions.add('LEFT');
+    if (x >= deadzone) actions.add('RIGHT');
+  }
+  if (!digitalY && Number.isFinite(y)) {
+    if (y <= -deadzone) actions.add('UP');
+    if (y >= deadzone) actions.add('DOWN');
+  }
   return actions;
+}
+
+/** One semantic action per frame; a held direction suppresses accidental A. */
+export function chooseControllerAction(fired, held = new Set()) {
+  if (fired.includes('PAUSE')) return 'PAUSE';
+  if (fired.includes('BACK')) return 'BACK';
+  const direction = fired.find(action => DIRECTIONS.has(action));
+  if (direction) return direction;
+  if ([...held].some(action => DIRECTIONS.has(action))) return null;
+  if (fired.includes('CONFIRM')) return 'CONFIRM';
+  return fired.find(action => ['SECONDARY','ACHIEVEMENTS','PREV_TAB','NEXT_TAB'].includes(action)) || null;
 }
 
 export function createRepeater({delay = 310, interval = 135} = {}) {
@@ -73,10 +90,11 @@ const NAV_PAGES = ['home', 'library', 'treasures', 'profile'];
 export function startArcadeController({doc = document, win = window, nav = navigator} = {}) {
   const badge = doc.getElementById('controller-indicator');
   const legend = doc.getElementById('controller-legend');
+  const backLabel = doc.getElementById('controller-back-label');
   const pause = doc.getElementById('controller-pause');
   if (!badge || !legend || !pause || typeof win.requestAnimationFrame !== 'function') return () => {};
   const repeater = createRepeater();
-  let running = true, connected = false, previousFocus = null;
+  let running = true, connected = false, previousFocus = null, pausedInert = [];
   const activeSection = () => doc.querySelector('.section.active');
   const originalModal = () => doc.querySelector('#modal.open .dialog');
   const pauseOpen = () => !pause.hidden;
@@ -109,12 +127,18 @@ export function startArcadeController({doc = document, win = window, nav = navig
   const openPause = () => {
     if (pauseOpen()) return;
     previousFocus = doc.activeElement;
+    // Pause lives inside #app; only its interactive siblings become inert.
+    pausedInert = [...doc.querySelectorAll('#content, .topbar, .bottom-nav')]
+      .map(el => [el, Boolean(el.inert)]);
+    for (const [el] of pausedInert) el.inert = true;
     pause.hidden = false;
     focus(pause.querySelector('[data-controller-resume]'));
   };
   const closePause = () => {
     if (!pauseOpen()) return;
     pause.hidden = true;
+    for (const [el, prior] of pausedInert) el.inert = prior;
+    pausedInert = [];
     if (visible(previousFocus)) focus(previousFocus);
     previousFocus = null;
   };
@@ -150,6 +174,11 @@ export function startArcadeController({doc = document, win = window, nav = navig
     if (action === 'BACK') {
       if (pauseOpen()) {closePause(); return;}
       if (originalModal()) {doc.getElementById('modal-close')?.click(); return;}
+      if (activeSection()?.id === 'game') {
+        // B cancels the highlighted Glimmer jewel before leaving the game.
+        const selectedCell = doc.querySelector('#pop-board .charm.selected[data-cell]:not([disabled])');
+        if (selectedCell) {selectedCell.click(); return;}
+      }
       if (activeSection()?.id !== 'home') doc.querySelector('.bottom-nav [data-go="home"]')?.click();
       return;
     }
@@ -210,7 +239,15 @@ export function startArcadeController({doc = document, win = window, nav = navig
         }
       } catch { /* Safari privacy or transient gamepad errors: keep touch/keyboard operational. */ }
       setConnection(Boolean(pad));
-      for (const action of repeater.step(readGamepad(pad), time)) act(action);
+      if (connected && backLabel) {
+        const selectedCell = activeSection()?.id === 'game' &&
+          doc.querySelector('#pop-board .charm.selected[data-cell]:not([disabled])');
+        const label = pauseOpen() ? 'Resume' : originalModal() ? 'Close' : selectedCell ? 'Deselect' : 'Back';
+        if (backLabel.textContent !== label) backLabel.textContent = label;
+      }
+      const held = readGamepad(pad);
+      const action = chooseControllerAction(repeater.step(held, time), held);
+      if (action) act(action);
     } else repeater.reset();
     win.requestAnimationFrame(poll);
   };

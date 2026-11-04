@@ -175,6 +175,8 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
 [hidden]{display:none!important}
 .pg-controller-indicator{position:fixed;z-index:45;right:calc(10px + env(safe-area-inset-right));bottom:calc(9px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);border:1px solid #9cfc81a0;background:#09251de9;border-radius:999px;padding:8px 12px;color:#d7ffb6;font-size:10px;font-weight:800;box-shadow:0 0 20px #83f57944;pointer-events:none}
 body.pg-gamepad-active #prism-app button:focus,body.pg-gamepad-active #prism-app a:focus{outline:3px solid #adff90;outline-offset:3px;box-shadow:0 0 0 5px #5ce45c38,0 0 24px #9eff8f55;position:relative;z-index:3}
+body.pg-gamepad-active #prism-app .pg-stack.selected,body.pg-gamepad-active #prism-app .pg-shelf-slot.selected{border-color:#eaffb5;box-shadow:0 0 0 2px #143b2b,0 0 0 4px #a6fb87,0 0 26px #a5ff7670;filter:brightness(1.13)}
+body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active #prism-app .pg-shelf-slot.target:focus{background:#3d7e50;box-shadow:0 0 0 3px #0c281a,0 0 0 6px #c7ff94,0 0 27px #a3ff846e}
 .pg-controller-overlay{position:fixed;z-index:200;inset:0;background:#03140fe6;backdrop-filter:blur(16px);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 .pg-controller-panel{width:min(420px,100%);padding:clamp(20px,4vw,32px);border:1px solid #9cfb80;border-radius:24px;background:radial-gradient(circle at top right,#24663b,#0d2922 65%);box-shadow:0 30px 100px #000a;text-align:center}
 .pg-controller-panel h2{font:500 clamp(27px,4vw,40px) Georgia,serif;margin:8px 0;color:#ffedc4}
