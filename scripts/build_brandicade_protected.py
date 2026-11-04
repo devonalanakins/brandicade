@@ -115,7 +115,7 @@ export default {
     }
     if(path==='/sw.js'){
       let code=await response.text();
-      const cache="const CACHE='brandicade-prism-bloom-guided-board-v5'";
+      const cache="const CACHE='brandicade-kahlua-companion-v6'";
       const assets="const ASSETS=[";
       if(!code.includes(cache)||!code.includes(assets))return restricted(503);
       code=code.replace(cache,"const CACHE='brandicade-prism-bloom-cloud-bridge-v6'")
