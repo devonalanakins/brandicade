@@ -112,7 +112,7 @@ test('WebKit landscape/portrait and state preservation: disposable local preview
       page.on('pageerror',e=>errors.push(e.message));
       try{
         await page.goto(url+'/',{waitUntil:'networkidle'});
-        await page.locator('#home [data-action="play"]').tap();
+        await page.locator('#home .kahlua-hero [data-action="play"]').tap();
         await page.locator('#pop-board [data-cell]').first().waitFor();
         assert.equal(await page.locator('#pop-board [data-cell]').count(),49);
         const original=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
