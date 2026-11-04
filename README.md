@@ -1,4 +1,10 @@
+<p align="center"><img src=".github/assets/readme-hero.svg" alt="Original Brandicade project banner" width="100%" /></p>
+
 # Brandicade
+
+> **Repository status · November 3, 2026:** The default branch is still a recovery landing page. Game, progression and protected-storage updates are in draft PRs. Production parity and license provenance remain release gates.
+
+[Current development PRs](https://github.com/devonalanakins/brandicade/pulls) · [Prism Bloom review](https://github.com/devonalanakins/brandicade/pull/12)
 
 Brandicade is an independent personal game collection under development. This repository is the intended source home for its game interface, shared progression, tests, and release documentation.
 
