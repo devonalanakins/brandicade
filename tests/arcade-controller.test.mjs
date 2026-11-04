@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController, chooseControllerAction} from '../src/arcade-controller.mjs';
+import {BUTTON_BINDINGS, readGamepad, createRepeater, spatialTarget, startArcadeController, chooseControllerAction, gridCellTarget} from '../src/arcade-controller.mjs';
 
 function pad(indices = [], axes = [0, 0], mapping = 'standard') {
   return {mapping, connected: true, buttons: Array.from({length:16}, (_,i) => ({pressed:indices.includes(i)})), axes};
@@ -194,4 +194,28 @@ test('B clears Glimmer Pop jewel selection before returning to the arcade', () =
   assert.equal(cleared,1);
   assert.equal(exited,1);
   stop();
+});
+
+
+test('7x7 board movement returns neighbors and never wraps a row', () => {
+  assert.equal(gridCellTarget(0,'RIGHT'),1);
+  assert.equal(gridCellTarget(1,'LEFT'),0);
+  assert.equal(gridCellTarget(0,'DOWN'),7);
+  assert.equal(gridCellTarget(7,'UP'),0);
+  assert.equal(gridCellTarget(24,'LEFT'),23);
+  assert.equal(gridCellTarget(24,'RIGHT'),25);
+  assert.equal(gridCellTarget(24,'UP'),17);
+  assert.equal(gridCellTarget(24,'DOWN'),31);
+  assert.equal(gridCellTarget(6,'RIGHT'),null);
+  assert.equal(gridCellTarget(7,'LEFT'),null);
+  assert.equal(gridCellTarget(42,'DOWN'),null);
+  assert.equal(gridCellTarget(48,'RIGHT'),null);
+});
+
+test('malformed board positions and directions fail closed', () => {
+  for (const index of [-1,49,Number.NaN,2.5]) assert.equal(gridCellTarget(index,'UP'),null);
+  assert.equal(gridCellTarget(2,'DIAGONAL'),null);
+  assert.equal(gridCellTarget(2,'LEFT',0),null);
+  assert.equal(gridCellTarget(2,'LEFT',3.5),null);
+  assert.equal(gridCellTarget(2,'LEFT',3),1);
 });

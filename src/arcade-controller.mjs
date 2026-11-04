@@ -84,6 +84,19 @@ export function spatialTarget(nodes, current, direction) {
   return best;
 }
 
+/** Return a neighboring jewel index, or null when a directional move reaches the
+ * board edge. An edge permits an intentional escape to surrounding controls.
+ */
+export function gridCellTarget(index, direction, size = 7) {
+  if (!Number.isInteger(index) || !Number.isInteger(size) || size < 1 ||
+      index < 0 || index >= size * size) return null;
+  if (direction === 'LEFT') return index % size === 0 ? null : index - 1;
+  if (direction === 'RIGHT') return index % size === size - 1 ? null : index + 1;
+  if (direction === 'UP') return index < size ? null : index - size;
+  if (direction === 'DOWN') return index >= size * (size - 1) ? null : index + size;
+  return null;
+}
+
 const FOCUSABLE = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
 const NAV_PAGES = ['home', 'library', 'treasures', 'profile'];
 
@@ -155,23 +168,27 @@ export function startArcadeController({doc = document, win = window, nav = navig
     focus(preferred && options.includes(preferred) ? preferred : options[0]);
   };
   const move = (direction) => {
-    if (activeSection()?.id === 'game' && !pauseOpen() && !originalModal()) {
-      const cells = [...doc.querySelectorAll('#pop-board [data-cell]')].filter(visible);
-      if (cells.length) {
-        const current = cells.includes(doc.activeElement) ? doc.activeElement : null;
-        if (!current) {focus(cells[0]); return;}
-        const index = Number(current.dataset.cell), size = 7;
-        const target = direction === 'LEFT' ? index - 1 : direction === 'RIGHT' ? index + 1 : direction === 'UP' ? index - size : index + size;
-        if (target < 0 || target >= cells.length) return;
-        if ((direction === 'LEFT' || direction === 'RIGHT') && Math.floor(target / size) !== Math.floor(index / size)) return;
-        focus(cells.find(el => Number(el.dataset.cell) === target));
-        return;
-      }
-    }
     const options = choices();
     const current = options.includes(doc.activeElement) ? doc.activeElement : null;
     if (!current) {ensureFocus(); return;}
-    focus(spatialTarget(options, current, direction));
+    if (activeSection()?.id === 'game' && !pauseOpen() && !originalModal() &&
+        current.matches?.('#pop-board [data-cell]')) {
+      const target = gridCellTarget(Number(current.dataset.cell), direction);
+      if (target !== null) {
+        const next = options.find(el => el.matches?.('#pop-board [data-cell]') &&
+          Number(el.dataset.cell) === target);
+        if (next) {focus(next); return;}
+      }
+      // At the grid edge (or missing/disabled neighboring cell), navigate only
+      // toward actual game controls. Do not wrap to another row or teleport
+      // between distant jewels.
+      const controls = options.filter(el => !el.matches?.('#pop-board [data-cell]'));
+      const escape = spatialTarget(controls, current, direction);
+      if (escape) focus(escape);
+      return;
+    }
+    const next = spatialTarget(options, current, direction);
+    if (next) focus(next);
   };
   const act = (action) => {
     if (DIRECTIONS.has(action)) {move(action); return;}
@@ -230,8 +247,17 @@ export function startArcadeController({doc = document, win = window, nav = navig
     }
     const direction = {ArrowUp:'UP', ArrowDown:'DOWN', ArrowLeft:'LEFT', ArrowRight:'RIGHT'}[event.key];
     if (!direction || event.altKey || event.ctrlKey || event.metaKey ||
-      event.target?.matches?.('input, textarea, select, #pop-board [data-cell]')) return;
-    event.preventDefault();move(direction);
+      event.target?.matches?.('input, textarea, select')) return;
+    const jewel = event.target?.matches?.('#pop-board [data-cell]') &&
+      activeSection()?.id === 'game' && !pauseOpen() && !originalModal();
+    if (jewel && gridCellTarget(Number(event.target.dataset.cell), direction) !== null) {
+      // The existing Glimmer Pop keyboard listener already handles in-grid
+      // arrows. Let it run exactly once; two handlers would move two jewels.
+      return;
+    }
+    event.preventDefault();
+    if (jewel) event.stopImmediatePropagation(); // Prevent the legacy handler
+    move(direction);
   };
   const poll = (time) => {
     if (!running) return;

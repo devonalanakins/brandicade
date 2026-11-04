@@ -273,6 +273,25 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     await press(1); // B cancels jewel selection before leaving the active game.
     assert.equal(await page.locator('#pop-board .charm.selected').count(),0);
     assert.equal(await page.locator('.section.active').getAttribute('id'),'game');
+    // From the rightmost jewel, D-pad RIGHT must escape to actual game tools.
+    // This guards against trapping controller users inside the 7x7 board.
+    await page.locator('#pop-board [data-cell="48"]').focus();
+    await press(15);
+    assert.ok(await page.evaluate(()=>Boolean(document.activeElement?.closest('#game .game-tools'))),
+      'rightmost jewel must lead into the adjacent Hint/Restart control rail');
+    await press(14);
+    assert.ok(await page.evaluate(()=>Boolean(document.activeElement?.matches('#pop-board [data-cell]'))),
+      'left D-pad returns from tools to the jewel board');
+    // Keyboard arrows already have native in-grid handling; the new capture
+    // handler must not cause a second cell move.
+    await page.locator('#pop-board [data-cell="7"]').focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await page.evaluate(()=>document.activeElement?.dataset.cell),'8',
+      'keyboard RIGHT must move exactly one jewel, never two');
+    await page.locator('#pop-board [data-cell="48"]').focus();
+    await page.keyboard.press('ArrowRight');
+    assert.ok(await page.evaluate(()=>Boolean(document.activeElement?.closest('#game .game-tools'))),
+      'keyboard can escape the final column to the adjacent game tools');
     await press(9); // Menu pause in-game.
     assert.equal(await page.locator('#controller-pause').isHidden(),false);
     assert.equal(await page.locator('#content').evaluate(el=>el.inert),true,
