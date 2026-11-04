@@ -12,7 +12,7 @@
  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
  <meta name="apple-mobile-web-app-title" content="BRANDICADE"><link rel="apple-touch-icon" href="/assets/icon-512.png">
  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg"><link rel="manifest" href="/manifest.webmanifest">
- <link rel="stylesheet" href="/src/styles.css">
+ <link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/arcade-landscape.css">
  <title>BRANDICADE — The Living Arcade</title>
 </head>
 <body>
@@ -21,6 +21,7 @@
  <header class="container topbar">
   <a class="logo" href="#home" id="brand-home" aria-label="BRANDICADE arcade home"><span class="crest"><img src="/assets/mark.svg" alt="" width="38" height="38"></span><span class="logo-copy"><strong>BRANDICADE</strong><span>THE LIVING ARCADE</span></span></a>
   <div class="top-right">
+   <span class="controller-indicator" id="controller-indicator" role="status" aria-live="polite" hidden>Controller connected</span>
    <span class="status"><i class="dot"></i><span class="status-text">THE LIGHTS ARE ON</span></span>
    <button class="level-chip" id="level-chip" type="button" data-go="profile" aria-label="View Brandi profile"><span class="level-orb" id="mini-orb">B</span><span class="level-chip-copy">BRANDI <b id="mini-level">LV 1</b></span></button>
    <button class="icon-button" id="settings-open" type="button" aria-label="Open settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 14 5l3-.3 1 3 2.5 1.5-1 3 1 2.8-2.5 1.5-.5 3-3.2.1-2.3 2-2.3-2-3.2-.1-.5-3-2.5-1.5 1-2.8-1-3L7 7.7l1-3L11 5l1-2Z"/><circle cx="12" cy="12" r="3.5"/></svg></button>
@@ -106,11 +107,14 @@
   <button class="nav-button" type="button" data-go="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg>Brandi</button>
  </nav>
  <div class="dialog-backdrop" id="modal" role="presentation"><div class="dialog app-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="close" type="button" id="modal-close" aria-label="Close dialog">×</button><div id="modal-body"></div></div></div>
+ <div class="controller-legend" id="controller-legend" aria-hidden="true" hidden><span><kbd>A</kbd>Select</span><span><kbd>B</kbd>Back</span><span><kbd>Menu</kbd>Pause</span><span>LB / RB Browse</span></div>
+ <div class="controller-pause" id="controller-pause" hidden><section class="controller-pause-panel" role="dialog" aria-modal="true" aria-labelledby="controller-pause-title"><div class="eyebrow">A little breather</div><h2 id="controller-pause-title">Game paused</h2><p>Your game progress is preserved. Continue when ready, or return to the arcade.</p><div class="controller-pause-actions"><button type="button" data-controller-resume>Resume playing</button><button type="button" data-controller-exit>Return to arcade</button></div></section></div>
  <div class="toast" id="toast" role="status" aria-live="polite"></div>
  <div class="celebrations" id="celebrations" aria-hidden="true"></div>
  <input id="import-file" type="file" accept=".json,application/json" hidden>
  <footer class="app-footnote">MADE BY DEVON · JUST FOR BRANDI · FOREVER IN THE MAKING</footer>
  </div>
  <script type="module" src="/src/app.mjs"></script>
+ <script type="module" src="/src/arcade-controller.mjs"></script>
 </body>
 </html>
