@@ -47,6 +47,8 @@ test('cascade preview is optional and reduced-motion gets the same deterministic
  const css=readFileSync(new URL('../src/kahlua-arcade.css',import.meta.url),'utf8');
  assert.match(app,/await animateGlimmerCascades\(current,a,b,result\.event\)/);
  assert.match(app,/board\.setAttribute\('aria-busy','true'\)/);
+ assert.match(app,/p1\.cancel\(\);p2\.cancel\(\)/,'finished swap animations must release their transforms');
+ assert.match(app,/save\.currentRun===committedRun/,'stale run cannot continue to animate over a replacement');
  assert.match(app,/if\(!board\|\|!activeMotion\(\)/,'calm gameplay must bypass animation');
  assert.match(css,/glimmer-clear/);
  assert.match(css,/glimmer-refill/);

@@ -188,7 +188,7 @@ function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){s
  const from=selected;selected=null;performSwap(from,i);}
 function setSelection(){$$('#pop-board .charm').forEach(e=>{const on=Number(e.dataset.cell)===selected;e.classList.toggle('selected',on);e.setAttribute('aria-pressed',String(on))});}
 function animateMove(a,b){const board=$('#pop-board');const one=board.querySelector(`[data-cell="${a}"]`),two=board.querySelector(`[data-cell="${b}"]`);if(!one||!two||!activeMotion())return Promise.resolve();const ar=one.getBoundingClientRect(),br=two.getBoundingClientRect(),dx=br.left-ar.left,dy=br.top-ar.top;
- const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]);}
+ const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]).finally(()=>{p1.cancel();p2.cancel();});}
 /** Visual-only cascade rendering, independent of earned rewards and saved runs. */
 function paintGlimmerPreview(types) {
  const cells=$('#pop-board [data-cell]');
@@ -207,10 +207,10 @@ function paintGlimmerPreview(types) {
 const glimmerSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 /** Bounded animation of actual matched and refilled cells. If interrupted, the
  * final authoritative board is always redrawn from the already committed run. */
-async function animateGlimmerCascades(previous,from,to,event) {
+async function animateGlimmerCascades(previous,from,to,event,committedRun) {
  const board=$('#pop-board'),waves=event?.visualWaves;
  if(!board||!activeMotion()||!Array.isArray(waves)||!waves.length)return;
- const stillPlaying=()=>$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion();
+ const stillPlaying=()=>save.currentRun===committedRun&&$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion();
  if(!stillPlaying())return;
  let preview=[...previous.board];[preview[from],preview[to]]=[preview[to],preview[from]];
  if(!paintGlimmerPreview(preview))return;
@@ -250,12 +250,14 @@ async function performSwap(a,b){if(moving||ensureRun().ended)return;const curren
  commit();
  try {
   await animateMove(a,b);
-  await animateGlimmerCascades(current,a,b,result.event);
+  await animateGlimmerCascades(current,a,b,result.event,result.run);
  } finally {
-  renderGame();renderHome();renderProfile();renderTreasures();moving=false;
+  if(save.currentRun===result.run){renderGame();renderHome();renderProfile();renderTreasures();}
+  moving=false;
  }
- if(restoreFocusedCell&&!result.run.ended&&$('#game').classList.contains('active'))$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
- if(!$('#game').classList.contains('active'))return;
+ if(save.currentRun!==result.run||!$('#game').classList.contains('active')||
+    $('#modal').classList.contains('open')||document.hidden)return;
+ if(restoreFocusedCell&&!result.run.ended)$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
  showGlimmerMoment(result.event);
  const ev=result.event;const msg=ev.chain>=3?`Incredible chain ×${ev.chain}! +${ev.gained.toLocaleString()}`:ev.chain>=2?`Gorgeous cascade ×${ev.chain}! +${ev.gained.toLocaleString()}`:`+${ev.gained.toLocaleString()} · ${ev.goal} collected`;
  $('#game-live').textContent=msg;sound(result.run.won?'win':ev.chain>=2?'award':'match');haptic();if(activeMotion()){$('#pop-board').classList.add('pulsing');setTimeout(()=>$('#pop-board').classList.remove('pulsing'),310);}

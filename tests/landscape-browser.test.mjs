@@ -306,7 +306,24 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
       second.expected,'reload during a cascade must not lose an earned turn');
     assert.equal(await page.locator('#pop-board [data-cell]').count(),49);
     assert.equal(await page.locator('#pop-board').getAttribute('aria-busy'),null);
-    assert.deepEqual(errors,[],'no browser errors during cascade or interrupted reload');
+    // Restart during a live cascade must not let a stale old-run celebration
+    // leak into the newly created run, even if its animation is still pending.
+    await page.locator('#game .game-tools [data-action="restart"]').click();
+    await page.locator('#modal [data-action="confirm-restart"]').click();
+    const third=await predict();
+    await page.locator('#pop-board [data-cell="'+third.from+'"]').click();
+    await page.locator('#pop-board [data-cell="'+third.to+'"]').click();
+    await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true');
+    await page.evaluate(()=>{
+      document.querySelector('#game .game-tools [data-action="restart"]').click();
+      document.querySelector('#modal [data-action="confirm-restart"]').click();
+    });
+    await page.waitForTimeout(900);
+    const restarted=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun);
+    assert.equal(restarted.movesMade,0,'new run survives interrupted older animation');
+    assert.equal(await page.locator('#glimmer-moment').isHidden(),true,
+      'old move cannot celebrate over a freshly restarted run');
+    assert.deepEqual(errors,[],'no browser errors during cascade, reload or restart');
    }finally{await context.close();}
   });
   await t.test('synthetic Xbox input navigates Kahlua, games, pause, and treasures without accidental saves',async()=>{
