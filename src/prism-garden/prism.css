@@ -169,3 +169,53 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
  .pg-region-step,.pg-clear-selection{transition:none!important;animation:none!important}
 }
 #prism-app[data-motion="off"] .pg-region-step,#prism-app[data-motion="off"] .pg-clear-selection{transition:none!important;animation:none!important}
+
+
+/* Landscape-first Prism gameplay and Xbox focus feedback: UI-only additive layer. */
+[hidden]{display:none!important}
+.pg-controller-indicator{position:fixed;z-index:45;right:calc(10px + env(safe-area-inset-right));bottom:calc(9px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);border:1px solid #9cfc81a0;background:#09251de9;border-radius:999px;padding:8px 12px;color:#d7ffb6;font-size:10px;font-weight:800;box-shadow:0 0 20px #83f57944;pointer-events:none}
+body.pg-gamepad-active #prism-app button:focus,body.pg-gamepad-active #prism-app a:focus{outline:3px solid #adff90;outline-offset:3px;box-shadow:0 0 0 5px #5ce45c38,0 0 24px #9eff8f55;position:relative;z-index:3}
+.pg-controller-overlay{position:fixed;z-index:200;inset:0;background:#03140fe6;backdrop-filter:blur(16px);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.pg-controller-panel{width:min(420px,100%);padding:clamp(20px,4vw,32px);border:1px solid #9cfb80;border-radius:24px;background:radial-gradient(circle at top right,#24663b,#0d2922 65%);box-shadow:0 30px 100px #000a;text-align:center}
+.pg-controller-panel h2{font:500 clamp(27px,4vw,40px) Georgia,serif;margin:8px 0;color:#ffedc4}
+.pg-controller-panel p{font-size:13px;line-height:1.6;color:#d2e5d7}
+.pg-controller-panel button{display:block;width:100%;min-height:48px;margin-top:11px;border-radius:12px;border:1px solid #aaf08883;background:#194d35;font-weight:800}
+.pg-controller-panel button[data-controller-resume]{color:#0b2a18;background:linear-gradient(125deg,#b9ff8b,#60d76a)}
+.pg-controller-panel button:focus-visible{outline:3px solid #ffdfaa;outline-offset:3px}
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){
+ #prism-app .pg-shell{max-width:none;min-height:100dvh;padding-top:env(safe-area-inset-top);padding-inline:max(14px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-right));padding-bottom:max(7px,env(safe-area-inset-bottom))}
+ #prism-app .pg-header{height:47px;gap:7px}
+ #prism-app .pg-back{min-width:75px;font-size:10px}
+ #prism-app .pg-brand{font-size:10px;letter-spacing:.12em}
+ #prism-app .pg-shell>footer{display:none}
+ #prism-app .pg-game{display:grid;grid-template-columns:minmax(310px,1.35fr) minmax(245px,.85fr);grid-template-areas:"top progress" "scene supplies" "scene tools" "task message" "rail-head rail-head" "rail rail" "note note";column-gap:12px;row-gap:4px;align-items:start}
+ #prism-app .pg-game .pg-topline{grid-area:top;min-height:42px}
+ #prism-app .pg-game .pg-topline h2{font-size:18px;line-height:1.1;margin:3px 0}
+ #prism-app .pg-game .pg-topline small{font-size:9px}
+ #prism-app .pg-game .pg-progress{grid-area:progress;margin:0;align-self:center}
+ #prism-app .pg-game .pg-progress span{font-size:10px}
+ #prism-app .pg-game .pg-progress-track{margin:5px 0 0}
+ #prism-app .pg-game .pg-world-scene{grid-area:scene;margin:0;height:max(277px,var(--pg-board-height,277px));min-height:277px}
+ #prism-app .pg-game .pg-arch{height:88%;width:min(75%,270px)}
+ #prism-app .pg-game .pg-supplies{grid-area:supplies;margin:0;padding:8px 10px}
+ #prism-app .pg-game .pg-stacks,#prism-app .pg-game .pg-shelf{gap:7px;padding:5px 0}
+ #prism-app .pg-game .pg-stack,#prism-app .pg-game .pg-shelf-slot{width:52px;height:53px;min-height:52px;min-width:44px}
+ #prism-app .pg-game .pg-tools{grid-area:tools;padding:4px 0}
+ #prism-app .pg-game .pg-task{grid-area:task;padding:7px 4px;min-height:40px;gap:6px}
+ #prism-app .pg-game .pg-task-copy span{font-size:10px;line-height:1.2}
+ #prism-app .pg-game .pg-live{grid-area:message;align-self:start;font-size:10px;text-align:left;margin:5px 0}
+ #prism-app .pg-game .pg-region-heading{grid-area:rail-head;margin:5px 0 0}
+ #prism-app .pg-game .pg-region-rail{grid-area:rail;gap:6px;margin-bottom:0;padding-bottom:4px}
+ #prism-app .pg-game .pg-region-step{min-height:44px;padding:6px;flex-basis:110px}
+ #prism-app .pg-game .pg-game-mode-note{grid-area:note;font-size:9px;text-align:left}
+ #prism-app .pg-game .pg-socket{min-width:44px;min-height:44px}
+ #prism-app .pg-game .pg-supply-heading{font-size:9px}
+ #prism-app .pg-game .pg-controller-indicator{font-size:9px}
+}
+@media(orientation:landscape) and (min-width:670px) and (max-height:410px){
+ #prism-app .pg-game .pg-region-heading,#prism-app .pg-game .pg-region-rail{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;padding:0;margin:0;border:0}
+ #prism-app .pg-game .pg-topline{min-height:36px}
+ #prism-app .pg-game .pg-world-scene{border-radius:17px}
+ #prism-app .pg-game .pg-task{padding-block:2px}
+}
+@media(prefers-reduced-motion:reduce){.pg-controller-overlay *, .pg-controller-indicator{animation:none!important;transition:none!important}}
