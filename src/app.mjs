@@ -188,7 +188,14 @@ function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){s
  const from=selected;selected=null;performSwap(from,i);}
 function setSelection(){$$('#pop-board .charm').forEach(e=>{const on=Number(e.dataset.cell)===selected;e.classList.toggle('selected',on);e.setAttribute('aria-pressed',String(on))});}
 function animateMove(a,b){const board=$('#pop-board');const one=board.querySelector(`[data-cell="${a}"]`),two=board.querySelector(`[data-cell="${b}"]`);if(!one||!two||!activeMotion())return Promise.resolve();const ar=one.getBoundingClientRect(),br=two.getBoundingClientRect(),dx=br.left-ar.left,dy=br.top-ar.top;
- const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]).finally(()=>{p1.cancel();p2.cancel();});}
+ const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);
+ // Some mobile/WebKit and headless environments do not settle finished promises
+ // predictably after tab/background transitions. Never let an accepted turn hang.
+ let timeout;
+ return Promise.race([
+  Promise.allSettled([p1.finished,p2.finished]),
+  new Promise(resolve=>{timeout=setTimeout(resolve,250);})
+ ]).finally(()=>{clearTimeout(timeout);p1.cancel();p2.cancel();});}
 /** Visual-only cascade rendering, independent of earned rewards and saved runs. */
 function paintGlimmerPreview(types) {
  const cells=$('#pop-board [data-cell]');
