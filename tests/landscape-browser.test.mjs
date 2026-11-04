@@ -256,7 +256,7 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
    try{
     await page.goto(url+'/',{waitUntil:'networkidle'});
     await page.waitForSelector('#controller-indicator:not([hidden])',{timeout:5000});
-    const unchanged=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+    const baseline=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
     await press(0); // A first focuses Play instead of unexpectedly launching a game.
     assert.ok(await page.locator('#home [data-action="play"]').first().evaluate(el=>document.activeElement===el),
      'first controller confirm should focus the real primary Play action');
@@ -296,8 +296,11 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.equal(await page.locator('[data-avatar]').count(),0);
     await press(1);
     assert.equal(await page.locator('.section.active').getAttribute('id'),'home');
-    assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),unchanged,
-     'controller UI navigation and selecting jewels must not persist any fake progress');
+    const finalSave=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+    assert.deepEqual(finalSave.progression,baseline.progression,'opening a genuine run must not invent XP or stars');
+    assert.deepEqual(finalSave.achievements,baseline.achievements,'controller menu actions must not mint awards');
+    assert.equal(finalSave.stats.wins,baseline.stats.wins,'nonmatching selections must not count as wins');
+    assert.equal(finalSave.currentRun.movesMade,0,'select/deselect does not consume a turn');
     assert.deepEqual(errors,[],'synthetic controller path must not throw browser exceptions');
    }finally{await context.close();}
   });
