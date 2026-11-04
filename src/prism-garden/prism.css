@@ -246,3 +246,16 @@ body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active
  #prism-app .pg-game{grid-template-columns:minmax(310px,1.15fr) minmax(245px,.85fr);column-gap:8px}
  #prism-app .pg-shell{padding-inline:max(10px,env(safe-area-inset-left)) max(10px,env(safe-area-inset-right))}
 }
+
+
+/* Gameplay-only horizontal layout: keep every jewel and primary action above the
+   fold on short landscape phones. The main arcade navigation stays available via
+   Prism Garden's own 44px in-game back control; portrait is unchanged. */
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){
+ #prism-app .pg-shell:has(.pg-game) .pg-header{display:none}
+ #prism-app .pg-game .pg-world-scene{height:clamp(285px,calc(100dvh - 100px),355px);min-height:285px}
+ #prism-app .pg-game .pg-arch{height:94%}
+ #prism-app .pg-game .pg-mosaic{gap:4px;padding:7px}
+ #prism-app .pg-game .pg-socket{height:44px}
+ #prism-app .pg-game .pg-topline{margin-top:0;margin-bottom:5px}
+}

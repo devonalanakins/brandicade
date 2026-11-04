@@ -64,7 +64,8 @@ function measure(page){
   const buttons=[...document.querySelectorAll('.pg-socket:not(:disabled), .pg-stack:not(:disabled), .pg-shelf-slot:not(:disabled), .pg-tools button:not(:disabled)')];
   return {viewport:{width:innerWidth,height:innerHeight},
    documentWidth:document.documentElement.scrollWidth,
-   game:rect('.pg-game'),scene:rect('.pg-world-scene'),supplies:rect('.pg-supplies'),
+   game:rect('.pg-game'),scene:rect('.pg-world-scene'),supplies:rect('.pg-supplies'),tools:rect('.pg-tools'),
+   maxPlayableBottom:Math.max(...buttons.map(el=>el.getBoundingClientRect().bottom)),
    display:getComputedStyle(game).display,gridColumns:getComputedStyle(game).gridTemplateColumns,
    minButtonWidth:Math.min(...buttons.map(el=>el.getBoundingClientRect().width)),
    minButtonHeight:Math.min(...buttons.map(el=>el.getBoundingClientRect().height)),
@@ -93,6 +94,9 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
      assert.ok(m.scene.right+2<=m.supplies.left,'world and supplies must not overlap: '+JSON.stringify(m));
      assert.ok(m.supplies.right<=viewport.width+2,'supplies are not horizontally clipped');
      assert.ok(m.documentWidth<=viewport.width+2,'page must not horizontally overflow');
+     assert.ok(m.scene.bottom<=viewport.height-6,'jewel scene must fit onscreen without scrolling: '+JSON.stringify(m));
+     assert.ok(m.tools.bottom<=viewport.height-6,'primary actions must be visible without scrolling: '+JSON.stringify(m));
+     assert.ok(m.maxPlayableBottom<=viewport.height-6,'all enabled jewels and actions must remain visible: '+JSON.stringify(m));
      assert.ok(m.count>5&&m.minButtonWidth>=43.5&&m.minButtonHeight>=43.5,
       'usable jewel and tool targets cannot shrink below 44px: '+JSON.stringify(m));
      const before=await page.evaluate(()=>localStorage.getItem('brandicade:prism-garden:v1'));
