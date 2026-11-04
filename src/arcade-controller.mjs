@@ -88,7 +88,7 @@ export function startArcadeController({doc = document, win = window, nav = navig
     doc.body.classList.toggle('has-gamepad', on);
     repeater.reset();
   };
-  const visible = (el) => !el?.disabled && !el?.closest('[hidden], [aria-hidden="true"], [inert]') &&
+  const visible = (el) => Boolean(el) && !el.disabled && !el.closest('[hidden], [aria-hidden="true"], [inert]') &&
     (typeof el.getClientRects !== 'function' || el.getClientRects().length > 0);
   const scope = () => pauseOpen() ? pause : originalModal() || activeSection();
   const choices = (root = scope()) => root ? [...root.querySelectorAll(FOCUSABLE)].filter(visible) : [];
@@ -100,7 +100,8 @@ export function startArcadeController({doc = document, win = window, nav = navig
   const ensureFocus = () => {
     const options = choices();
     if (options.includes(doc.activeElement)) return doc.activeElement;
-    const primary = scope()?.querySelector('[data-action="play"], [data-action="continue"], [data-go="library"]');
+    const primary = (activeSection()?.id === 'game' ? doc.querySelector('#pop-board [data-cell]') : null) ||
+      scope()?.querySelector('[data-action="play"], [data-action="continue"], [data-go="library"]');
     const first = primary && options.includes(primary) ? primary : options[0];
     focus(first);
     return null; // first A press establishes focus, never launches an unintended game
@@ -202,7 +203,12 @@ export function startArcadeController({doc = document, win = window, nav = navig
   const poll = (time) => {
     if (!running) return;
     if (doc.visibilityState !== 'hidden') {
-      const pad = typeof nav.getGamepads === 'function' ? [...nav.getGamepads()].find(p => p && p.connected !== false && p.mapping === 'standard') : null;
+      let pad = null;
+      try {
+        if (typeof nav.getGamepads === 'function') {
+          pad = [...(nav.getGamepads() || [])].find(p => p && p.connected !== false && p.mapping === 'standard') || null;
+        }
+      } catch { /* Safari privacy or transient gamepad errors: keep touch/keyboard operational. */ }
       setConnection(Boolean(pad));
       for (const action of repeater.step(readGamepad(pad), time)) act(action);
     } else repeater.reset();
