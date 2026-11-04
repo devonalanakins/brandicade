@@ -159,6 +159,52 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.ok(width<=392,'Kahlua portrait hub cannot horizontally overflow');
    }finally{await context.close();}
   });
+  await t.test('Glimmer Pop: earned match cues do not reward invalid swaps or lose controller focus',async()=>{
+   const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block',reducedMotion:'reduce'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',error=>errors.push(error.message));
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    await page.evaluate(async()=>{
+     const [{newSave,SAVE_KEY},{makeRun}]=await Promise.all([import('/src/progression.mjs'),import('/src/engine.mjs')]);
+     const save=newSave();save.currentRun=makeRun(1);save.settings.sound=false;
+     localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+    });
+    await page.reload({waitUntil:'networkidle'});
+    await page.locator('#home .hero-text [data-action="play"]').click();
+    await page.locator('#pop-board [data-cell="0"]').waitFor();
+    const path=await page.evaluate(async()=>{
+      const {findMove,adjacent,trySwap}=await import('/src/engine.mjs');
+      const run=JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun;
+      const valid=findMove(run.board);
+      let invalid=null;
+      for(let a=0;a<run.board.length&&!invalid;a++)for(let b=a+1;b<run.board.length;b++){
+       if(adjacent(a,b)&&!trySwap(run,a,b).ok){invalid={from:a,to:b};break;}
+      }
+      return {valid,invalid,level:run.level};
+    });
+    assert.ok(path.valid&&path.invalid,'fixture should have both matching and nonmatching swaps');
+    const original=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+    await page.locator('#pop-board [data-cell="'+path.invalid.from+'"]').click();
+    await page.locator('#pop-board [data-cell="'+path.invalid.to+'"]').click();
+    assert.equal(await page.locator('#glimmer-moment').isHidden(),true,'invalid move cannot celebrate');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),original,'invalid move cannot change the save');
+    await page.locator('#pop-board [data-cell="'+path.valid.from+'"]').click();
+    await page.locator('#pop-board [data-cell="'+path.valid.to+'"]').click();
+    await page.waitForFunction(()=>!document.getElementById('glimmer-moment').hidden);
+    assert.match(await page.locator('#glimmer-moment-title').innerText(),/MATCH|CASCADE|CHAIN|GARDEN COMPLETE/);
+    assert.match(await page.locator('#glimmer-moment-detail').innerText(),/charms.+points/);
+    assert.equal(await page.locator('#glimmer-moment').getAttribute('aria-hidden'),'true');
+    assert.equal(await page.locator('#glimmer-moment').evaluate(el=>getComputedStyle(el).animationName),'none','reduced motion removes flash, not result');
+    const updated=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+    assert.equal(updated.currentRun.movesMade,1);
+    assert.equal(updated.currentRun.level,path.level);
+    if(!updated.currentRun.ended)assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('data-cell')),String(path.valid.to),'controller focus must survive board redraw');
+    await page.screenshot({path:'.artifacts/landscape/glimmer-kahlua-844x390.png',fullPage:false,animations:'disabled'});
+    await page.waitForFunction(()=>document.getElementById('glimmer-moment').hidden,{timeout:5000});
+    assert.deepEqual(errors,[]);
+   }finally{await context.close();}
+  });
   await t.test('portrait remains usable, not a forced-orientation dead end',async()=>{
    const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
    const page=await context.newPage(),errors=[];

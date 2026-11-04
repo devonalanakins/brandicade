@@ -88,3 +88,21 @@ body.calm .kahlua-stage .portal{animation:none!important}
  #home .kahlua-hero .kahlua-stage-footer{bottom:17px!important}
  #home .kahlua-hero .kahlua-response{bottom:0!important}
 }
+
+
+/* Genuine Glimmer Pop turn feedback: Kahlua is the only illustrated character. */
+.glimmer-moment{position:absolute;z-index:12;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;width:min(88%,284px);display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #baff9cba;border-radius:19px;padding:9px 12px;background:radial-gradient(ellipse at 30% 15%,#43854fa9,#092617ef 77%);box-shadow:0 0 0 2px #bdff9c24,0 0 40px #75fc7194,0 24px 50px #000b;backdrop-filter:blur(6px);animation:glimmer-moment-flash 1.15s ease both}
+.glimmer-moment[hidden]{display:none!important}
+.glimmer-moment img{width:60px;height:60px;object-fit:contain;flex:none;filter:drop-shadow(0 3px 8px #000b)}
+.glimmer-moment-copy{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.glimmer-moment strong{color:#e9ffbd;font:950 clamp(14px,2.5vw,21px)/1.06 ui-sans-serif,system-ui,sans-serif;letter-spacing:.045em;text-shadow:0 0 18px #b3fa77ba}
+.glimmer-moment span{font-size:11px;font-weight:700;color:#e6f4db;font-variant-numeric:tabular-nums}
+.glimmer-moment[data-tier="cascade"],.glimmer-moment[data-tier="surge"]{background:radial-gradient(ellipse at 25% 10%,#68774fb3,#14291bea 75%);border-color:#f7d594;box-shadow:0 0 0 2px #ffefb22c,0 0 55px #ffe0806e,0 21px 50px #000b}
+.glimmer-moment[data-tier="victory"]{border-color:#f5f0b0;box-shadow:0 0 0 3px #c0ffbb32,0 0 70px #c6e78f91,0 24px 50px #000b}
+.game-board[data-tier="match"]+.board-shine{box-shadow:inset 0 0 18px #a8ffa663}
+.game-board[data-tier="cascade"]+.board-shine,.game-board[data-tier="surge"]+.board-shine,.game-board[data-tier="victory"]+.board-shine{box-shadow:inset 0 0 24px #f3df9d9c,0 0 20px #9cffa68c}
+.game-board-outer:has(.glimmer-moment:not([hidden])){border-color:#a8ff9b;box-shadow:inset 0 2px 5px #ffffff0c,0 20px 50px #0009,0 0 46px #75f77a5b}
+@keyframes glimmer-moment-flash{0%{opacity:0;transform:translate(-50%,-42%) scale(.78)}14%{opacity:1;transform:translate(-50%,-52%) scale(1.04)}35%{opacity:1;transform:translate(-50%,-50%) scale(1)}72%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-65%) scale(.96)}}
+@media(orientation:landscape) and (max-height:540px){.glimmer-moment{width:min(84%,240px);padding:5px 8px;gap:6px;top:36%}.glimmer-moment img{width:43px;height:43px}.glimmer-moment strong{font-size:14px}.glimmer-moment span{font-size:9px}}
+body.calm .glimmer-moment{animation:none!important}
+@media(prefers-reduced-motion:reduce){body:not(.force-motion) .glimmer-moment{animation:none!important}}

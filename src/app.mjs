@@ -48,8 +48,32 @@ function sound(kind='tap'){if(!save.settings.sound)return;try{const A=window.Aud
  notes.forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type=kind==='wrong'?'triangle':'sine';const st=t+i*.075;o.frequency.value=hz;g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(kind==='tap'?.017:.035,st+.013);g.gain.exponentialRampToValueAtTime(.0001,st+.19);o.connect(g).connect(audioContext.destination);o.start(st);o.stop(st+.21);});}catch{}}
 function haptic(){if(!save.settings.sound&&!save.settings.motion)return;try{navigator.vibrate?.(9);}catch{}}
 function confetti(amount=32){if(!activeMotion())return;const el=$('#celebrations'),colors=['#e4b77e','#5ce9c5','#64a2a1','#f3dcc1','#e29abb'];el.replaceChildren();for(let i=0;i<amount;i++){const bit=document.createElement('span');bit.className='celebration-bit';bit.style.setProperty('--x',`${Math.random()*100}%`);bit.style.setProperty('--size',`${4+Math.random()*7}px`);bit.style.setProperty('--color',colors[i%colors.length]);bit.style.setProperty('--time',`${1.4+Math.random()*1.4}s`);el.append(bit);}setTimeout(()=>el.replaceChildren(),3100);}
+
+let momentTimeout=null;
+/** Transient celebration based solely on a committed match event; no save writes. */
+function clearGlimmerMoment(){
+ clearTimeout(momentTimeout);momentTimeout=null;
+ const moment=$('#glimmer-moment'),board=$('#pop-board');
+ if(moment){moment.hidden=true;moment.removeAttribute('data-tier');}
+ if(board)board.removeAttribute('data-tier');
+}
+function showGlimmerMoment(event){
+ if(!event||!Number.isSafeInteger(event.matched)||!Number.isSafeInteger(event.gained)||
+    !Number.isInteger(event.chain)||event.chain<1||event.chain>25)return;
+ const moment=$('#glimmer-moment'),board=$('#pop-board');
+ if(!moment||!board)return;
+ clearGlimmerMoment();
+ const tier=event.won?'victory':event.chain>=3?'surge':event.chain===2?'cascade':'match';
+ const title=tier==='victory'?'GARDEN COMPLETE':tier==='surge'?'CHAIN ×'+event.chain:
+  tier==='cascade'?'CASCADE ×2':'MATCH ×'+event.matched;
+ const detail=event.matched+' charms · +'+event.gained.toLocaleString()+' points';
+ $('#glimmer-moment-title').textContent=title;
+ $('#glimmer-moment-detail').textContent=detail;
+ moment.dataset.tier=tier;board.dataset.tier=tier;
+ moment.hidden=false;momentTimeout=setTimeout(clearGlimmerMoment,1150);
+}
 function ensureRun(){if(!save.currentRun)save.currentRun=makeRun(save.progression.unlockedLevel);commit();return save.currentRun;}
-function navigate(id,replace=false){const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(saveBlocked&&id==='game'){id='home';toast('Glimmer Pop progress is locked until a backup is restored.');}if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
+function navigate(id,replace=false){clearGlimmerMoment();const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(saveBlocked&&id==='game'){id='home';toast('Glimmer Pop progress is locked until a backup is restored.');}if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
  $$('.section').forEach(el=>{el.classList.toggle('active',el.id===id);el.setAttribute('aria-hidden',el.id===id?'false':'true')});$$('.nav-button').forEach(el=>{const on=el.dataset.go===id;el.classList.toggle('active',on);on?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current');});
  if(location.hash!==`#${id}`){if(replace)history.replaceState(null,'',`#${id}`);else history.pushState(null,'',`#${id}`)}
  if(id==='game')renderGame();if(id==='profile')renderProfile();if(id==='treasures')renderTreasures();if(id==='home')renderHome();
@@ -156,7 +180,7 @@ function openModal(kind,origin){lastTrigger=origin||document.activeElement;const
  };$('#modal-body').innerHTML=templates[kind]||templates.help;if(kind==='import'&&importPending){$('#import-preview').textContent=`Backup: Level ${importPending.progression.level}, ${Object.keys(importPending.achievements).length} achievements, ${importPending.progression.totalStars} stars.`;}
  $('#modal').classList.add('open');$('#modal-close').focus();}
 function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();lastTrigger?.focus?.();}}
-function startRun(level){if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
+function startRun(level){clearGlimmerMoment();if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
 function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){selected=i;setSelection();sound();return;}
  if(selected===i){selected=null;setSelection();return;}
  if(!adjacent(selected,i)){selected=i;setSelection();sound();return;}
@@ -166,8 +190,11 @@ function animateMove(a,b){const board=$('#pop-board');const one=board.querySelec
  const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]);}
 async function performSwap(a,b){if(moving||ensureRun().ended)return;const current=save.currentRun;const result=trySwap(current,a,b);
  if(!result.ok){sound('wrong');haptic();setSelection();toast(result.reason==='no-match'?'That swap needs to make a match.':'Choose two neighboring charms.');return;}
+ const restoreFocusedCell=Boolean(document.activeElement?.closest?.('#pop-board [data-cell]'));
  moving=true;await animateMove(a,b);save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
  commit();renderGame();renderHome();renderProfile();renderTreasures();moving=false;
+ if(restoreFocusedCell&&!result.run.ended)$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
+ showGlimmerMoment(result.event);
  const ev=result.event;const msg=ev.chain>=3?`Incredible chain ×${ev.chain}! +${ev.gained.toLocaleString()}`:ev.chain>=2?`Gorgeous cascade ×${ev.chain}! +${ev.gained.toLocaleString()}`:`+${ev.gained.toLocaleString()} · ${ev.goal} collected`;
  $('#game-live').textContent=msg;sound(result.run.won?'win':ev.chain>=2?'award':'match');haptic();if(activeMotion()){$('#pop-board').classList.add('pulsing');setTimeout(()=>$('#pop-board').classList.remove('pulsing'),310);}
  if(awarded.newAwards.length||ended?.newAwards.length){const all=[...awarded.newAwards,...(ended?.newAwards||[])];toast(`Treasure unlocked: ${all.map(x=>x.name).join(', ')}`);confetti(44);}else if(ended?.newLevel){toast(`Arcade level up! Welcome to level ${ended.newLevel}.`);confetti(38);}else if(result.run.won){toast(`Level complete! ${result.run.stars} star${result.run.stars===1?'':'s'} earned.`);confetti(45);}else if(result.run.ended){toast('You can retry any time. No lives or penalties.');}
