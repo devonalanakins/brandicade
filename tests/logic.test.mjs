@@ -52,7 +52,9 @@ test('cascade preview is optional and reduced-motion gets the same deterministic
  assert.deepEqual(saved,res.run);
  const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
  const css=readFileSync(new URL('../src/kahlua-arcade.css',import.meta.url),'utf8');
- assert.match(app,/await animateGlimmerCascades\(current,a,b,result\.event,result\.run\)/);
+ assert.match(app,/await animateGlimmerCascades\(current,a,b,result\.event,result\.run,presentationEpoch\)/);
+ assert.match(app,/glimmerPresentationEpoch===presentationEpoch/,'interrupted visual waves must not resume');
+ assert.match(app,/glimmerPresentationEpoch!==presentationEpoch\|\|save\.currentRun!==result\.run/,'stale rewards cannot appear after an interruption');
  assert.match(app,/board\.setAttribute\('aria-busy','true'\)/);
  assert.match(app,/p1\.cancel\(\);p2\.cancel\(\)/,'finished swap animations must release their transforms');
  assert.match(app,/save\.currentRun===committedRun/,'stale run cannot continue to animate over a replacement');
