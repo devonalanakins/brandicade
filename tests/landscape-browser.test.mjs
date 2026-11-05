@@ -394,7 +394,11 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
      assert.equal(await page.locator('#glimmer-moment').isHidden(),true,label+' must not show old visual rewards');
      assert.equal(await page.locator('#pop-board').getAttribute('aria-busy'),null,label+' releases board busy');
      const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
-     assert.deepEqual(saved,state.snapshot,label+' does not change the already committed save');
+     // renderGame() refreshes only the save's updatedAt bookkeeping; no
+     // gameplay, achievements or other player data may change after a cue is interrupted.
+     const withoutTouchTimestamp=save=>({...save,updatedAt:null});
+     assert.deepEqual(withoutTouchTimestamp(saved),withoutTouchTimestamp(state.snapshot),
+      label+' cannot change committed gameplay, progression, rewards or player settings');
      assert.deepEqual(saved.currentRun,state.expected.run,label+' preserves actual move outcome');
      const board=await page.evaluate(()=>{
       const kinds=['fern','aqua','ember','sun','orchid','luna'];
