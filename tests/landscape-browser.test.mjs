@@ -113,6 +113,58 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     }finally{await context.close();}
    });
   }
+  // 640–669px landscape used to fall through to the older 31–36px jewels.
+  // Exercise actual touch-size, game controls and progress with real browser CSS.
+  for(const viewport of [{width:640,height:360},{width:667,height:375}]){
+   await t.test('Glimmer Pop compact '+viewport.width+'x'+viewport.height+' touch geometry',async()=>{
+    const context=await browser.newContext({viewport,serviceWorkers:'block',hasTouch:true});
+    const page=await context.newPage(),errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    try{
+     await page.goto(url+'/',{waitUntil:'networkidle'});
+     await page.locator('#home .hero-text [data-action="play"]').click();
+     const geometry=await page.evaluate(()=>{
+      const rect=selector=>document.querySelector(selector)?.getBoundingClientRect();
+      const jewelRects=[...document.querySelectorAll('#pop-board [data-cell]')].map(el=>el.getBoundingClientRect());
+      const board=rect('.game-board-outer'),back=rect('#game .back-button'),
+       help=rect('#game .utility-button'),tools=rect('#game .game-tools');
+      return {width:innerWidth,height:innerHeight,
+       count:jewelRects.length,minWidth:Math.min(...jewelRects.map(r=>r.width)),
+       minHeight:Math.min(...jewelRects.map(r=>r.height)),
+       boardLeft:board.left,boardBottom:board.bottom,boardRight:board.right,
+       backLeft:back.left,backBottom:back.bottom,helpBottom:help.bottom,
+       toolsBottom:tools.bottom,toolsRight:tools.right,
+       navDisplay:getComputedStyle(document.querySelector('.bottom-nav')).display,
+       horizontalScroll:document.documentElement.scrollWidth};
+     });
+     assert.equal(geometry.count,49);
+     assert.ok(geometry.minWidth>=43.5&&geometry.minHeight>=43.5,
+      'all jewel targets must be at least 44x44 in narrow landscape: '+JSON.stringify(geometry));
+     assert.ok(geometry.boardBottom<=viewport.height-6&&geometry.boardLeft>=-1,
+      'the full 7x7 board must fit above the bottom safe area: '+JSON.stringify(geometry));
+     assert.ok(geometry.boardRight+6<=geometry.backLeft,
+      'game controls must sit beside, not cover, the jewel board: '+JSON.stringify(geometry));
+     assert.ok(geometry.toolsBottom<=viewport.height-6&&geometry.helpBottom<=viewport.height-6,
+      'Hint, Restart and Help remain visible: '+JSON.stringify(geometry));
+     assert.ok(geometry.toolsRight<=viewport.width+2,
+      'action rail cannot be clipped horizontally: '+JSON.stringify(geometry));
+     assert.equal(geometry.navDisplay,'none','global dock cannot obscure sideways gameplay');
+     assert.ok(geometry.horizontalScroll<=viewport.width+2,'no page horizontal overflow');
+     const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+     await page.locator('#pop-board [data-cell="0"]').tap();
+     assert.equal(await page.locator('#pop-board .charm.selected').count(),1,'tap selects only one jewel');
+     await page.locator('#pop-board [data-cell="0"]').tap();
+     assert.equal(await page.locator('#pop-board .charm.selected').count(),0,'second tap safely deselects');
+     const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+     assert.deepEqual(after.currentRun,before.currentRun,'simple tap cannot mutate a real game run');
+     assert.deepEqual(after.progression,before.progression,'taps cannot invent XP/stars');
+     assert.deepEqual(after.achievements,before.achievements,'taps cannot mint trophies');
+     await page.screenshot({path:'.artifacts/landscape/glimmer-compact-'+viewport.width+'x'+viewport.height+'.png',
+      fullPage:false,animations:'disabled'});
+     assert.deepEqual(errors,[],'compact landscape play should not throw');
+    }finally{await context.close();}
+   });
+  }
   await t.test('Kahlua-only companion hub uses real progress and preserves legacy saves',async()=>{
    const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block'});
    const page=await context.newPage(),errors=[];

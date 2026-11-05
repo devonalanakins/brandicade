@@ -111,7 +111,7 @@ body.calm .glimmer-moment{animation:none!important}
 /* Phone sideways: a dedicated, fully visible 7x7 Glimmer Pop stage.
  * The game has its own Back button; the global bottom dock is hidden only during play.
  * 44px jewels remain touch accessible even at 720x390. */
-@media(orientation:landscape) and (min-width:670px) and (max-height:540px){
+@media(orientation:landscape) and (min-width:640px) and (max-height:540px){
  body:has(#game.section.active) .topbar,
  body:has(#game.section.active) .bottom-nav,
  body:has(#game.section.active) .app-footnote{display:none!important}
