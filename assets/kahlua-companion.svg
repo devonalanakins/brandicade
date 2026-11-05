@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 760" role="img" aria-labelledby="title desc">
+<title id="title">Kahlua, the Brandicade companion</title>
+<desc id="desc">Original stylized portrait of Kahlua, a dark brown floppy-eared dog with bright eyes, a white chest, white toes, a black collar, and a gently curious expression.</desc>
+<defs>
+ <radialGradient id="grove" cx="50%" cy="46%" r="49%"><stop stop-color="#aaff7b" stop-opacity=".22"/><stop offset=".57" stop-color="#39ed75" stop-opacity=".09"/><stop offset="1" stop-color="#052b1a" stop-opacity="0"/></radialGradient>
+ <linearGradient id="fur" x1=".17" y1=".06" x2=".8" y2=".96"><stop stop-color="#996245"/><stop offset=".34" stop-color="#66412e"/><stop offset=".75" stop-color="#382a28"/><stop offset="1" stop-color="#201e20"/></linearGradient>
+ <linearGradient id="ear" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#44312b"/><stop offset=".57" stop-color="#211e20"/><stop offset="1" stop-color="#765139"/></linearGradient>
+ <linearGradient id="chest" x1=".2" y1="0" x2=".7" y2="1"><stop stop-color="#fff4df"/><stop offset=".55" stop-color="#e6ddd1"/><stop offset="1" stop-color="#b4b7ac"/></linearGradient>
+ <linearGradient id="collar" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#111b1c"/><stop offset=".52" stop-color="#293437"/><stop offset="1" stop-color="#0b1115"/></linearGradient>
+ <radialGradient id="eye" cx=".35" cy=".28" r=".9"><stop stop-color="#976342"/><stop offset=".6" stop-color="#422b26"/><stop offset="1" stop-color="#100f11"/></radialGradient>
+ <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="13"/></filter>
+ <filter id="dogShadow" x="-40%" y="-40%" width="180%" height="190%"><feDropShadow dx="0" dy="19" stdDeviation="20" flood-color="#000c10" flood-opacity=".74"/></filter>
+</defs>
+<ellipse cx="417" cy="347" rx="328" ry="333" fill="url(#grove)"/>
+<circle cx="420" cy="338" r="281" fill="none" stroke="#a5ff87" stroke-opacity=".25" stroke-width="2"/>
+<circle cx="420" cy="338" r="253" fill="none" stroke="#a1f874" stroke-opacity=".55" stroke-width="5" stroke-dasharray="760 66 40 80 200 130" stroke-linecap="round"/>
+<circle cx="420" cy="338" r="225" fill="none" stroke="#d4ffab" stroke-opacity=".08" stroke-width="33"/>
+<g fill="#d8ff9c">
+ <circle cx="166" cy="247" r="4"/><circle cx="652" cy="184" r="5"/><circle cx="682" cy="420" r="3"/><circle cx="205" cy="493" r="3"/><circle cx="580" cy="75" r="3"/>
+</g>
+<g fill="none" stroke="#b3ff87" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round">
+ <path d="M151 233v-26m-13 13h26"/><path d="M670 177v-30m-15 15h30"/><path d="M667 416v-24m-12 12h24"/><path d="M197 503v-22m-11 11h22"/>
+</g>
+<g filter="url(#dogShadow)">
+ <!-- Body silhouette with prominent white bib -->
+ <path d="M285 482C234 489 211 572 211 656c0 36 47 47 97 51 60 5 225 9 279-8 55-18 66-55 47-107-21-62-52-114-108-125Z" fill="url(#fur)" stroke="#a67654" stroke-width="5"/>
+ <path d="M352 487c-11 38-19 76-3 121 14 48 39 71 68 87 30-15 62-50 71-90 10-40-1-85-16-118l-58 21Z" fill="url(#chest)" stroke="#d8cfc1" stroke-width="4"/>
+ <path d="M405 521c-16 26-22 53-20 91 17 31 31 43 39 47 9-17 25-44 26-81l-17-60Z" fill="#faf5eb" opacity=".6"/>
+ <!-- Floppy ears, left and right -->
+ <path d="M300 229C248 212 196 236 186 293c-12 67 7 126 40 145 25 14 62-4 75-34l34-118Z" fill="url(#ear)" stroke="#916348" stroke-width="6"/>
+ <path d="M541 224c54-20 102 5 116 55 18 63 1 118-28 147-22 22-62 17-83-9l-39-139Z" fill="url(#ear)" stroke="#8f6749" stroke-width="6"/>
+ <path d="M224 290c-12 39-10 79 8 105" fill="none" stroke="#bd8564" stroke-width="10" opacity=".35" stroke-linecap="round"/>
+ <path d="M626 276c19 45 17 87-4 120" fill="none" stroke="#bc8064" stroke-width="9" opacity=".27" stroke-linecap="round"/>
+ <!-- Face -->
+ <path d="M284 259c12-82 60-136 137-145 76-8 130 49 141 127 11 77 4 180-27 221-31 40-77 59-115 59-42 0-96-26-123-72-22-39-26-125-13-190Z" fill="url(#fur)" stroke="#a77854" stroke-width="7"/>
+ <path d="M312 280c14-61 52-104 110-108 62-4 99 45 105 107" fill="none" stroke="#b88153" stroke-width="11" opacity=".22" stroke-linecap="round"/>
+ <path d="M413 136q8 28-6 55" fill="none" stroke="#c78d57" opacity=".22" stroke-width="9"/>
+ <!-- Eye markings -->
+ <path d="M325 299c19-19 52-20 76-3" fill="none" stroke="#2a2222" stroke-width="12" stroke-linecap="round"/>
+ <path d="M450 295c22-19 55-22 78-6" fill="none" stroke="#2a2222" stroke-width="12" stroke-linecap="round"/>
+ <ellipse cx="365" cy="330" rx="27" ry="30" fill="#201d1d" stroke="#ad7757" stroke-width="4"/>
+ <ellipse cx="488" cy="328" rx="27" ry="30" fill="#201d1d" stroke="#ad7757" stroke-width="4"/>
+ <ellipse cx="367" cy="332" rx="17" ry="21" fill="url(#eye)"/><ellipse cx="486" cy="330" rx="17" ry="21" fill="url(#eye)"/>
+ <circle cx="372" cy="322" r="7" fill="#fff9e9"/><circle cx="493" cy="319" r="7" fill="#fff9e9"/>
+ <circle cx="362" cy="340" r="3.5" fill="#d0ad82" opacity=".85"/><circle cx="480" cy="339" r="3.5" fill="#d0ad82" opacity=".85"/>
+ <!-- Muzzle -->
+ <path d="M331 372c17-20 49-27 84-17 28-9 65-5 89 18 24 24 18 64-11 87-25 19-54 25-80 22-30-1-58-8-75-25-24-25-28-58-7-85Z" fill="#6d5142" stroke="#4b382f" stroke-width="5"/>
+ <path d="M340 385c15-16 33-18 51-16m60-1c17-3 35 1 48 14" fill="none" stroke="#aa7b61" stroke-width="8" opacity=".45" stroke-linecap="round"/>
+ <path d="M380 373c15-10 30-12 43-10 14-2 29 1 44 11 8 10 3 26-9 36-12 11-25 17-36 17-15-1-28-10-39-21-11-13-14-23-3-33Z" fill="#171c20" stroke="#302c2d" stroke-width="6"/>
+ <path d="M388 375c22-7 44-5 58 3" fill="none" stroke="#77706c" stroke-width="5" opacity=".55" stroke-linecap="round"/>
+ <path d="M423 422v17m-40 5c25 16 63 17 85-2" fill="none" stroke="#242020" stroke-width="5" stroke-linecap="round"/>
+ <path d="M382 459c20 12 59 13 81 0" fill="none" stroke="#d4b9a1" stroke-width="4" opacity=".55" stroke-linecap="round"/>
+ <g fill="#392e2d" opacity=".7"><circle cx="346" cy="409" r="3"/><circle cx="357" cy="428" r="2.5"/><circle cx="492" cy="411" r="3"/><circle cx="484" cy="431" r="2.5"/></g>
+ <!-- Collar and tag -->
+ <path d="M308 470c60 40 157 52 231-4l-1 27c-52 56-167 64-229 7Z" fill="url(#collar)" stroke="#0d1418" stroke-width="5"/>
+ <path d="M333 483c58 35 141 38 185 3" fill="none" stroke="#89999b" stroke-width="3" opacity=".4"/>
+ <circle cx="421" cy="521" r="20" fill="#161b1d" stroke="#c8b77c" stroke-width="6"/><circle cx="421" cy="521" r="9" fill="#e3d596"/>
+ <!-- Front paws -->
+ <path d="M288 575c-20 19-30 56-23 103 6 29 48 34 73 30 25-4 35-20 30-44l-18-83Z" fill="#6b4e3b" stroke="#a07955" stroke-width="5"/>
+ <path d="M504 577c11-18 32-18 50-4 20 18 32 59 28 95-2 31-28 44-62 43-29-1-47-19-43-43Z" fill="#674b3b" stroke="#a37a57" stroke-width="5"/>
+ <path d="M267 672c11 28 48 36 85 24l-5-19-22-7-23 2Z" fill="#f2eee6"/>
+ <path d="M491 679c11 18 39 27 81 11l-4-21-26-3-28 9Z" fill="#f4f1e8"/>
+ <g stroke="#584b47" stroke-width="3" fill="none" stroke-linecap="round"><path d="M303 686v15m25-17v15m194-16v15m27-19v16"/></g>
+</g>
+<!-- rim light -->
+<path d="M272 464c-19-30-29-66-31-102M557 449c21-32 24-61 23-93" stroke="#bcfca3" stroke-opacity=".3" stroke-width="6" fill="none" stroke-linecap="round"/>
+<ellipse cx="423" cy="725" rx="235" ry="19" fill="#2de87e" opacity=".15" filter="url(#softGlow)"/>
+</svg>

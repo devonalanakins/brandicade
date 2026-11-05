@@ -1,17 +1,26 @@
 import {SIZE,TYPES,LEVEL_NAMES,levelSpec,makeRun,findMove,trySwap,adjacent} from './engine.mjs';
-import {AVATARS,FRAMES,TITLES,ACHIEVEMENTS,newSave,loadSave,persist,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
+import {FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
 import {prismArcadeSummary} from './prism-garden/arcade-summary.mjs';
 import {ARCADE_PASSPORT,deriveArcadePassport} from './arcade-passport.mjs';
 
 const $=(s)=>document.querySelector(s);
 const $$=(s)=>[...document.querySelectorAll(s)];
 const escapeHTML=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let save=loadSave(),selected=null,moving=false,lastTrigger=null,importPending=null,noticeTimeout=null,ignoreClickUntil=0;
+const bootSave=inspectLocalSave();
+let save=bootSave.save,saveBlocked=bootSave.status==='unreadable',selected=null,moving=false,lastTrigger=null,importPending=null,noticeTimeout=null,ignoreClickUntil=0;
 let storageWarningShown=false,prevPage='home',cabinetFilter='all';
+// Visual feedback is disposable. Once interrupted, an older turn must never
+// resume its cascade or celebrate after a fast overlay/visibility transition.
+let glimmerPresentationEpoch=0;
+const interruptGlimmerPresentation=()=>{glimmerPresentationEpoch++;};
 const TYPE_LABELS={fern:'fern',aqua:'waterdrop',ember:'ember',sun:'sun',orchid:'orchid',luna:'moonstone'};
 const activeMotion=()=>save.settings.motion==='on'||save.settings.motion==='system'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function commit(){if(!persist(save)&&!storageWarningShown){storageWarningShown=true;toast('This browser is not saving progress. Export your game regularly.');}}
-function saveVisited(){const award=recordVisit(save);commit();return award;}
+function commit(){
+ if(saveBlocked){if(!storageWarningShown){storageWarningShown=true;toast('Unreadable save preserved. Import a backup to resume Glimmer Pop.');}return false;}
+ const ok=persist(save);if(!ok&&!storageWarningShown){storageWarningShown=true;toast('This browser is not saving progress. Check your backup.');}
+ return ok;
+}
+function saveVisited(){if(saveBlocked)return {newAwards:[],newLevel:null,bonusXP:0};const award=recordVisit(save);commit();return award;}
 
 // High-resolution vector gemstones. Shapes, not font glyphs or generic emoji.
 const GEM_PATHS={
@@ -33,13 +42,6 @@ const ICON_PATHS={
  moon:`<path d="M66 14C24 12 6 49 24 73c18 22 45 12 56-9C43 74 24 43 66 14Z" fill="#a9c8ee" stroke="#e2f5ff" stroke-width="3"/><path d="m70 23 3 7 7 3-7 3-3 8-3-8-8-3 8-3Z" fill="#edc98a"/>`
 };
 function medalSVG(icon){return `<svg viewBox="0 0 100 100" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#0f3030" stroke="#dcb17a" stroke-width="4"/><circle cx="50" cy="50" r="38" fill="none" stroke="#8ec9b0" stroke-dasharray="2 5" stroke-width="1.4"/>${ICON_PATHS[icon]||ICON_PATHS.spark}</svg>`;}
-const AVATAR_SHAPES={
- moth:`<svg viewBox="0 0 128 128" aria-hidden="true"><defs><linearGradient id="wing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c999"/><stop offset="1" stop-color="#548d84"/></linearGradient></defs><path d="M64 48Q29-4 10 32Q-7 69 45 78Q11 87 40 108Q54 120 64 87Q74 120 88 108Q117 87 83 78Q135 69 118 32Q99-4 64 48Z" fill="url(#wing)" stroke="#f4dcaa" stroke-width="3"/><path d="M64 47Q35 20 28 42Q21 68 56 67M64 47Q93 20 100 42Q107 68 72 67" fill="none" stroke="#fff3c3" stroke-width="3" opacity=".9"/><ellipse cx="64" cy="70" rx="9" ry="29" fill="#135f61" stroke="#9fead0" stroke-width="3"/><path d="M61 46Q46 29 40 31M67 46q15-17 21-15" stroke="#ffe5b5" stroke-width="3" fill="none"/><circle cx="64" cy="63" r="4" fill="#fff0c8"/></svg>`,
- fox:`<svg viewBox="0 0 128 128" aria-hidden="true"><path d="M20 14 49 37l16-3 16 3 27-23 4 66Q102 114 65 116 28 113 16 80Z" fill="#b65d38" stroke="#f1bf89" stroke-width="4"/><path d="m30 29 16 16-23 18m75-34-16 16 23 18" fill="#f8c6a0"/><path d="M28 68Q47 56 64 75Q82 56 100 68L94 98Q63 123 34 98Z" fill="#f6dcc1"/><path d="m40 69 14 5-12 5m46-10-14 5 12 5" fill="#17362f"/><path d="M64 88 56 85h16Z" fill="#6f342d"/><path d="M57 97q7 7 14 0" fill="none" stroke="#6c382e" stroke-width="2.5"/></svg>`,
- flower:`<svg viewBox="0 0 128 128" aria-hidden="true"><g fill="#b573aa" stroke="#ffdbd8" stroke-width="3">${[0,60,120,180,240,300].map(a=>`<ellipse cx="64" cy="32" rx="20" ry="30" transform="rotate(${a} 64 64)"/>`).join('')}</g><circle cx="64" cy="64" r="27" fill="#eecb91" stroke="#885b42" stroke-width="3"/><circle cx="64" cy="64" r="17" fill="#d48959"/><g fill="#ffedbe">${[0,72,144,216,288].map(a=>`<circle cx="64" cy="51" r="3.4" transform="rotate(${a} 64 64)"/>`).join('')}</g></svg>`
-};
-function avatarSVG(type){return AVATAR_SHAPES[type]||AVATAR_SHAPES.moth;}
-
 function applySettings(){const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  document.body.classList.toggle('calm',save.settings.motion==='off');document.body.classList.toggle('force-motion',save.settings.motion==='on'&&reduced);
  document.body.classList.toggle('high-contrast',save.settings.contrast);document.body.classList.toggle('color-assist',save.settings.colorAssist);
@@ -48,10 +50,34 @@ function toast(message){const el=$('#toast');el.textContent=message;el.classList
 let audioContext=null;
 function sound(kind='tap'){if(!save.settings.sound)return;try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;audioContext??=new A();if(audioContext.state==='suspended')void audioContext.resume();const t=audioContext.currentTime,notes=kind==='win'?[392,523.25,659.25,783.99,1046.5]:kind==='match'?[523.25,783.99]:kind==='award'?[440,554.37,659.25,880]:kind==='wrong'?[220,185]:[420];
  notes.forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type=kind==='wrong'?'triangle':'sine';const st=t+i*.075;o.frequency.value=hz;g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(kind==='tap'?.017:.035,st+.013);g.gain.exponentialRampToValueAtTime(.0001,st+.19);o.connect(g).connect(audioContext.destination);o.start(st);o.stop(st+.21);});}catch{}}
-function haptic(){if(!save.settings.sound&&!save.settings.motion)return;try{navigator.vibrate?.(9);}catch{}}
+function haptic(){if(!save.settings.sound&&!activeMotion())return;try{navigator.vibrate?.(9);}catch{}}
 function confetti(amount=32){if(!activeMotion())return;const el=$('#celebrations'),colors=['#e4b77e','#5ce9c5','#64a2a1','#f3dcc1','#e29abb'];el.replaceChildren();for(let i=0;i<amount;i++){const bit=document.createElement('span');bit.className='celebration-bit';bit.style.setProperty('--x',`${Math.random()*100}%`);bit.style.setProperty('--size',`${4+Math.random()*7}px`);bit.style.setProperty('--color',colors[i%colors.length]);bit.style.setProperty('--time',`${1.4+Math.random()*1.4}s`);el.append(bit);}setTimeout(()=>el.replaceChildren(),3100);}
+
+let momentTimeout=null;
+/** Transient celebration based solely on a committed match event; no save writes. */
+function clearGlimmerMoment(){
+ clearTimeout(momentTimeout);momentTimeout=null;
+ const moment=$('#glimmer-moment'),board=$('#pop-board');
+ if(moment){moment.hidden=true;moment.removeAttribute('data-tier');}
+ if(board)board.removeAttribute('data-tier');
+}
+function showGlimmerMoment(event){
+ if(!event||!Number.isSafeInteger(event.matched)||!Number.isSafeInteger(event.gained)||
+    !Number.isInteger(event.chain)||event.chain<1||event.chain>25)return;
+ const moment=$('#glimmer-moment'),board=$('#pop-board');
+ if(!moment||!board)return;
+ clearGlimmerMoment();
+ const tier=event.won?'victory':event.chain>=3?'surge':event.chain===2?'cascade':'match';
+ const title=tier==='victory'?'GARDEN COMPLETE':tier==='surge'?'CHAIN ×'+event.chain:
+  tier==='cascade'?'CASCADE ×2':'MATCH ×'+event.matched;
+ const detail=event.matched+' charms · +'+event.gained.toLocaleString()+' points';
+ $('#glimmer-moment-title').textContent=title;
+ $('#glimmer-moment-detail').textContent=detail;
+ moment.dataset.tier=tier;board.dataset.tier=tier;
+ moment.hidden=false;momentTimeout=setTimeout(clearGlimmerMoment,1150);
+}
 function ensureRun(){if(!save.currentRun)save.currentRun=makeRun(save.progression.unlockedLevel);commit();return save.currentRun;}
-function navigate(id,replace=false){const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
+function navigate(id,replace=false){interruptGlimmerPresentation();clearGlimmerMoment();const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(saveBlocked&&id==='game'){id='home';toast('Glimmer Pop progress is locked until a backup is restored.');}if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
  $$('.section').forEach(el=>{el.classList.toggle('active',el.id===id);el.setAttribute('aria-hidden',el.id===id?'false':'true')});$$('.nav-button').forEach(el=>{const on=el.dataset.go===id;el.classList.toggle('active',on);on?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current');});
  if(location.hash!==`#${id}`){if(replace)history.replaceState(null,'',`#${id}`);else history.pushState(null,'',`#${id}`)}
  if(id==='game')renderGame();if(id==='profile')renderProfile();if(id==='treasures')renderTreasures();if(id==='home')renderHome();
@@ -73,7 +99,7 @@ function renderHome(){const p=save.progression,prism=prismArcadeSummary(),passpo
  $('#atrium-prism-caption').textContent=prism.available?
   `${prism.completed} of 18 jewel mosaics restored across three living worlds. ${passport.earned} Arcade Passport ${passport.earned===1?'trophy':'trophies'} earned.`:
   'Prism Garden progress needs recovery. Your existing games are still available.';
- $('.prism-world-orb').forEach(orb=>{
+ $$('.prism-world-orb').forEach(orb=>{
   const number=prism.worldProgress?.[orb.dataset.prismWorld]??0;
   orb.classList.toggle('awakening',prism.available&&number>0);
   orb.classList.toggle('restored',prism.available&&number===6);
@@ -86,6 +112,7 @@ function renderGame(){const run=ensureRun(),spec=levelSpec(run.level),board=$('#
  $('#game-level').textContent=String(run.level).padStart(2,'0');$('#game-level-name').textContent=spec.title;$('#game-score').textContent=run.score.toLocaleString();$('#game-moves').textContent=run.movesLeft;
  $('#game-goal-text').textContent=`${Math.min(run.collected,spec.target)} / ${spec.target} ${TYPE_LABELS[spec.targetType]}${spec.target!==1?'s':''}`;$('#goal-symbol').innerHTML=gemSVG(spec.targetType);
  $('#goal-fill').style.width=Math.min(100,run.collected/spec.target*100)+'%';
+ board.removeAttribute('aria-busy');delete board.dataset.animating;
  board.innerHTML=run.board.map((type,i)=>`<button class="charm ${type}" type="button" data-cell="${i}" data-letter="${type[0].toUpperCase()}" aria-label="Row ${Math.floor(i/SIZE)+1}, column ${i%SIZE+1}, ${TYPE_LABELS[type]}" aria-pressed="false" ${run.ended?'disabled':''}>${gemSVG(type)}</button>`).join('');
  const end=$('#game-end');end.hidden=!run.ended;if(run.ended){$('#end-eyebrow').textContent=run.won?'LEVEL COMPLETE':'A MOMENT TO REGROUP';$('#end-heading').textContent=run.won?'Beautifully done!':'The grove is still yours.';
  $('#end-stars').innerHTML=Array.from({length:3},(_,i)=>`<span class="${i<run.stars?'':'unearned'}" aria-hidden="true">★</span>`).join('');$('#end-stars').setAttribute('aria-label',`${run.stars} of 3 stars earned`);
@@ -95,12 +122,11 @@ function renderGame(){const run=ensureRun(),spec=levelSpec(run.level),board=$('#
  }else{$('#game-live').textContent='Tap two neighboring charms, or swipe one into its neighbor.';}
 }
 function renderProfile(){const p=save.progression,profile=save.profile,prism=prismArcadeSummary(),passport=deriveArcadePassport(save,prism,ACHIEVEMENTS);
- $('#profile-avatar').innerHTML=avatarSVG(profile.avatar);$('.profile-hero').dataset.frame=profile.frame;
+ $('.profile-hero').dataset.frame=profile.frame; // Kahlua is an image asset, not a mutable player avatar.
  $('#profile-equipped-title').textContent=levelTitle(save);$('#profile-level').textContent='LEVEL '+p.level;$('#profile-xp').textContent=`${p.xp} / ${xpThreshold(p.level)} XP`;$('#xp-fill').style.width=Math.max(0,Math.min(100,p.xp/xpThreshold(p.level)*100))+'%';$('#profile-petals').textContent=p.petals.toLocaleString();
  $('#stat-wins').textContent=save.stats.wins.toLocaleString();$('#stat-stars').textContent=p.totalStars;$('#stat-badges').textContent=passport.available?earnedCount(save)+prism.earned+passport.earned:String(earnedCount(save))+'+';
  $('#profile-prism-summary').textContent=prism.available?prism.completed+' / '+prism.totalLevels+' mosaics restored · '+prism.earned+' / '+prism.totalAchievements+' Prism Garden trophies':'Prism Garden save needs recovery. Open Prism Garden Settings to protect your progress.';
  $('#profile-passport-summary').textContent=passport.available?passport.earned+' / '+passport.total+' Arcade Passport trophies earned across both gardens.':'Arcade Passport progress is unavailable until Prism Garden recovers its save.';$('#stat-levels').textContent=Object.keys(p.levels).length;
- $('#avatar-options').innerHTML=AVATARS.map(a=>`<button class="avatar-option ${profile.avatar===a.id?'selected':''}" data-avatar="${a.id}" type="button" aria-pressed="${profile.avatar===a.id}" title="${escapeHTML(a.description)}">${avatarSVG(a.id)}<strong>${escapeHTML(a.label)}</strong></button>`).join('');
  $('#frame-options').innerHTML=FRAMES.map(a=>{const locked=p.level<a.level;return `<button class="frame-option ${profile.frame===a.id?'selected':''}" data-frame="${a.id}" type="button" ${locked?'disabled':''} aria-pressed="${profile.frame===a.id}"><span class="frame-icon ${a.id}"></span><span>${escapeHTML(a.label)}</span><small>${locked?'LV '+a.level+' TO UNLOCK':profile.frame===a.id?'EQUIPPED':'UNLOCKED'}</small></button>`}).join('');
  $('#title-options').innerHTML=TITLES.map(a=>{const locked=p.level<a.level;return `<button class="title-option ${profile.title===a.id?'selected':''}" data-title="${a.id}" type="button" ${locked?'disabled':''} aria-pressed="${profile.title===a.id}"><span>${escapeHTML(a.label)}</span><small>${locked?'LV '+a.level:profile.title===a.id?'EQUIPPED':'SELECT'}</small></button>`;}).join('');
  const earned=ACHIEVEMENTS.filter(x=>save.achievements[x.id]);$('#profile-awards').innerHTML=earned.length?earned.slice(-3).map(x=>`<span class="mini-award">${escapeHTML(x.name)}</span>`).join(''):'<span style="color:#b9d7c2;font-size:11px">Your first treasure is waiting in the games.</span>';
@@ -145,32 +171,122 @@ function renderTreasures(){
 }
 function renderAll(){applySettings();renderHome();renderProfile();renderTreasures();if($('.section.active')?.id==='game')renderGame();}
 
-function openModal(kind,origin){lastTrigger=origin||document.activeElement;const templates={
+// Keep non-modal UI out of keyboard, pointer and accessibility focus while a
+// dialog is present. Reentrant settings renders must not overwrite the original
+// inert states (other overlays or host integrations may have set them already).
+let modalInertSnapshot=null;
+function isolateModalBackground(){
+ if(modalInertSnapshot)return;
+ modalInertSnapshot=[$('#content'),$('.topbar'),$('.bottom-nav')]
+  .filter(Boolean).map(element=>[element,Boolean(element.inert)]);
+ for(const [element] of modalInertSnapshot)element.inert=true;
+}
+function restoreModalBackground(){
+ for(const [element,previous] of modalInertSnapshot||[])element.inert=previous;
+ modalInertSnapshot=null;
+}
+function openModal(kind,origin){interruptGlimmerPresentation();lastTrigger=origin||document.activeElement;const templates={
  brandle:`<div class="eyebrow">The original grove</div><h2 id="modal-title">BRANDLE is ready.</h2><p>Daily Grove and unlimited Wild Run are already playable at their original address. This opens that game in a new tab, keeping its existing browser saves undisturbed. Cross-game achievements and account syncing will arrive only after a verified migration.</p><div class="code-note">BRANDLE progress stays on its original web address for now. BRANDICADE does not claim its achievements yet.</div><div class="dialog-actions"><a class="btn primary" href="https://brandle-glimmer-grove.devonakins.workers.dev/" target="_blank" rel="noopener noreferrer">Open BRANDLE ↗</a><button class="btn secondary" type="button" data-action="close-modal">Stay here</button></div>`,
  help:`<div class="eyebrow">How to play</div><h2 id="modal-title">Glimmer Pop</h2><p>Swap two neighboring charms with a tap or swipe. Match three of the same kind in a row or column to clear them. Bigger matches create special bursts and chains. Collect the glowing target before your moves run out.</p><p>Complete levels to earn stars, XP, glow petals and real achievements. Replay as often as you want — there are no lives to buy or timer penalties.</p><div class="dialog-actions"><button class="btn primary" data-action="close-modal" type="button">Let's play →</button></div>`,
  settings:`<div class="eyebrow">Make yourself comfortable</div><h2 id="modal-title">Arcade settings.</h2><div class="setting-item"><div><b>Sound effects</b><small>Original little chimes when playing and earning rewards.</small></div><button class="switch ${save.settings.sound?'on':''}" role="switch" type="button" aria-label="Sound effects" aria-checked="${save.settings.sound}" data-toggle="sound"></button></div>
  <div class="setting-item"><div><b>Animation intensity</b><small>System respects reduced-motion preferences. Calm minimizes effects.</small></div><select data-select="motion" aria-label="Animation intensity"><option value="system" ${save.settings.motion==='system'?'selected':''}>System</option><option value="on" ${save.settings.motion==='on'?'selected':''}>Cinematic</option><option value="off" ${save.settings.motion==='off'?'selected':''}>Calm</option></select></div>
  <div class="setting-item"><div><b>High contrast</b><small>Increase text and card-edge contrast.</small></div><button class="switch ${save.settings.contrast?'on':''}" role="switch" type="button" aria-label="High contrast" aria-checked="${save.settings.contrast}" data-toggle="contrast"></button></div>
  <div class="setting-item"><div><b>Charm labels</b><small>Add a small letter to each piece as a color-independent cue.</small></div><button class="switch ${save.settings.colorAssist?'on':''}" role="switch" type="button" aria-label="Charm labels" aria-checked="${save.settings.colorAssist}" data-toggle="colorAssist"></button></div>
- <h3>Progress &amp; privacy</h3><p>This version keeps Brandi's profile on the current browser only. There is no real signed-in cloud account yet. Export to move devices or keep a permanent backup.</p><div class="dialog-actions"><button class="btn secondary" data-action="export" type="button">Export backup ↓</button><button class="btn secondary" data-action="import" type="button">Import backup ↑</button></div><div class="settings-note">No advertising, analytics, subscriptions, paid lives, public rankings, or external account data. This project's code can be public while personal saved data stays private.</div>`,
+ <h3>Progress &amp; privacy</h3><p>Glimmer Pop saves on this device. A separate, optional cloud-backup panel is available in your Profile when signed in. Export a backup before changing phones. Prism Garden has its own independent save.</p><div class="dialog-actions"><button class="btn secondary" data-action="export" type="button">Export backup ↓</button><button class="btn secondary" data-action="import" type="button">Import backup ↑</button></div><div class="settings-note">No advertising, analytics, subscriptions, paid lives, public rankings, or external account data. This project's code can be public while personal saved data stays private.</div>`,
  levels:`<div class="eyebrow">Your little adventure map</div><h2 id="modal-title">The Garden Trail</h2><p>Replay unlocked levels whenever you want. Finished levels keep their best stars. The next level opens when you win.</p><div class="level-map">${Array.from({length:Math.min(save.progression.unlockedLevel+4,18)},(_,i)=>i+1).map(l=>{const unlocked=l<=save.progression.unlockedLevel,stars=save.progression.levels[String(l)]?.stars||0;return `<button class="level-node" data-level="${l}" type="button" ${unlocked?'':'disabled'}><b>${String(l).padStart(2,'0')}</b><span>${unlocked?levelSpec(l).title:'Locked'}</span><small>${unlocked?(stars?'★'.repeat(stars):'AVAILABLE'):'FINISH PRIOR LEVEL'}</small></button>`}).join('')}</div>`,
  restart:`<div class="eyebrow">Another attempt</div><h2 id="modal-title">Start fresh?</h2><p>Restarting resets the current Glimmer Pop level's board, moves and score. Previously earned stars, XP and achievements stay safe.</p><div class="dialog-actions"><button class="btn primary" data-action="confirm-restart" type="button">Restart this level</button><button class="btn secondary" data-action="close-modal" type="button">Keep playing</button></div>`,
- import:`<div class="eyebrow">Restore a saved garden</div><h2 id="modal-title">Replace local progress?</h2><p>A valid BRANDICADE backup was found. Importing will replace the progress currently saved on this device, including its existing avatar, achievements and active puzzle.</p><p id="import-preview"></p><div class="dialog-actions"><button class="btn primary" data-action="confirm-import" type="button">Yes, restore backup</button><button class="btn secondary" data-action="close-modal" type="button">Cancel</button></div>`,
+ import:`<div class="eyebrow">Restore a saved garden</div><h2 id="modal-title">Replace local progress?</h2><p>A valid BRANDICADE backup was found. Importing will replace the Glimmer Pop progress currently stored on this device. If the existing save is unreadable, download its original data first. Prism Garden saves are not changed.</p><p id="import-preview"></p><div class="dialog-actions"><button class="btn primary" data-action="confirm-import" type="button">Yes, restore backup</button><button class="btn secondary" data-action="close-modal" type="button">Cancel</button></div>`,
  };$('#modal-body').innerHTML=templates[kind]||templates.help;if(kind==='import'&&importPending){$('#import-preview').textContent=`Backup: Level ${importPending.progression.level}, ${Object.keys(importPending.achievements).length} achievements, ${importPending.progression.totalStars} stars.`;}
- $('#modal').classList.add('open');$('#modal-close').focus();}
-function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();lastTrigger?.focus?.();}}
-function startRun(level){save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
+ $('#modal').classList.add('open');isolateModalBackground();$('#modal-close').focus();}
+function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();restoreModalBackground();lastTrigger?.focus?.();}}
+function startRun(level){interruptGlimmerPresentation();clearGlimmerMoment();if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
 function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){selected=i;setSelection();sound();return;}
  if(selected===i){selected=null;setSelection();return;}
  if(!adjacent(selected,i)){selected=i;setSelection();sound();return;}
  const from=selected;selected=null;performSwap(from,i);}
 function setSelection(){$$('#pop-board .charm').forEach(e=>{const on=Number(e.dataset.cell)===selected;e.classList.toggle('selected',on);e.setAttribute('aria-pressed',String(on))});}
 function animateMove(a,b){const board=$('#pop-board');const one=board.querySelector(`[data-cell="${a}"]`),two=board.querySelector(`[data-cell="${b}"]`);if(!one||!two||!activeMotion())return Promise.resolve();const ar=one.getBoundingClientRect(),br=two.getBoundingClientRect(),dx=br.left-ar.left,dy=br.top-ar.top;
- const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);return Promise.allSettled([p1.finished,p2.finished]);}
+ const options={duration:170,easing:'cubic-bezier(.2,.85,.2,1)',fill:'both'};const p1=one.animate([{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}],options);const p2=two.animate([{transform:'translate(0,0)'},{transform:`translate(${-dx}px,${-dy}px)`}],options);
+ // Some mobile/WebKit and headless environments do not settle finished promises
+ // predictably after tab/background transitions. Never let an accepted turn hang.
+ let timeout;
+ return Promise.race([
+  Promise.allSettled([p1.finished,p2.finished]),
+  new Promise(resolve=>{timeout=setTimeout(resolve,250);})
+ ]).finally(()=>{clearTimeout(timeout);p1.cancel();p2.cancel();});}
+/** Visual-only cascade rendering, independent of earned rewards and saved runs. */
+function paintGlimmerPreview(types) {
+ const cells=$$('#pop-board [data-cell]');
+ if(cells.length!==SIZE*SIZE||!Array.isArray(types)||types.length!==cells.length||
+    !types.every(type=>TYPES.includes(type)))return false;
+ for(let i=0;i<cells.length;i++){
+  const type=types[i],cell=cells[i];
+  cell.className='charm '+type;
+  cell.dataset.letter=type[0].toUpperCase();
+  cell.setAttribute('aria-label','Row '+(Math.floor(i/SIZE)+1)+', column '+(i%SIZE+1)+', '+TYPE_LABELS[type]);
+  cell.setAttribute('aria-pressed','false');
+  cell.innerHTML=gemSVG(type);
+ }
+ return true;
+}
+const glimmerSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+/** Bounded animation of actual matched and refilled cells. If interrupted, the
+ * final authoritative board is always redrawn from the already committed run. */
+async function animateGlimmerCascades(previous,from,to,event,committedRun,presentationEpoch) {
+ const board=$('#pop-board'),waves=event?.visualWaves;
+ if(!board||!activeMotion()||!Array.isArray(waves)||!waves.length)return;
+ // Pause overlays take precedence over optional visual playback. The accepted
+ // move was already saved; skip remaining waves and show its true final board.
+ const presentationUnobstructed=()=>$('#controller-pause')?.hidden!==false&&!$('#modal')?.classList.contains('open');
+ const stillPlaying=()=>glimmerPresentationEpoch===presentationEpoch&&save.currentRun===committedRun&&$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion()&&presentationUnobstructed();
+ if(!stillPlaying())return;
+ let preview=[...previous.board];[preview[from],preview[to]]=[preview[to],preview[from]];
+ if(!paintGlimmerPreview(preview))return;
+ board.setAttribute('aria-busy','true');board.dataset.animating='true';
+ try{
+  for(let step=0;step<Math.min(waves.length,6);step++){
+   if(!stillPlaying())break;
+   const wave=waves[step];
+   if(!Array.isArray(wave?.cleared)||!Array.isArray(wave.after)||wave.after.length!==SIZE*SIZE)break;
+   for(const index of wave.cleared){
+    if(Number.isInteger(index)&&index>=0&&index<SIZE*SIZE)board.querySelector('[data-cell="'+index+'"]')?.classList.add('clearing');
+   }
+   await glimmerSleep(115);
+   if(!stillPlaying())break;
+   const changed=wave.after.map((v,i)=>v!==preview[i]?i:-1).filter(i=>i>=0);
+   if(!paintGlimmerPreview(wave.after))break;
+   for(const index of changed)board.querySelector('[data-cell="'+index+'"]')?.classList.add('refilling');
+   preview=wave.after;
+   await glimmerSleep(125);
+  }
+ }finally{
+  board.removeAttribute('aria-busy');delete board.dataset.animating;
+  board.querySelectorAll('.clearing,.refilling').forEach(cell=>cell.classList.remove('clearing','refilling'));
+ }
+}
+
 async function performSwap(a,b){if(moving||ensureRun().ended)return;const current=save.currentRun;const result=trySwap(current,a,b);
  if(!result.ok){sound('wrong');haptic();setSelection();toast(result.reason==='no-match'?'That swap needs to make a match.':'Choose two neighboring charms.');return;}
- moving=true;await animateMove(a,b);save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
- commit();renderGame();renderHome();renderProfile();renderTreasures();moving=false;
+ const lastToast=$('#toast');
+ if(lastToast&&['That swap needs to make a match.','Choose two neighboring charms.'].includes(lastToast.textContent)){
+  clearTimeout(noticeTimeout);lastToast.classList.remove('visible');
+ }
+ const restoreFocusedCell=Boolean(document.activeElement?.closest?.('#pop-board [data-cell]'));
+ moving=true;const presentationEpoch=glimmerPresentationEpoch;
+ save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
+ // Save the accepted move before any animation: a reload cannot lose earned progress.
+ commit();
+ try {
+  await animateMove(a,b);
+  await animateGlimmerCascades(current,a,b,result.event,result.run,presentationEpoch);
+ } finally {
+  if(save.currentRun===result.run){renderGame();renderHome();renderProfile();renderTreasures();}
+  moving=false;
+ }
+ if(glimmerPresentationEpoch!==presentationEpoch||save.currentRun!==result.run||!$('#game').classList.contains('active')||
+    $('#modal').classList.contains('open')||$('#controller-pause')?.hidden===false||document.hidden)return;
+ if(restoreFocusedCell&&!result.run.ended)$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
+ showGlimmerMoment(result.event);
  const ev=result.event;const msg=ev.chain>=3?`Incredible chain ×${ev.chain}! +${ev.gained.toLocaleString()}`:ev.chain>=2?`Gorgeous cascade ×${ev.chain}! +${ev.gained.toLocaleString()}`:`+${ev.gained.toLocaleString()} · ${ev.goal} collected`;
  $('#game-live').textContent=msg;sound(result.run.won?'win':ev.chain>=2?'award':'match');haptic();if(activeMotion()){$('#pop-board').classList.add('pulsing');setTimeout(()=>$('#pop-board').classList.remove('pulsing'),310);}
  if(awarded.newAwards.length||ended?.newAwards.length){const all=[...awarded.newAwards,...(ended?.newAwards||[])];toast(`Treasure unlocked: ${all.map(x=>x.name).join(', ')}`);confetti(44);}else if(ended?.newLevel){toast(`Arcade level up! Welcome to level ${ended.newLevel}.`);confetti(38);}else if(result.run.won){toast(`Level complete! ${result.run.stars} star${result.run.stars===1?'':'s'} earned.`);confetti(45);}else if(result.run.ended){toast('You can retry any time. No lives or penalties.');}
@@ -179,7 +295,32 @@ function handleHint(){if(ensureRun().ended)return;const move=findMove(save.curre
  for(const id of [move.from,move.to]){$(`#pop-board [data-cell="${id}"]`)?.classList.add('hinted');}
  setTimeout(()=>$$('#pop-board .hinted').forEach(x=>x.classList.remove('hinted')),2100);$('#game-live').textContent='Try swapping those two glowing charms.';sound();}
 function settingsToggle(key){if(!Object.hasOwn(save.settings,key)||typeof save.settings[key]!=='boolean')return;save.settings[key]=!save.settings[key];commit();applySettings();openModal('settings',lastTrigger);}
-function doExport(){const str=exportSave(save);const file=new Blob([str],{type:'application/json'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=`BRANDICADE-Brandi-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);toast('A portable progress backup was prepared.');}
+function doExport(){if(saveBlocked){doRecoveryExport();return;}const str=exportSave(save);const file=new Blob([str],{type:'application/json'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=`BRANDICADE-Brandi-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);toast('A portable progress backup was prepared.');}
+
+function doRecoveryExport(){
+ let original;
+ try{original=globalThis.localStorage.getItem('brandicade:save:v1');}catch{}
+ if(typeof original!=='string'){
+  toast('Original data cannot be read. Do not clear Safari website data.');
+  return;
+ }
+ const blob=new Blob([original],{type:'text/plain;charset=utf-8'});
+ const href=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=href;link.download='brandicade-original-unreadable-save.txt';
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(href),3000);
+ toast('The original unreadable save was exported without altering it.');
+}
+function showRecoveryNotice(){
+ if(!saveBlocked||document.querySelector('#brandicade-save-recovery'))return;
+ const section=document.createElement('aside');
+ section.id='brandicade-save-recovery';
+ section.setAttribute('role','alert');
+ section.setAttribute('aria-label','Glimmer Pop progress needs recovery');
+ section.innerHTML='<div class="recovery-copy"><strong>Saved progress needs recovery</strong><p>An existing Glimmer Pop save cannot be read. It has not been replaced. Download the original data, then import a known-good backup. Prism Garden stores progress separately.</p></div>'+
+ '<div class="recovery-actions"><button type="button" data-action="recovery-export">Download original save</button><button type="button" data-action="recovery-import">Import valid backup</button></div>';
+ document.body.prepend(section);
+}
 
 // Central event delegation keeps controls keyboard and touch accessible.
 document.addEventListener('click',event=>{const target=event.target;
@@ -192,17 +333,17 @@ document.addEventListener('click',event=>{const target=event.target;
   case 'open-settings':case 'settings':openModal('settings',action);break;
   case 'close-modal':closeModal();break;
   case 'export':doExport();break;
-  case 'import':$('#import-file').click();break;
+   case 'recovery-export':doRecoveryExport();break;
+  case 'recovery-import':case 'import':$('#import-file').click();break;
   case 'hint':handleHint();break;
   case 'restart':openModal('restart',action);break;
   case 'confirm-restart':{const level=save.currentRun?.level||1;closeModal();startRun(level);break;}
   case 'next':{if(!save.currentRun?.won)return;startRun(save.currentRun.level+1);break;}
   case 'replay':{startRun(save.currentRun?.level||1);break;}
   case 'levels':openModal('levels',action);break;
-  case 'confirm-import':{if(!importPending)return;save=importPending;importPending=null;commit();closeModal();renderAll();navigate('home');toast('Your saved garden has been restored.');break;}
+  case 'confirm-import':{if(!importPending)return;const result=restoreConfirmedBackup(importPending);if(!result.ok){toast('Restore failed. Original saved data is unchanged.');return;}save=result.save;saveBlocked=false;storageWarningShown=false;importPending=null;$('#brandicade-save-recovery')?.remove();closeModal();renderAll();navigate('home');toast('Your saved garden has been restored.');break;}
  }return;}
  const nav=target.closest?.('[data-go]');if(nav){closeModal();navigate(nav.dataset.go);sound();return;}
- const avatar=target.closest?.('[data-avatar]');if(avatar){const id=avatar.dataset.avatar;if(AVATARS.some(x=>x.id===id)){save.profile.avatar=id;commit();renderProfile();sound();}return;}
  const frame=target.closest?.('[data-frame]');if(frame){const id=frame.dataset.frame,def=FRAMES.find(x=>x.id===id);if(def&&save.progression.level>=def.level){save.profile.frame=id;commit();renderProfile();sound();}return;}
  const title=target.closest?.('[data-title]');if(title){const id=title.dataset.title,def=TITLES.find(x=>x.id===id);if(def&&save.progression.level>=def.level){save.profile.title=id;commit();renderProfile();sound();}return;}
  const toggle=target.closest?.('[data-toggle]');if(toggle){settingsToggle(toggle.dataset.toggle);sound();return;}
@@ -223,6 +364,19 @@ $('#pop-board').addEventListener('pointercancel',()=>{gesture=null});
 window.addEventListener('popstate',()=>navigate(location.hash.slice(1)||'home',true));
 window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)||'home',true));
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',applySettings);
+// Safari backgrounding, rotation, and quick controller pause transitions must
+// never revive optional visual waves. The accepted move was saved first.
+document.addEventListener('visibilitychange',()=>{if(document.hidden)interruptGlimmerPresentation();});
+window.addEventListener('pagehide',interruptGlimmerPresentation);
+window.addEventListener('resize',interruptGlimmerPresentation,{passive:true});
+const glimmerPauseOverlay=$('#controller-pause');
+if(glimmerPauseOverlay){
+ new MutationObserver(records=>{
+  // Prior [hidden] attribute means Pause opened, even if it closed before
+  // this MutationObserver callback: we invalidate that presentation.
+  if(records.some(record=>record.oldValue!==null))interruptGlimmerPresentation();
+ }).observe(glimmerPauseOverlay,{attributes:true,attributeFilter:['hidden'],attributeOldValue:true});
+}
 
 // Ambient 2D light motes; deliberately independent of gameplay and optional.
 function startAmbient(){const canvas=$('#fireflies'),ctx=canvas.getContext('2d');if(!ctx)return;let particles=[],width=0,height=0,dpr=1,time=0,last=0;
@@ -231,5 +385,5 @@ function startAmbient(){const canvas=$('#fireflies'),ctx=canvas.getContext('2d')
  function loop(stamp){requestAnimationFrame(loop);if(document.hidden||!activeMotion()){if(last){ctx.clearRect(0,0,width,height);last=0;}return;}if(stamp-last<33)return;last=stamp;time+=.018;ctx.clearRect(0,0,width,height);
  for(const p of particles){p.y-=p.s;p.x+=Math.sin(time+p.phase)*.16;if(p.y<-14){p.y=height+14;p.x=Math.random()*width;}const r=p.r*5,a=.14+.3*(.5+.5*Math.sin(time*1.6+p.phase));const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);grad.addColorStop(0,`rgba(${p.color},${a})`);grad.addColorStop(1,`rgba(${p.color},0)`);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();}}
  requestAnimationFrame(loop);}
-startAmbient();saveVisited();renderAll();navigate(location.hash.slice(1)||'home',true);
+startAmbient();saveVisited();renderAll();showRecoveryNotice();navigate(location.hash.slice(1)||'home',true);
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));

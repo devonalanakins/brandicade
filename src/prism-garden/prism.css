@@ -169,3 +169,111 @@ h1,h2,h3,p{margin-top:0}h1{font-size:clamp(37px,7.5vw,65px);font-weight:620;lett
  .pg-region-step,.pg-clear-selection{transition:none!important;animation:none!important}
 }
 #prism-app[data-motion="off"] .pg-region-step,#prism-app[data-motion="off"] .pg-clear-selection{transition:none!important;animation:none!important}
+
+
+/* Landscape-first Prism gameplay and Xbox focus feedback: UI-only additive layer. */
+[hidden]{display:none!important}
+.pg-controller-indicator{position:fixed;z-index:45;right:calc(10px + env(safe-area-inset-right));bottom:calc(9px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);border:1px solid #9cfc81a0;background:#09251de9;border-radius:999px;padding:8px 12px;color:#d7ffb6;font-size:10px;font-weight:800;box-shadow:0 0 20px #83f57944;pointer-events:none}
+body.pg-gamepad-active #prism-app button:focus,body.pg-gamepad-active #prism-app a:focus{outline:3px solid #adff90;outline-offset:3px;box-shadow:0 0 0 5px #5ce45c38,0 0 24px #9eff8f55;position:relative;z-index:3}
+body.pg-gamepad-active #prism-app .pg-stack.selected,body.pg-gamepad-active #prism-app .pg-shelf-slot.selected{border-color:#eaffb5;box-shadow:0 0 0 2px #143b2b,0 0 0 4px #a6fb87,0 0 26px #a5ff7670;filter:brightness(1.13)}
+body.pg-gamepad-active #prism-app .pg-socket.target:focus,body.pg-gamepad-active #prism-app .pg-shelf-slot.target:focus{background:#3d7e50;box-shadow:0 0 0 3px #0c281a,0 0 0 6px #c7ff94,0 0 27px #a3ff846e}
+.pg-controller-overlay{position:fixed;z-index:200;inset:0;background:#03140fe6;backdrop-filter:blur(16px);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.pg-controller-panel{width:min(420px,100%);padding:clamp(20px,4vw,32px);border:1px solid #9cfb80;border-radius:24px;background:radial-gradient(circle at top right,#24663b,#0d2922 65%);box-shadow:0 30px 100px #000a;text-align:center}
+.pg-controller-panel h2{font:500 clamp(27px,4vw,40px) Georgia,serif;margin:8px 0;color:#ffedc4}
+.pg-controller-panel p{font-size:13px;line-height:1.6;color:#d2e5d7}
+.pg-controller-panel button{display:block;width:100%;min-height:48px;margin-top:11px;border-radius:12px;border:1px solid #aaf08883;background:#194d35;font-weight:800}
+.pg-controller-panel button[data-controller-resume]{color:#0b2a18;background:linear-gradient(125deg,#b9ff8b,#60d76a)}
+.pg-controller-panel button:focus-visible{outline:3px solid #ffdfaa;outline-offset:3px}
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){
+ #prism-app .pg-shell{max-width:none;min-height:100dvh;padding-top:env(safe-area-inset-top);padding-inline:max(14px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-right));padding-bottom:max(7px,env(safe-area-inset-bottom))}
+ #prism-app .pg-header{height:47px;gap:7px}
+ #prism-app .pg-back{min-width:75px;font-size:10px}
+ #prism-app .pg-brand{font-size:10px;letter-spacing:.12em}
+ #prism-app .pg-shell>footer{display:none}
+ #prism-app .pg-game{width:100%;max-width:none;min-width:0;margin:0;display:grid;grid-template-columns:minmax(310px,1.35fr) minmax(245px,.85fr);grid-template-areas:"top progress" "scene supplies" "scene tools" "task message" "rail-head rail-head" "rail rail" "note note";column-gap:12px;row-gap:4px;align-items:start}
+ #prism-app .pg-game .pg-topline{grid-area:top;min-height:42px}
+ #prism-app .pg-game .pg-topline h2{font-size:18px;line-height:1.1;margin:3px 0}
+ #prism-app .pg-game .pg-topline small{font-size:9px}
+ #prism-app .pg-game .pg-progress{grid-area:progress;margin:0;align-self:center}
+ #prism-app .pg-game .pg-progress span{font-size:10px}
+ #prism-app .pg-game .pg-progress-track{margin:5px 0 0}
+ #prism-app .pg-game .pg-world-scene{grid-area:scene;min-width:0;margin:0;height:max(277px,var(--pg-board-height,277px));min-height:277px}
+ #prism-app .pg-game .pg-arch{height:88%;width:min(75%,270px)}
+ #prism-app .pg-game .pg-supplies{grid-area:supplies;min-width:0;margin:0;padding:8px 10px}
+ #prism-app .pg-game .pg-stacks,#prism-app .pg-game .pg-shelf{gap:7px;padding:5px 0}
+ #prism-app .pg-game .pg-stack,#prism-app .pg-game .pg-shelf-slot{width:52px;height:53px;min-height:52px;min-width:44px}
+ #prism-app .pg-game .pg-tools{grid-area:tools;padding:4px 0}
+ #prism-app .pg-game .pg-task{grid-area:task;padding:7px 4px;min-height:40px;gap:6px}
+ #prism-app .pg-game .pg-task-copy span{font-size:10px;line-height:1.2}
+ #prism-app .pg-game .pg-live{grid-area:message;align-self:start;font-size:10px;text-align:left;margin:5px 0}
+ #prism-app .pg-game .pg-region-heading{grid-area:rail-head;margin:5px 0 0}
+ #prism-app .pg-game .pg-region-rail{grid-area:rail;gap:6px;margin-bottom:0;padding-bottom:4px}
+ #prism-app .pg-game .pg-region-step{min-height:44px;padding:6px;flex-basis:110px}
+ #prism-app .pg-game .pg-game-mode-note{grid-area:note;font-size:9px;text-align:left}
+ #prism-app .pg-game .pg-socket{min-width:44px;min-height:44px}
+ #prism-app .pg-game .pg-supply-heading{font-size:9px}
+ #prism-app .pg-game .pg-controller-indicator{font-size:9px}
+}
+@media(orientation:landscape) and (min-width:670px) and (max-height:410px){
+ #prism-app .pg-game .pg-region-heading,#prism-app .pg-game .pg-region-rail{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;padding:0;margin:0;border:0}
+ #prism-app .pg-game .pg-topline{min-height:36px}
+ #prism-app .pg-game .pg-world-scene{border-radius:17px}
+ #prism-app .pg-game .pg-task{padding-block:2px}
+}
+@media(prefers-reduced-motion:reduce){.pg-controller-overlay *, .pg-controller-indicator{animation:none!important;transition:none!important}}
+
+
+/* Single-event earned feedback. Respects motion settings; never loops rewards. */
+.pg-feedback-bloom{position:absolute;inset:0;border-radius:inherit;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 42%,#C8FFD44B,transparent 58%)}
+.pg-game[data-feedback="place"] .pg-feedback-bloom{animation:pg-placement-glow .54s ease-out both}
+.pg-game[data-feedback="region"] .pg-feedback-bloom{background:radial-gradient(ellipse at 50% 41%,#C8FF8E63,transparent 63%);animation:pg-region-glow .72s ease-out both}
+.pg-game[data-feedback="undo"] .pg-feedback-bloom{background:radial-gradient(ellipse at 50% 41%,#B2D9EF2C,transparent 65%);animation:pg-placement-glow .35s ease-out both}
+.pg-game[data-feedback="invalid"] .pg-task{border-left:3px solid #E6C193;background:#6B482B30;padding-inline:12px;border-radius:10px;animation:pg-soft-warning .26s ease-out both}
+.pg-game[data-feedback="hint"] .pg-world-scene{border-color:#E6D5A0;box-shadow:0 0 0 1px #E2C68866,0 18px 52px #001f1d90}
+.pg-game[data-feedback="region"] .pg-region-step.recently-restored{border-color:#C9FFB6;background:linear-gradient(145deg,#376B43,#22513C);box-shadow:0 0 0 2px #9BF99265,0 0 18px #B8F49C3D;animation:pg-region-arrival .68s ease-out both}
+.pg-game[data-feedback="select"] .pg-stack.selected,.pg-game[data-feedback="select"] .pg-shelf-slot.selected{border-color:#CBFFC4;box-shadow:0 0 0 2px #A4FF8B7B,0 0 20px #9FFF8A64}
+.pg-game[data-feedback="invalid"] .pg-live{color:#FFDAA6;font-weight:650}
+.pg-game[data-feedback="region"] .pg-live{color:#D6FFC5;font-weight:700}
+@keyframes pg-placement-glow{0%{opacity:0;transform:scale(.94)}38%{opacity:.8}100%{opacity:0;transform:scale(1.05)}}
+@keyframes pg-region-glow{0%{opacity:0;transform:scale(.90)}36%{opacity:1}100%{opacity:0;transform:scale(1.08)}}
+@keyframes pg-soft-warning{0%{opacity:.7}100%{opacity:1}}
+@keyframes pg-region-arrival{0%{box-shadow:0 0 0 1px #C5FF9A3B}48%{box-shadow:0 0 0 3px #C9FFB588,0 0 25px #A5F78B88}100%{box-shadow:0 0 0 2px #9BF99265,0 0 18px #B8F49C3D}}
+@media(prefers-reduced-motion:reduce){.pg-feedback-bloom,.pg-game .pg-region-step.recently-restored,.pg-game[data-feedback="invalid"] .pg-task{animation:none!important}}
+#prism-app[data-motion="off"] .pg-feedback-bloom,#prism-app[data-motion="off"] .pg-region-step.recently-restored,#prism-app[data-motion="off"] .pg-game[data-feedback="invalid"] .pg-task{animation:none!important}
+
+/* Narrow-landscape guard: never shrink jewels below 44px to satisfy a fixed grid. */
+@media(orientation:landscape) and (min-width:670px) and (max-width:740px) and (max-height:540px){
+ #prism-app .pg-game{grid-template-columns:minmax(310px,1.15fr) minmax(245px,.85fr);column-gap:8px}
+ #prism-app .pg-shell{padding-inline:max(10px,env(safe-area-inset-left)) max(10px,env(safe-area-inset-right))}
+}
+
+
+/* Gameplay-only horizontal layout: keep every jewel and primary action above the
+   fold on short landscape phones. The main arcade navigation stays available via
+   Prism Garden's own 44px in-game back control; portrait is unchanged. */
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){
+ #prism-app .pg-shell:has(.pg-game) .pg-header{display:none}
+ #prism-app .pg-game .pg-world-scene{height:clamp(285px,calc(100dvh - 100px),355px);min-height:285px}
+ #prism-app .pg-game .pg-arch{height:94%}
+ #prism-app .pg-game .pg-mosaic{gap:4px;padding:7px}
+ #prism-app .pg-game .pg-socket{height:44px}
+ #prism-app .pg-game .pg-topline{margin-top:0;margin-bottom:5px}
+}
+
+
+/* Kahlua-only illustrated feedback: earns its moment from actual gameplay. */
+.pg-kahlua-welcome{display:flex;align-items:center;gap:14px;max-width:540px;margin:8px auto 18px;padding:11px 15px 11px 7px;text-align:left;border:1px solid #a1ff875c;border-radius:19px;background:linear-gradient(118deg,#265d3dc9,#12392f90 75%);box-shadow:inset 0 1px #dbffc01e,0 14px 40px #021b1490}
+.pg-kahlua-welcome img{width:76px;height:70px;object-fit:contain;flex:none;filter:drop-shadow(0 5px 14px #95ff6960)}
+.pg-kahlua-welcome small{display:block;color:#c5ff95;font-size:9px;font-weight:800;letter-spacing:.13em;margin-bottom:4px}
+.pg-kahlua-welcome p{font-size:12px;line-height:1.45;color:#e2f5dd;margin:0}
+.pg-game .pg-live.pg-kahlua-region{display:flex;align-items:center;justify-content:center;gap:9px;padding:3px 9px;border-radius:14px;color:#e4ffcf;border:1px solid #aaff8e65;background:linear-gradient(115deg,#164b37cc,#2f6849ba);box-shadow:0 0 24px #81fc8050;text-align:left;animation:pg-kahlua-arrival .48s ease-out both}
+.pg-kahlua-region img{width:43px;height:38px;object-fit:contain;flex:none;filter:drop-shadow(0 0 10px #b2ff8d5c)}
+.pg-kahlua-region span{font-weight:700;font-size:11px;line-height:1.3}
+.pg-win-orbit.pg-kahlua-celebration{position:relative;width:166px;height:166px;margin-bottom:21px;background:radial-gradient(circle at 50% 45%,#2c895b9c,#1352369c 65%,#073426);border:1px solid #cdff9eaa;box-shadow:0 0 0 15px #a7f77c11,0 0 65px #98f56755;animation:pg-kahlua-arrival .8s cubic-bezier(.18,.85,.32,1) both}
+.pg-kahlua-celebration::after{content:"";position:absolute;inset:-9px;pointer-events:none;border:1px dashed #ceff9d70;border-radius:50%}
+.pg-kahlua-celebration img{width:152px;height:138px;max-width:100%;object-fit:contain;filter:drop-shadow(0 10px 17px #001c1cbb)}
+@keyframes pg-kahlua-arrival{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(orientation:landscape) and (min-width:670px) and (max-height:540px){#prism-app .pg-game .pg-live.pg-kahlua-region{margin:0;min-height:43px;padding:2px 7px}#prism-app .pg-game .pg-kahlua-region img{width:37px;height:34px}#prism-app .pg-game .pg-kahlua-region span{font-size:10px}}
+@media(max-width:530px){.pg-kahlua-welcome{gap:8px;padding:9px;margin:7px auto 13px}.pg-kahlua-welcome img{width:59px;height:58px}.pg-kahlua-welcome p{font-size:11px}.pg-win-orbit.pg-kahlua-celebration{width:130px;height:130px}.pg-kahlua-celebration img{width:122px;height:118px}}
+@media(prefers-reduced-motion:reduce){.pg-kahlua-region,.pg-kahlua-celebration{animation:none!important}}
+#prism-app[data-motion="off"] .pg-kahlua-region,#prism-app[data-motion="off"] .pg-kahlua-celebration{animation:none!important}

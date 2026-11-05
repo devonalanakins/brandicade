@@ -3,29 +3,31 @@ import {createRun,activeRegion,selectedGem,validDestinations,tryMove,undoMove,hi
 import {ACHIEVEMENTS,readStoredProgress,persistProgress,earned,evaluateAchievements} from './achievements.mjs';
 import {renderRestoration,restorationState} from './restoration-scene.mjs';
 import {describeBoard} from './board-guide.mjs';
+import {normalizeFeedback,playPrismCue} from './feedback.mjs';
 const app=document.querySelector('#prism-app');
 const initialSave=readStoredProgress();
 const progress=initialSave.progress;
 let saveBlocked=initialSave.recoveryRequired,saveSnapshot=initialSave.raw;
 const SAVE_WARNING='Your saved game could not be verified or another tab updated it. The original data remains untouched. Open Settings to download your data or restore a verified backup.';
-let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null,recentPlacement=null,freshRestoration=null;
+let run=null,selected=null,screen='home',message='',newAwards=[],soundContext=null,desiredMode='sanctuary',hintTarget=null,pendingChange=null,recentPlacement=null,freshRestoration=null,feedbackKind='idle';
 const escape=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const gem=(color,small=false)=>'<span class="crystal shape-'+GEMS[color].symbol+(small?' small':'')+'" style="--gem:'+GEMS[color].color+'" aria-hidden="true"><span class="facet"></span></span>';
 const badge=(achievement,unlocked)=>'<article class="pg-badge '+(unlocked?'earned':'locked')+'"><span class="pg-badge-mark" aria-hidden="true">'+achievement.icon+'</span><div><b>'+escape(achievement.name)+'</b><small>'+escape(achievement.description)+'</small></div><span class="pg-badge-state">'+(unlocked?'Earned':'Locked')+'</span></article>';
 const worldDone=(worldIndex)=>LEVELS.slice(worldIndex*6,worldIndex*6+6).every(l=>progress.completed[l.id]);
 const nextLevel=()=>LEVELS.find(l=>!progress.completed[l.id])||LEVELS[17];
 const unlocked=(level)=>level.number===1||!!progress.completed[LEVELS[level.number-2].id]||!!progress.completed[level.id];
-function playSound(freq=470) {
+function playSound(type='place') {
  if(!progress.settings.sound)return;
- try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
- soundContext??=new Audio();if(soundContext.state==='suspended')void soundContext.resume();
- const oscillator=soundContext.createOscillator(),gain=soundContext.createGain();
- oscillator.type='sine';oscillator.frequency.setValueAtTime(freq,soundContext.currentTime);
- oscillator.frequency.exponentialRampToValueAtTime(freq*1.3,soundContext.currentTime+.12);
- gain.gain.setValueAtTime(.035,soundContext.currentTime);
- gain.gain.exponentialRampToValueAtTime(.001,soundContext.currentTime+.14);
- oscillator.connect(gain).connect(soundContext.destination);oscillator.start();oscillator.stop(soundContext.currentTime+.15);
- }catch{}
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+  soundContext??=new Audio();
+  if(soundContext.state==='suspended')void soundContext.resume().catch(()=>{});
+  playPrismCue(soundContext,type);
+ }catch{/* Sound is optional: never block gameplay or progress saves. */}
+}
+function signalFeedback(type) {
+ feedbackKind=normalizeFeedback(type);
+ if(feedbackKind!=='idle')playSound(feedbackKind);
 }
 function commit() {
  if(saveBlocked){message=SAVE_WARNING;return;}
@@ -34,11 +36,11 @@ function commit() {
  }
  saveSnapshot=JSON.stringify(progress);
 }
-function nav(target) {screen=target;selected=null;hintTarget=null;recentPlacement=null;freshRestoration=null;newAwards=[];message='';render();}
+function nav(target) {screen=target;selected=null;hintTarget=null;recentPlacement=null;freshRestoration=null;newAwards=[];message='';feedbackKind='idle';render();}
 function reset(level,mode='sanctuary') {
  if(saveBlocked){screen='settings';message=SAVE_WARNING;render();return;}
  const id='pg-'+level.id+'-'+String(Date.now());
- run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;recentPlacement=null;freshRestoration=null;pendingChange=null;newAwards=[];message='';
+ run=createRun(level,{mode,runId:id});selected=null;hintTarget=null;recentPlacement=null;freshRestoration=null;pendingChange=null;newAwards=[];message='';feedbackKind='idle';
  progress.active=run;commit();screen='game';render();
 }
 function requestRunChange(level,mode='sanctuary',kind='switch') {
@@ -59,7 +61,7 @@ function cancelRunChange(){
 }
 function resume() {
  const saved=progress.active,level=saved&&levelById(saved.levelId);
- if(level&&saved.stacks&&saved.placed&&!saved.finished){run=saved;screen='game';selected=null;hintTarget=null;render();}
+ if(level&&saved.stacks&&saved.placed&&!saved.finished){run=saved;screen='game';selected=null;hintTarget=null;feedbackKind='idle';render();}
  else reset(nextLevel());
 }
 function showGame() {
@@ -70,28 +72,28 @@ function showGame() {
  const hinted=(kind,index)=>hintTarget?.kind===kind&&hintTarget.index===index;
  const hintedSource=(kind,index)=>!!hintTarget&&selected?.kind===kind&&selected.index===index;
  const newlyPlaced=(kind,index)=>recentPlacement?.kind===kind&&recentPlacement.index===index;
- const trail=guide.regions.map(region=>'<li class="pg-region-step '+region.status+'"'+(region.status==='active'?' aria-current="step"':'')+' aria-label="Region '+(region.index+1)+', '+escape(region.name)+', '+region.filled+' of 3 jewels, '+region.status+'">'+
+ const trail=guide.regions.map(region=>'<li class="pg-region-step '+region.status+(feedbackKind==='region'&&region.status==='restored'&&region.index===area-1?' recently-restored':'')+'"'+(region.status==='active'?' aria-current="step"':'')+' aria-label="Region '+(region.index+1)+', '+escape(region.name)+', '+region.filled+' of 3 jewels, '+region.status+'">'+
    gem(region.color,true)+'<span class="pg-region-copy"><b>'+escape(region.name)+'</b><small>'+region.filled+' / 3</small></span>'+
    '<span class="pg-region-state" aria-hidden="true">'+(region.status==='restored'?'✓':region.status==='active'?'•':'·')+'</span></li>').join('');
  const sockets=run.placed.map((gemIn,i)=>'<button type="button" class="pg-socket '+(gemIn?'occupied':'')+' '+(valid('socket',i)?'target':'')+' '+(Math.floor(i/3)>area?'sealed':'')+' '+(hinted('socket',i)?'hint-destination':'')+' '+(newlyPlaced('socket',i)?'just-placed':'')+'" data-kind="socket" data-index="'+i+'" '+(gemIn||Math.floor(i/3)>area?'disabled':'')+' aria-label="Socket '+(i+1)+', '+GEMS[level.colors[Math.floor(i/3)]].label+(gemIn?', filled':Math.floor(i/3)>area?', locked':', empty')+(hinted('socket',i)?', suggested by hint':'')+(valid('socket',i)?', available destination':'')+'">'+(gemIn?gem(gemIn.color):'<span class="pg-socket-hint">'+(GEMS[level.colors[Math.floor(i/3)]].label[0])+'</span>')+'</button>').join('');
  const stacks=run.stacks.map((stack,i)=>'<button type="button" class="pg-stack '+(selected?.kind==='stack'&&selected.index===i?'selected':'')+' '+(hintedSource('stack',i)?'hint-source':'')+'" data-kind="stack" data-index="'+i+'" '+(!stack.length?'disabled':'')+' aria-label="Supply stack '+(i+1)+', '+stack.length+' gems, '+(stack[0]?GEMS[stack[0].color].label+' exposed':'empty')+'"><span class="pg-stack-depth">'+stack.length+'</span>'+(stack.length?gem(stack[0].color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[stack[0].color].label+'</span>':''):'<span class="pg-empty">·</span>')+'</button>').join('');
  const shelf=run.shelf.map((entry,i)=>'<button type="button" class="pg-shelf-slot '+(selected?.kind==='shelf'&&selected.index===i?'selected':'')+' '+(valid('shelf',i)?'target':'')+' '+(hinted('shelf',i)?'hint-destination':'')+' '+(hintedSource('shelf',i)?'hint-source':'')+' '+(newlyPlaced('shelf',i)?'just-placed':'')+'" data-kind="shelf" data-index="'+i+'" aria-label="Holding shelf slot '+(i+1)+', '+(entry?GEMS[entry.color].label:'empty')+(hinted('shelf',i)?', suggested by hint':'')+(valid('shelf',i)?', available destination':'')+'">'+(entry?gem(entry.color)+(progress.settings.colorAssist?'<span class="pg-gem-label">'+GEMS[entry.color].label+'</span>':''):'<span class="pg-empty">+</span>')+'</button>').join('');
  const count=guide.placed,total=guide.total;
- return '<div class="pg-game"><div class="pg-topline"><button class="pg-icon-button" data-nav="home" aria-label="Return to Prism Garden home">←</button><div><small>'+escape(world.short)+' · '+escape(run.mode)+'</small><h2>'+escape(level.name)+'</h2></div><button class="pg-icon-button" data-nav="settings" aria-label="Settings">⚙</button></div>'+
+ return '<div class="pg-game" data-feedback="'+feedbackKind+'"><div class="pg-topline"><button class="pg-icon-button" data-nav="home" aria-label="Return to Prism Garden home">←</button><div><small>'+escape(world.short)+' · '+escape(run.mode)+'</small><h2>'+escape(level.name)+'</h2></div><button class="pg-icon-button" data-nav="settings" aria-label="Settings">⚙</button></div>'+
  '<div class="pg-progress"><span>Restoration <b>'+count+'/'+total+'</b></span><div class="pg-progress-track" role="progressbar" aria-label="Mosaic jewels placed" aria-valuemin="0" aria-valuemax="'+total+'" aria-valuenow="'+count+'"><i style="width:'+(count/total*100)+'%"></i></div></div>'+
  '<div class="pg-region-heading"><b>RESTORATION PATH</b><span>'+(area===level.colors.length?'All regions restored':'Region '+(area+1)+' of '+level.colors.length)+'</span></div>'+
  '<ol class="pg-region-rail" aria-label="Jewel regions in restoration order">'+trail+'</ol>'+
- '<div class="pg-world-scene pg-scene-'+world.scene+'" style="--pg-board-height:'+(115+level.colors.length*54)+'px"><div class="pg-scene-glow"></div>'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'play'})+'<div class="pg-arch"><div class="pg-mosaic">'+sockets+'</div></div><div class="pg-scene-floor"></div></div>'+
+ '<div class="pg-world-scene pg-scene-'+world.scene+'" style="--pg-board-height:'+(115+level.colors.length*54)+'px"><div class="pg-scene-glow"></div><div class="pg-feedback-bloom" aria-hidden="true"></div>'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'play'})+'<div class="pg-arch"><div class="pg-mosaic">'+sockets+'</div></div><div class="pg-scene-floor"></div></div>'+
  '<div class="pg-task"><div class="pg-task-copy"><b>'+(area===level.colors.length?'Garden restored': 'Restore '+GEMS[level.colors[area]].label+' jewels')+'</b><span>'+escape(guide.instruction)+'</span></div>'+
  (guide.selection?'<button type="button" class="pg-clear-selection" data-action="clear-selection" aria-keyshortcuts="Escape">Clear selection</button>':'')+'</div>'+
  '<div class="pg-supplies"><div class="pg-supply-heading">JEWEL STACKS <span>Moves '+run.moves+'</span></div><div class="pg-stacks">'+stacks+'</div><div class="pg-supply-heading">HOLDING SHELF <span>'+run.shelf.filter(Boolean).length+' / '+run.shelf.length+'</span></div><div class="pg-shelf">'+shelf+'</div></div>'+
  '<div class="pg-tools"><button data-action="undo" '+(!run.history.length?'disabled':'')+'>↶ Undo</button><button data-action="hint">✧ Hint</button><button data-action="restart">Restart</button></div>'+
- '<p class="pg-live" role="status" aria-live="polite">'+escape(message||'Take your time. Nothing expires here.')+'</p><p class="pg-game-mode-note">'+(run.mode==='mastery'?'Mastery: earn a gold medal through efficient moves without hints.':'Sanctuary: no timer, no penalties and unlimited undo.')+'</p></div>';
+ '<p class="pg-live'+(feedbackKind==='region'?' pg-kahlua-region':'')+'" role="status" aria-live="polite"'+(feedbackKind==='region'?' data-kahlua-event="region"':'')+'>'+(feedbackKind==='region'?'<img src="/assets/kahlua-companion.svg" alt="" aria-hidden="true" width="48" height="44">':'')+'<span>'+escape(message||'Take your time. Nothing expires here.')+'</span></p><p class="pg-game-mode-note">'+(run.mode==='mastery'?'Mastery: earn a gold medal through efficient moves without hints.':'Sanctuary: no timer, no penalties and unlimited undo.')+'</p></div>';
 }
 function showHome() {
  const complete=Object.keys(progress.completed).length,earnedCount=Object.keys(progress.awards).length;
  return '<div class="pg-intro"><div class="pg-eyebrow">A LIVING JEWEL GARDEN</div><h1>Prism <em>Garden.</em></h1><p>Every jewel finds its place. Every puzzle brings a little world back to life.</p><div class="pg-home-art" aria-hidden="true"><div class="pg-halo"></div><span class="pg-art-gem a">'+gem('fern')+'</span><span class="pg-art-gem b">'+gem('dew')+'</span><span class="pg-art-gem c">'+gem('ember')+'</span><span class="pg-art-gem d">'+gem('orchid')+'</span><span class="pg-art-gem e">'+gem('moon')+'</span></div><div class="pg-main-actions"><button class="pg-primary" data-action="continue">'+(progress.active&&!progress.active.finished?'Continue your garden':'Begin the next puzzle')+' →</button><button data-nav="atlas">Choose a world</button></div><div class="pg-summary"><div><b>'+complete+' / 18</b><small>Mosaics restored</small></div><div><b>'+earnedCount+' / 18</b><small>Achievements</small></div></div></div>'+
- '<div class="pg-home-links"><button data-nav="gallery"><span>◇</span><div><b>Living gallery</b><small>Your collected scenes</small></div>→</button><button data-nav="achievements"><span>✦</span><div><b>Achievement cabinet</b><small>Earned and undiscovered treasures</small></div>→</button><button data-nav="settings"><span>⚙</span><div><b>Settings</b><small>Sound, motion and accessibility</small></div>→</button></div>';
+ '<div class="pg-kahlua-welcome"><img src="/assets/kahlua-companion.svg" alt="Kahlua, your dog companion in the arcade" width="76" height="70"><div><small>YOUR ARCADE BUDDY</small><p>Kahlua is right here. Pick a jewel, choose a glowing destination, and watch the garden come to life.</p></div></div><div class="pg-home-links"><button data-nav="gallery"><span>◇</span><div><b>Living gallery</b><small>Your collected scenes</small></div>→</button><button data-nav="achievements"><span>✦</span><div><b>Achievement cabinet</b><small>Earned and undiscovered treasures</small></div>→</button><button data-nav="settings"><span>⚙</span><div><b>Settings</b><small>Sound, motion and accessibility</small></div>→</button></div>';
 }
 function showAtlas() {
  return '<div class="pg-page-head"><div class="pg-eyebrow">THE WORLD ATLAS</div><h1>Three living worlds.</h1><p>Choose a level. Every collected mosaic stays yours.</p><div class="pg-mode-tabs" role="group" aria-label="Game mode"><button data-mode-choice="sanctuary" aria-pressed="'+(desiredMode==='sanctuary')+'">Sanctuary · Relax</button><button data-mode-choice="mastery" aria-pressed="'+(desiredMode==='mastery')+'">Mastery · Medals</button></div><small class="pg-mode-help">'+(desiredMode==='mastery'?'Mastery replays completed puzzles to earn move-efficiency medals.':'No timer, no lives, unlimited undo and optional hints.')+'</small></div>'+
@@ -139,12 +141,11 @@ function finish(level,previouslyCompleted) {
    if(rank[medal]>rank[progress.mastery[level.id]||'bronze']||!progress.mastery[level.id])progress.mastery[level.id]=medal;
  }
  newAwards=evaluateAchievements(progress,current,{replay:previouslyCompleted});
- progress.active=null;hintTarget=null;commit();sound(660);screen='win';render();
+ progress.active=null;hintTarget=null;commit();if(!saveBlocked)playSound('win');screen='win';render();
 }
-function sound(f){playSound(f);}
 function showWin(){
  const level=levelById(run.levelId),restored=restorationState(level.worldIndex,saveBlocked?null:progress.completed);
- return '<div class="pg-win"><div class="pg-win-orbit">✦</div><div class="pg-eyebrow">MOSAIC RESTORED</div><h1>'+escape(level.name)+'</h1><p>You brought another little piece of the garden to life.</p><div class="pg-win-diorama">'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'win',freshLevelId:freshRestoration})+'</div><p class="pg-world-restored-label">'+(restored.available?restored.count+' of '+restored.total+' world mosaics restored':'Progress needs recovery')+'</p><div class="pg-win-stats"><span>'+run.moves+' moves</span><span>'+run.undos+' undos</span><span>'+run.hints+' hints</span></div>'+
+ return '<div class="pg-win" data-kahlua-event="win"><div class="pg-win-orbit pg-kahlua-celebration" aria-hidden="true"><img src="/assets/kahlua-companion.svg" alt="" width="152" height="138"></div><div class="pg-eyebrow">MOSAIC RESTORED · KAHLUA CELEBRATES</div><h1>'+escape(level.name)+'</h1><p>You brought another little piece of the garden to life. Kahlua is here for the celebration.</p><div class="pg-win-diorama">'+renderRestoration(level.worldIndex,saveBlocked?null:progress.completed,{variant:'win',freshLevelId:freshRestoration})+'</div><p class="pg-world-restored-label">'+(restored.available?restored.count+' of '+restored.total+' world mosaics restored':'Progress needs recovery')+'</p><div class="pg-win-stats"><span>'+run.moves+' moves</span><span>'+run.undos+' undos</span><span>'+run.hints+' hints</span></div>'+
  (newAwards.length?'<h2>New treasures</h2><div class="pg-win-awards">'+newAwards.map(a=>badge(a,true)).join('')+'</div>':'<p>Your gallery has grown a little brighter.</p>')+
  '<div class="pg-main-actions"><button class="pg-primary" data-action="next">Next puzzle →</button><button data-action="replay-mastery">Replay in Mastery</button><button data-nav="gallery">View gallery</button><button data-nav="achievements">Achievements</button></div></div>';
 }
@@ -190,10 +191,10 @@ app.addEventListener('click',(event)=>{
  if(button.dataset.level){const level=levelByNumber(button.dataset.level);if(level&&unlocked(level)){if(desiredMode==='mastery'&&!progress.completed[level.id]){message='Complete this level in Sanctuary first.';desiredMode='sanctuary';render();return;}requestRunChange(level,desiredMode,'switch');}return;}
  const action=button.dataset.action;
  if(action==='continue'){resume();return;}
- if(action==='clear-selection'&&screen==='game'&&selected){const previous=selected;selected=null;hintTarget=null;recentPlacement=null;message='Selection cleared.';render();if(event.detail===0)app.querySelector?.('[data-kind="'+previous.kind+'"][data-index="'+previous.index+'"]:not([disabled])')?.focus?.();return;}
+ if(action==='clear-selection'&&screen==='game'&&selected){const previous=selected;selected=null;hintTarget=null;recentPlacement=null;message='Selection cleared.';feedbackKind='idle';render();if(event.detail===0)app.querySelector?.('[data-kind="'+previous.kind+'"][data-index="'+previous.index+'"]:not([disabled])')?.focus?.();return;}
  if(action==='next'){const next=levelByNumber(Math.min(18,levelById(run.levelId).number+1));reset(next);return;}
  if(action==='replay-mastery'){const level=levelById(run.levelId);if(progress.completed[level.id])reset(level,'mastery');return;}
- if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;hintTarget=null;recentPlacement=null;message='Last move undone.';commit();render();}return;}
+ if(action==='undo'&&run){const result=undoMove(run);if(result.ok){run=result.run;progress.active=run;selected=null;hintTarget=null;recentPlacement=null;message='Last move undone.';commit();if(!saveBlocked)signalFeedback('undo');render();}return;}
  if(action==='restart'&&run){requestRunChange(levelById(run.levelId),run.mode,'restart');return;}
  if(action==='hint'&&run){
   const level=levelById(run.levelId),move=hint(level,run);
@@ -203,7 +204,7 @@ app.addEventListener('click',(event)=>{
    const destination=move.target.kind==='socket'?'socket '+(move.target.index+1):'holding shelf slot '+(move.target.index+1);
    message='Hint: move the '+GEMS[selectedColor].label.toLowerCase()+' jewel to '+destination+'.';
   }else message='No winning route from here. Undo or restart to try a different path.';
-  render();return;
+  if(!saveBlocked)signalFeedback(move?'hint':'invalid');render();return;
  }
  if(action==='night'){progress.settings.night=!progress.settings.night;if(progress.settings.night&&WORLDS.some((_,i)=>worldDone(i)))earned(progress,'PG-ACH-018');commit();render();return;}
  if(action==='secret'){if(worldDone(Number(button.dataset.world))){earned(progress,'PG-ACH-015');commit();message='You found the hidden glimmer.';render();}return;}
@@ -215,13 +216,13 @@ app.addEventListener('click',(event)=>{
    if(result.ok){
      run=result.run;selected=null;hintTarget=null;recentPlacement={kind,index};message=result.regionCompleted?'A little more of the garden is awake.':'Beautifully placed.';
      if(run.finished){finish(level,!!progress.completed[level.id]);return;}
-     progress.active=run;commit();playSound(450);render();
+     progress.active=run;commit();if(!saveBlocked)signalFeedback(result.regionCompleted?'region':'place');render();
       if(event.detail===0){const focus=app.querySelector?.('[data-kind="'+kind+'"][data-index="'+index+'"]:not([disabled])')||app.querySelector?.('[data-action="undo"]');focus?.focus?.();}
       return;
    }
  }
- if(kind!=='socket'&&selectedGem(run,target)){selected=selected&&selected.kind===kind&&selected.index===index?null:target;hintTarget=null;recentPlacement=null;message='Choose a glowing destination.';}
- else{recentPlacement=null;message='That jewel does not fit there. Pick a highlighted place.';}
+ if(kind!=='socket'&&selectedGem(run,target)){selected=selected&&selected.kind===kind&&selected.index===index?null:target;hintTarget=null;recentPlacement=null;message=selected?'Choose a glowing destination.':'Selection cleared.';signalFeedback(selected?'select':'idle');}
+ else{recentPlacement=null;message='That jewel does not fit there. Pick a highlighted place.';signalFeedback('invalid');}
  render();
  if(event.detail===0){app.querySelector?.('[data-kind="'+kind+'"][data-index="'+index+'"]:not([disabled])')?.focus?.();}
 });
@@ -231,7 +232,7 @@ app.addEventListener('keydown',(event)=>{
   if(screen==='game'&&selected&&event.key==='Escape'){
    event.preventDefault();
    const previous=selected;
-   selected=null;hintTarget=null;recentPlacement=null;message='Selection cleared.';
+   selected=null;hintTarget=null;recentPlacement=null;message='Selection cleared.';feedbackKind='idle';
    render();
    app.querySelector?.('[data-kind="'+previous.kind+'"][data-index="'+previous.index+'"]:not([disabled])')?.focus?.();
   }
