@@ -14,19 +14,19 @@ function reply(path,{status=200,headers={},redirected=false,url=path}={}){
   clone(){return reply(path,{status,headers,redirected,url});}
  };
 }
-function createRuntime(responder=url=>reply(url)){
+function createRuntime(responder=url=>reply(url),{failOpen=false,failPut=false,failRead=false,failKeys=false}={}){
  const callbacks=new Map(),entries=new Map(),requests=[];
  const cacheFor=name=>{
   if(!entries.has(name))entries.set(name,new Map());
   const data=entries.get(name);
   return {
-   async match(key){return data.get(toURL(key))||undefined},
-   async put(key,value){data.set(toURL(key),value)},
+   async match(key){if(failRead)throw Error('synthetic CacheStorage read denied');return data.get(toURL(key))||undefined},
+   async put(key,value){if(failPut)throw Error('synthetic CacheStorage quota exceeded');data.set(toURL(key),value)},
   };
  };
  const caches={
-  open:async name=>cacheFor(name),
-  keys:async()=>[...entries.keys()],
+  open:async name=>{if(failOpen)throw Error('synthetic CacheStorage unavailable');return cacheFor(name);},
+  keys:async()=>{if(failKeys)throw Error('synthetic CacheStorage keys denied');return [...entries.keys()];},
   delete:async name=>entries.delete(name)
  };
  const network=async(request,options={})=>{
@@ -151,4 +151,26 @@ test('network-first public Prism Garden remains usable offline without replacing
  offline=true;
  assert.equal((await runtime.dispatch('/prism-garden.html',{mode:'navigate'})).response.status,200,
   'the exact public game page is preserved for offline navigation');
+});
+
+test('storage denial, quota exhaustion and cache-read failure never break online gameplay',async()=>{
+ for(const [label,opts] of [
+  ['CacheStorage open denied',{failOpen:true}],
+  ['cache writes fail',{failPut:true}],
+  ['cache reads fail',{failRead:true}],
+  ['cache enumeration fails',{failKeys:true}]
+ ]){
+  const runtime=createRuntime(url=>reply(url),opts);
+  await runtime.runLifecycle('install');
+  await runtime.runLifecycle('activate');
+  const app=await runtime.dispatch('/src/app.mjs');
+  assert.equal(app.intercepted,true,label+' remains within known shell route');
+  assert.equal(app.response.status,200,label+' must return successful network code');
+  const prism=await runtime.dispatch('/prism-garden.html',{mode:'navigate'});
+  assert.equal(prism.response.status,200,label+' must return successful network HTML');
+  assert.ok(runtime.requests.some(x=>x.url.endsWith('/src/app.mjs')),
+   label+' makes an actual network request');
+  assert.equal((await runtime.dispatch('/api/save')).intercepted,false,
+   label+' must still bypass private saved-game APIs');
+ }
 });

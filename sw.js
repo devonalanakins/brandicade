@@ -27,7 +27,8 @@ function safeStaticResponse(response,path){
   !response.headers.get('set-cookie');
 }
 async function precache(){
- const cache=await caches.open(CACHE);
+ let cache;
+ try{cache=await caches.open(CACHE);}catch{return;}
  await Promise.all(ASSETS.map(async path=>{
   try{
    // Never follow redirects to an Access sign-in page and cache the result as
@@ -46,9 +47,10 @@ self.addEventListener('activate',event=>{
  event.waitUntil((async()=>{
   // v7 may contain old cached API GETs. Delete prior Brandicade caches without
   // touching unrelated service workers' caches on the same origin.
-  const keys=await caches.keys();
+  let keys=[];
+  try{keys=await caches.keys();}catch{/* Storage may be disabled; never use legacy caches. */}
   await Promise.all(keys.filter(key=>key!==CACHE&&key.startsWith(OWNED_CACHE_PREFIX))
-   .map(key=>caches.delete(key)));
+   .map(key=>caches.delete(key).catch(()=>false)));
   await self.clients.claim();
  })());
 });
@@ -61,19 +63,28 @@ self.addEventListener('fetch',event=>{
  // use. Non-shell navigation (including /api/ and /cdn-cgi/) is never handled.
  if(request.mode==='navigate'&&!DOCUMENT_PATHS.has(url.pathname))return;
  event.respondWith((async()=>{
-  const cache=await caches.open(CACHE);
-  if(request.mode!=='navigate'){
-   const existing=await cache.match(url.pathname);
-   if(existing)return existing;
+  // CacheStorage can be unavailable (private browsing, quota, denied storage).
+  // Keep ordinary network gameplay functional when its optional cache fails.
+  let cache=null;
+  try{cache=await caches.open(CACHE);}catch{}
+  if(request.mode!=='navigate'&&cache){
+   try{const existing=await cache.match(url.pathname);if(existing)return existing;}
+   catch{/* A broken cache read must never block the network. */}
   }
   try{
    const response=await fetch(request);
-   if(safeStaticResponse(response,url.pathname))
-    await cache.put(url.pathname,response.clone());
+   if(cache&&safeStaticResponse(response,url.pathname)){
+    try{await cache.put(url.pathname,response.clone());}
+    catch{/* No cache storage is required for a successful response. */}
+   }
    return response;
   }catch{
-   const fallback=url.pathname==='/'?'/index.html':url.pathname;
-   return await cache.match(fallback)||Response.error();
+   if(cache){
+    const fallback=url.pathname==='/'?'/index.html':url.pathname;
+    try{const existing=await cache.match(fallback);if(existing)return existing;}
+    catch{}
+   }
+   return Response.error();
   }
  })());
 });
