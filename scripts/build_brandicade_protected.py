@@ -115,10 +115,10 @@ export default {
     }
     if(path==='/sw.js'){
       let code=await response.text();
-      const cache="const CACHE='brandicade-prism-bloom-guided-board-v5'";
+      const cache="const CACHE='brandicade-glimmer-cascade-v8'";
       const assets="const ASSETS=[";
       if(!code.includes(cache)||!code.includes(assets))return restricted(503);
-      code=code.replace(cache,"const CACHE='brandicade-prism-bloom-cloud-bridge-v6'")
+      code=code.replace(cache,"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v8'")
         .replace(assets,"const ASSETS=['/src/cloud-sync.mjs',");
       const headers=new Headers(response.headers);headers.set('Cache-Control','no-store');
       return new Response(code,{status:200,headers});

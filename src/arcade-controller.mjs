@@ -1,0 +1,324 @@
+/** Brandicade universal arcade input. UI-only: never reads or writes game saves. */
+export const BUTTON_BINDINGS = Object.freeze({
+  0: 'CONFIRM', 1: 'BACK', 2: 'SECONDARY', 3: 'ACHIEVEMENTS',
+  4: 'PREV_TAB', 5: 'NEXT_TAB', 9: 'PAUSE',
+  12: 'UP', 13: 'DOWN', 14: 'LEFT', 15: 'RIGHT'
+});
+export const DIRECTIONS = new Set(['UP', 'DOWN', 'LEFT', 'RIGHT']);
+
+export function readGamepad(pad, deadzone = 0.58) {
+  const actions = new Set();
+  if (!pad || pad.connected === false || pad.mapping !== 'standard') return actions;
+  for (const [index, action] of Object.entries(BUTTON_BINDINGS)) {
+    if (pad.buttons?.[Number(index)]?.pressed) actions.add(action);
+  }
+  // The digital D-pad wins if the analog stick disagrees, either way.
+  const digitalX = actions.has('LEFT') || actions.has('RIGHT');
+  const digitalY = actions.has('UP') || actions.has('DOWN');
+  if (actions.has('LEFT') && actions.has('RIGHT')) {actions.delete('LEFT');actions.delete('RIGHT');}
+  if (actions.has('UP') && actions.has('DOWN')) {actions.delete('UP');actions.delete('DOWN');}
+  const x = Number(pad.axes?.[0]);
+  const y = Number(pad.axes?.[1]);
+  if (!digitalX && Number.isFinite(x)) {
+    if (x <= -deadzone) actions.add('LEFT');
+    if (x >= deadzone) actions.add('RIGHT');
+  }
+  if (!digitalY && Number.isFinite(y)) {
+    if (y <= -deadzone) actions.add('UP');
+    if (y >= deadzone) actions.add('DOWN');
+  }
+  return actions;
+}
+
+/** One semantic action per frame; a held direction suppresses accidental A. */
+export function chooseControllerAction(fired, held = new Set()) {
+  if (fired.includes('PAUSE')) return 'PAUSE';
+  if (fired.includes('BACK')) return 'BACK';
+  const direction = fired.find(action => DIRECTIONS.has(action));
+  if (direction) return direction;
+  if ([...held].some(action => DIRECTIONS.has(action))) return null;
+  if (fired.includes('CONFIRM')) return 'CONFIRM';
+  return fired.find(action => ['SECONDARY','ACHIEVEMENTS','PREV_TAB','NEXT_TAB'].includes(action)) || null;
+}
+
+
+/**
+ * Prevent pressed controls from generating accidental actions when a browser
+ * first reports a controller, restores a tab, or reconnects Bluetooth input.
+ * Only an observed neutral sample arms input. A visible press must then be
+ * NEW, rather than carried across a lifecycle boundary.
+ */
+export function createControllerInputGate() {
+  let armed=false;
+  return {
+    accept(held, connected=true) {
+      if (!connected) {armed=false;return false;}
+      if (!armed) {
+        if (held?.size === 0) armed=true;
+        return false;
+      }
+      return true;
+    },
+    reset() {armed=false;}
+  };
+}
+
+export function createRepeater({delay = 310, interval = 135} = {}) {
+  const held = new Map();
+  return {
+    step(active, now) {
+      const fired = [];
+      for (const action of [...held.keys()]) if (!active.has(action)) held.delete(action);
+      for (const action of active) {
+        const next = held.get(action);
+        if (next === undefined) {
+          fired.push(action);
+          held.set(action, now + delay);
+        } else if (DIRECTIONS.has(action) && now >= next) {
+          fired.push(action);
+          held.set(action, now + interval);
+        }
+      }
+      return fired;
+    },
+    reset() { held.clear(); }
+  };
+}
+
+function center(rect) { return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2}; }
+/** Select a geometrically adjacent item; never activates it. */
+export function spatialTarget(nodes, current, direction) {
+  const origin = current?.getBoundingClientRect?.();
+  if (!origin || origin.width <= 0 || origin.height <= 0) return nodes[0] || null;
+  const start = center(origin);
+  let best = null, score = Infinity;
+  for (const candidate of nodes) {
+    if (candidate === current) continue;
+    const rect = candidate.getBoundingClientRect?.();
+    if (!rect || rect.width <= 0 || rect.height <= 0) continue;
+    const at = center(rect), dx = at.x - start.x, dy = at.y - start.y;
+    const primary = direction === 'LEFT' ? -dx : direction === 'RIGHT' ? dx : direction === 'UP' ? -dy : dy;
+    if (primary <= 2) continue;
+    const cross = direction === 'LEFT' || direction === 'RIGHT' ? Math.abs(dy) : Math.abs(dx);
+    const rank = primary + 2.2 * cross + (cross > primary ? 80 : 0);
+    if (rank < score) { best = candidate; score = rank; }
+  }
+  return best;
+}
+
+/** Return a neighboring jewel index, or null when a directional move reaches the
+ * board edge. An edge permits an intentional escape to surrounding controls.
+ */
+export function gridCellTarget(index, direction, size = 7) {
+  if (!Number.isInteger(index) || !Number.isInteger(size) || size < 1 ||
+      index < 0 || index >= size * size) return null;
+  if (direction === 'LEFT') return index % size === 0 ? null : index - 1;
+  if (direction === 'RIGHT') return index % size === size - 1 ? null : index + 1;
+  if (direction === 'UP') return index < size ? null : index - size;
+  if (direction === 'DOWN') return index >= size * (size - 1) ? null : index + size;
+  return null;
+}
+
+const FOCUSABLE = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
+const NAV_PAGES = ['home', 'library', 'treasures', 'profile'];
+
+export function startArcadeController({doc = document, win = window, nav = navigator} = {}) {
+  const badge = doc.getElementById('controller-indicator');
+  const legend = doc.getElementById('controller-legend');
+  const backLabel = doc.getElementById('controller-back-label');
+  const pause = doc.getElementById('controller-pause');
+  if (!badge || !legend || !pause || typeof win.requestAnimationFrame !== 'function') return () => {};
+  const repeater = createRepeater(), inputGate = createControllerInputGate();
+  let running = true, connected = false, previousFocus = null, pausedInert = [];
+  const activeSection = () => doc.querySelector('.section.active');
+  const originalModal = () => doc.querySelector('#modal.open .dialog');
+  const pauseOpen = () => !pause.hidden;
+  const setConnection = (on) => {
+    if (connected === on) return;
+    connected = on;
+    badge.hidden = !on;
+    legend.hidden = !on;
+    doc.body.classList.toggle('has-gamepad', on);
+    repeater.reset();
+    inputGate.reset();
+  };
+  const visible = (el) => Boolean(el) && !el.disabled && !el.closest('[hidden], [aria-hidden="true"], [inert]') &&
+    (typeof el.getClientRects !== 'function' || el.getClientRects().length > 0);
+  const scope = () => pauseOpen() ? pause : originalModal() || activeSection();
+  const choices = (root = scope()) => root ? [...root.querySelectorAll(FOCUSABLE)].filter(visible) : [];
+  const focus = (el) => {
+    if (!el) return;
+    el.focus({preventScroll: true});
+    el.scrollIntoView?.({block: 'nearest', inline: 'nearest', behavior: 'instant'});
+  };
+  const ensureFocus = () => {
+    const options = choices();
+    if (options.includes(doc.activeElement)) return doc.activeElement;
+    const primary = (activeSection()?.id === 'game' ? doc.querySelector('#pop-board [data-cell]') : null) ||
+      scope()?.querySelector('[data-action="play"], [data-action="continue"], [data-go="library"]');
+    const first = primary && options.includes(primary) ? primary : options[0];
+    focus(first);
+    return null; // first A press establishes focus, never launches an unintended game
+  };
+  const openPause = () => {
+    if (pauseOpen()) return;
+    previousFocus = doc.activeElement;
+    // Pause lives inside #app; only its interactive siblings become inert.
+    pausedInert = [...doc.querySelectorAll('#content, .topbar, .bottom-nav')]
+      .map(el => [el, Boolean(el.inert)]);
+    for (const [el] of pausedInert) el.inert = true;
+    pause.hidden = false;
+    focus(pause.querySelector('[data-controller-resume]'));
+  };
+  const closePause = () => {
+    if (!pauseOpen()) return;
+    pause.hidden = true;
+    for (const [el, prior] of pausedInert) el.inert = prior;
+    pausedInert = [];
+    if (visible(previousFocus)) focus(previousFocus);
+    previousFocus = null;
+  };
+  const changeTab = (step) => {
+    const current = activeSection()?.id || 'home';
+    const idx = NAV_PAGES.indexOf(current);
+    const next = NAV_PAGES[(Math.max(0, idx) + step + NAV_PAGES.length) % NAV_PAGES.length];
+    const button = doc.querySelector('.bottom-nav [data-go="'+next+'"]');
+    button?.click();
+    // The global dock sits outside the active section. Restore controller
+    // focus inside the destination page, otherwise the next A press is lost.
+    const options = choices();
+    const preferred = scope()?.querySelector('[data-action="play"], [data-go="library"], [data-game-launch], a[href="/prism-garden.html"]');
+    focus(preferred && options.includes(preferred) ? preferred : options[0]);
+  };
+  const move = (direction) => {
+    const options = choices();
+    const current = options.includes(doc.activeElement) ? doc.activeElement : null;
+    if (!current) {ensureFocus(); return;}
+    if (activeSection()?.id === 'game' && !pauseOpen() && !originalModal() &&
+        current.matches?.('#pop-board [data-cell]')) {
+      const target = gridCellTarget(Number(current.dataset.cell), direction);
+      if (target !== null) {
+        const next = options.find(el => el.matches?.('#pop-board [data-cell]') &&
+          Number(el.dataset.cell) === target);
+        if (next) {focus(next); return;}
+      }
+      // At the grid edge (or missing/disabled neighboring cell), navigate only
+      // toward actual game controls. Do not wrap to another row or teleport
+      // between distant jewels.
+      const controls = options.filter(el => !el.matches?.('#pop-board [data-cell]'));
+      const escape = spatialTarget(controls, current, direction);
+      if (escape) focus(escape);
+      return;
+    }
+    const next = spatialTarget(options, current, direction);
+    if (next) focus(next);
+  };
+  const act = (action) => {
+    if (DIRECTIONS.has(action)) {move(action); return;}
+    if (action === 'BACK') {
+      if (pauseOpen()) {closePause(); return;}
+      if (originalModal()) {doc.getElementById('modal-close')?.click(); return;}
+      if (activeSection()?.id === 'game') {
+        // B cancels the highlighted Glimmer jewel before leaving the game.
+        const selectedCell = doc.querySelector('#pop-board .charm.selected[data-cell]:not([disabled])');
+        if (selectedCell) {selectedCell.click(); return;}
+      }
+      if (activeSection()?.id !== 'home') doc.querySelector('.bottom-nav [data-go="home"]')?.click();
+      return;
+    }
+    if (action === 'PAUSE') {
+      if (pauseOpen()) closePause();
+      else if (originalModal()) doc.getElementById('modal-close')?.click();
+      else if (activeSection()?.id === 'game') openPause();
+      else doc.getElementById('settings-open')?.click();
+      return;
+    }
+    if (action === 'CONFIRM') {
+      const current = ensureFocus();
+      if (current) current.click();
+      return;
+    }
+    if (pauseOpen() || originalModal()) return;
+    if (action === 'PREV_TAB') changeTab(-1);
+    if (action === 'NEXT_TAB') changeTab(1);
+    if (action === 'ACHIEVEMENTS') {
+      const button = doc.querySelector('.bottom-nav [data-go="treasures"]');
+      button?.click();focus(button);
+    }
+    if (action === 'SECONDARY' && activeSection()?.id === 'game') {
+      doc.querySelector('#game [data-action="game-help"]')?.click();
+    }
+  };
+  const onClick = (event) => {
+    if (event.target.closest?.('[data-controller-resume]')) closePause();
+    if (event.target.closest?.('[data-controller-exit]')) {
+      closePause();
+      doc.querySelector('#game [data-go="home"]')?.click();
+    }
+  };
+  const onKey = (event) => {
+    if (pauseOpen() && event.key === 'Escape') {
+      event.preventDefault();event.stopImmediatePropagation();closePause();return;
+    }
+    if (event.key === 'Tab' && (pauseOpen() || originalModal())) {
+      const options = choices(pauseOpen() ? pause : originalModal());
+      if (!options.length) {event.preventDefault();return;}
+      const pos = options.indexOf(doc.activeElement);
+      if (event.shiftKey && pos <= 0) {event.preventDefault();focus(options[options.length - 1]);}
+      else if (!event.shiftKey && pos === options.length - 1) {event.preventDefault();focus(options[0]);}
+      return;
+    }
+    const direction = {ArrowUp:'UP', ArrowDown:'DOWN', ArrowLeft:'LEFT', ArrowRight:'RIGHT'}[event.key];
+    if (!direction || event.altKey || event.ctrlKey || event.metaKey ||
+      event.target?.matches?.('input, textarea, select')) return;
+    const jewel = event.target?.matches?.('#pop-board [data-cell]') &&
+      activeSection()?.id === 'game' && !pauseOpen() && !originalModal();
+    if (jewel && gridCellTarget(Number(event.target.dataset.cell), direction) !== null) {
+      // The existing Glimmer Pop keyboard listener already handles in-grid
+      // arrows. Let it run exactly once; two handlers would move two jewels.
+      return;
+    }
+    event.preventDefault();
+    if (jewel) event.stopImmediatePropagation(); // Prevent the legacy handler
+    move(direction);
+  };
+  const poll = (time) => {
+    if (!running) return;
+    if (doc.visibilityState !== 'hidden') {
+      let pad = null;
+      try {
+        if (typeof nav.getGamepads === 'function') {
+          pad = [...(nav.getGamepads() || [])].find(p => p && p.connected !== false && p.mapping === 'standard') || null;
+        }
+      } catch { /* Safari privacy or transient gamepad errors: keep touch/keyboard operational. */ }
+      setConnection(Boolean(pad));
+      if (connected && backLabel) {
+        const selectedCell = activeSection()?.id === 'game' &&
+          doc.querySelector('#pop-board .charm.selected[data-cell]:not([disabled])');
+        const label = pauseOpen() ? 'Resume' : originalModal() ? 'Close' : selectedCell ? 'Deselect' : 'Back';
+        if (backLabel.textContent !== label) backLabel.textContent = label;
+      }
+      const held = readGamepad(pad);
+      if (inputGate.accept(held, Boolean(pad))) {
+        const action = chooseControllerAction(repeater.step(held, time), held);
+        if (action) act(action);
+      } else repeater.reset();
+    } else {
+      repeater.reset();
+      inputGate.reset(); // A held while the app is backgrounded cannot act on resume.
+    }
+    win.requestAnimationFrame(poll);
+  };
+  pause.addEventListener('click', onClick);
+  doc.addEventListener('keydown', onKey, true);
+  win.requestAnimationFrame(poll);
+  return () => {
+    running = false;
+    pause.removeEventListener('click', onClick);
+    doc.removeEventListener('keydown', onKey, true);
+    setConnection(false);
+    closePause();
+  };
+}
+
+if (typeof document !== 'undefined' && typeof window !== 'undefined') startArcadeController();

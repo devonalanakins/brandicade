@@ -111,8 +111,9 @@ test('static host and PWA include backup files without overwriting the offline m
  }
  assert.ok(html.includes('/src/prism-garden/backup-ui.mjs'));
  assert.ok(html.includes('/src/prism-garden/backup.css'));
- assert.match(sw,/route==='\/prism-garden\.html'/);
- assert.match(sw,/cache\.put\(key,copy\)/);
+ assert.match(sw,/DOCUMENT_PATHS=new Set\(\[.*'\/prism-garden\.html'.*\]\)/);
+ assert.match(sw,/if\(request\.mode==='navigate'&&!DOCUMENT_PATHS\.has\(url\.pathname\)\)return;/);
+ assert.match(sw,/cache\.put\(url\.pathname,response\.clone\(\)\)/);
  assert.doesNotMatch(sw,/cache\.put\('\/index\.html',copy\)/);
 });
 

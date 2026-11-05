@@ -40,8 +40,13 @@ export function trySwap(run,a,b){
  let groups=matches(next.board);if(!groups.length)return {ok:false,reason:'no-match',run};
  next.movesLeft--;next.movesMade++;next.turn++;
  const rng={seed:next.seed};let chain=0,removedCount=0,bonuses=0,points=0,got=0;
+ // Bounded visual trace: never persisted with the authoritative run.
+ const visualWaves=[];
  while(groups.length&&chain<25){chain++;const {removed,specials}=blast(groups);bonuses+=specials;for(const index of removed){if(next.board[index]===levelSpec(run.level).targetType)got++;next.board[index]=null;}
- const count=removed.size;removedCount+=count;points+=(count*100+specials*210)*chain;collapse(next.board,rng);groups=matches(next.board);}
+ const count=removed.size;removedCount+=count;points+=(count*100+specials*210)*chain;
+ collapse(next.board,rng);
+ if(visualWaves.length<6)visualWaves.push({cleared:[...removed].sort((a,b)=>a-b),after:[...next.board]});
+ groups=matches(next.board);}
  next.seed=rng.seed;next.score+=points;next.totalMatched+=removedCount;next.collected+=got;next.bestChain=Math.max(next.bestChain,chain);
  const target=levelSpec(run.level).target;
  if(next.collected>=target){next.won=true;next.ended=true;next.score+=next.movesLeft*90;next.stars=next.movesLeft>=8||chain>=4?3:next.movesLeft>=3||chain>=2?2:1;}
@@ -50,7 +55,7 @@ export function trySwap(run,a,b){
    let safe=freshBoard(rng.seed);for(let i=0;i<100&&!findMove(safe.board);i++)safe=freshBoard((safe.seed+0x9e3779b9)>>>0);
    next.board=safe.board;next.seed=safe.seed;
  }
- return {ok:true,run:next,event:{matched:removedCount,gained:points,goal:got,chain,bonuses,won:next.won,ended:next.ended,stars:next.stars}};
+ return {ok:true,run:next,event:{matched:removedCount,gained:points,goal:got,chain,bonuses,won:next.won,ended:next.ended,stars:next.stars,visualWaves}};
 }
 export function validateRun(r){if(!r||r.version!==1||!Number.isInteger(r.level)||r.level<1||r.level>999||!Array.isArray(r.board)||r.board.length!==SIZE*SIZE||!r.board.every(v=>TYPES.includes(v)))return false;
  for(const k of ['seed','movesLeft','score','collected','totalMatched','bestChain','movesMade','stars','turn'])if(!Number.isFinite(r[k])||!Number.isInteger(r[k])||r[k]<0||r[k]>2**32)return false;
