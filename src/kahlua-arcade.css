@@ -139,6 +139,13 @@ body.calm .glimmer-moment{animation:none!important}
 }
 
 
+/* The 640x360 compact phone is height-limited even with 44px jewels. Trim
+ * decorative shell spacing rather than reducing the tap targets or hiding tools. */
+@media(orientation:landscape) and (min-width:640px) and (max-height:370px){
+ #game .game-shell{margin-top:0;padding-top:0;padding-bottom:2px}
+ #game .game-board-outer{padding:5px}
+}
+
 /* Real per-wave cascade playback: no shrinking/reflow of 44px touch targets. */
 #pop-board[data-animating="true"] .charm{pointer-events:none}
 #pop-board .charm.clearing{animation:glimmer-clear .115s ease-in both;position:relative;z-index:2}
