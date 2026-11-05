@@ -171,6 +171,20 @@ function renderTreasures(){
 }
 function renderAll(){applySettings();renderHome();renderProfile();renderTreasures();if($('.section.active')?.id==='game')renderGame();}
 
+// Keep non-modal UI out of keyboard, pointer and accessibility focus while a
+// dialog is present. Reentrant settings renders must not overwrite the original
+// inert states (other overlays or host integrations may have set them already).
+let modalInertSnapshot=null;
+function isolateModalBackground(){
+ if(modalInertSnapshot)return;
+ modalInertSnapshot=[$('#content'),$('.topbar'),$('.bottom-nav')]
+  .filter(Boolean).map(element=>[element,Boolean(element.inert)]);
+ for(const [element] of modalInertSnapshot)element.inert=true;
+}
+function restoreModalBackground(){
+ for(const [element,previous] of modalInertSnapshot||[])element.inert=previous;
+ modalInertSnapshot=null;
+}
 function openModal(kind,origin){interruptGlimmerPresentation();lastTrigger=origin||document.activeElement;const templates={
  brandle:`<div class="eyebrow">The original grove</div><h2 id="modal-title">BRANDLE is ready.</h2><p>Daily Grove and unlimited Wild Run are already playable at their original address. This opens that game in a new tab, keeping its existing browser saves undisturbed. Cross-game achievements and account syncing will arrive only after a verified migration.</p><div class="code-note">BRANDLE progress stays on its original web address for now. BRANDICADE does not claim its achievements yet.</div><div class="dialog-actions"><a class="btn primary" href="https://brandle-glimmer-grove.devonakins.workers.dev/" target="_blank" rel="noopener noreferrer">Open BRANDLE ↗</a><button class="btn secondary" type="button" data-action="close-modal">Stay here</button></div>`,
  help:`<div class="eyebrow">How to play</div><h2 id="modal-title">Glimmer Pop</h2><p>Swap two neighboring charms with a tap or swipe. Match three of the same kind in a row or column to clear them. Bigger matches create special bursts and chains. Collect the glowing target before your moves run out.</p><p>Complete levels to earn stars, XP, glow petals and real achievements. Replay as often as you want — there are no lives to buy or timer penalties.</p><div class="dialog-actions"><button class="btn primary" data-action="close-modal" type="button">Let's play →</button></div>`,
@@ -183,8 +197,8 @@ function openModal(kind,origin){interruptGlimmerPresentation();lastTrigger=origi
  restart:`<div class="eyebrow">Another attempt</div><h2 id="modal-title">Start fresh?</h2><p>Restarting resets the current Glimmer Pop level's board, moves and score. Previously earned stars, XP and achievements stay safe.</p><div class="dialog-actions"><button class="btn primary" data-action="confirm-restart" type="button">Restart this level</button><button class="btn secondary" data-action="close-modal" type="button">Keep playing</button></div>`,
  import:`<div class="eyebrow">Restore a saved garden</div><h2 id="modal-title">Replace local progress?</h2><p>A valid BRANDICADE backup was found. Importing will replace the Glimmer Pop progress currently stored on this device. If the existing save is unreadable, download its original data first. Prism Garden saves are not changed.</p><p id="import-preview"></p><div class="dialog-actions"><button class="btn primary" data-action="confirm-import" type="button">Yes, restore backup</button><button class="btn secondary" data-action="close-modal" type="button">Cancel</button></div>`,
  };$('#modal-body').innerHTML=templates[kind]||templates.help;if(kind==='import'&&importPending){$('#import-preview').textContent=`Backup: Level ${importPending.progression.level}, ${Object.keys(importPending.achievements).length} achievements, ${importPending.progression.totalStars} stars.`;}
- $('#modal').classList.add('open');$('#modal-close').focus();}
-function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();lastTrigger?.focus?.();}}
+ $('#modal').classList.add('open');isolateModalBackground();$('#modal-close').focus();}
+function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();restoreModalBackground();lastTrigger?.focus?.();}}
 function startRun(level){interruptGlimmerPresentation();clearGlimmerMoment();if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
 function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){selected=i;setSelection();sound();return;}
  if(selected===i){selected=null;setSelection();return;}

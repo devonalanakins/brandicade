@@ -159,6 +159,63 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     assert.ok(width<=392,'Kahlua portrait hub cannot horizontally overflow');
    }finally{await context.close();}
   });
+  await t.test('Help and settings dialogs isolate background focus and restore existing inert state',async()=>{
+   const context=await browser.newContext({viewport:{width:844,height:390},
+    serviceWorkers:'block',hasTouch:true});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',error=>errors.push(error.message));
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    // Simulate an independently inactivated gameplay root. Opening a dialog
+    // must preserve, not overwrite, the original inert setting.
+    await page.evaluate(()=>{document.getElementById('content').inert=true;});
+    await page.locator('#settings-open').click();
+    const isolation=()=>page.evaluate(()=>({
+     content:document.getElementById('content').inert,
+     header:document.querySelector('.topbar').inert,
+     nav:document.querySelector('.bottom-nav').inert,
+     open:document.getElementById('modal').classList.contains('open'),
+     focusInModal:Boolean(document.activeElement?.closest('#modal'))
+    }));
+    assert.deepEqual(await isolation(),{content:true,header:true,nav:true,open:true,focusInModal:true},
+     'a modal dialog must isolate all other interactive roots');
+    await page.keyboard.press('Shift+Tab');
+    assert.ok(await page.evaluate(()=>Boolean(document.activeElement?.closest('#modal'))),
+     'reverse Tab must wrap within the dialog rather than reach the arcade');
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),'modal-close',
+     'Tab from the final setting must wrap to the close button');
+    await page.locator('#modal [data-toggle="contrast"]').click();
+    assert.deepEqual(await isolation(),{content:true,header:true,nav:true,open:true,focusInModal:true},
+     'rebuilding an open settings dialog must not lose the original inert snapshot');
+    await page.keyboard.press('Escape');
+    const afterSettings=await page.evaluate(()=>({
+     content:document.getElementById('content').inert,
+     header:document.querySelector('.topbar').inert,
+     nav:document.querySelector('.bottom-nav').inert,
+     focus:document.activeElement?.id,
+     open:document.getElementById('modal').classList.contains('open')
+    }));
+    assert.deepEqual(afterSettings,{content:true,header:false,nav:false,focus:'settings-open',open:false},
+     'dialog close restores prior root states and returns focus to trigger');
+    await page.evaluate(()=>{document.getElementById('content').inert=false;});
+    await page.locator('#home .hero-text [data-action="play"]').click();
+    const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+    await page.locator('#game [data-action="game-help"]').click();
+    assert.deepEqual(await isolation(),{content:true,header:true,nav:true,open:true,focusInModal:true},
+     'game Help should have exactly the same isolation');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#content').evaluate(el=>el.inert),false);
+    assert.equal(await page.evaluate(()=>document.activeElement?.dataset.action),'game-help',
+     'Help close returns focus to its game-level trigger');
+    const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+    assert.deepEqual(after.currentRun,before.currentRun,'dialog navigation never plays a move');
+    assert.deepEqual(after.progression,before.progression,'dialog navigation cannot award stars/XP');
+    assert.deepEqual(after.achievements,before.achievements,'dialog navigation cannot mint rewards');
+    assert.deepEqual(errors,[],'modal keyboard and touch behavior must not throw');
+   }finally{await context.close();}
+  });
+
   await t.test('Glimmer Pop: earned match cues do not reward invalid swaps or lose controller focus',async()=>{
    const context=await browser.newContext({viewport:{width:844,height:390},serviceWorkers:'block',reducedMotion:'reduce'});
    const page=await context.newPage(),errors=[];
