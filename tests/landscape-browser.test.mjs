@@ -379,7 +379,9 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
     });
     await page.reload({waitUntil:'networkidle'});
     await page.locator('#home .hero-text [data-action="play"]').click();
-    await page.locator('#controller-indicator:not([hidden])').waitFor();
+    // Landscape gameplay deliberately hides the indicator visually. Its
+    // connected state is still reflected by the DOM hidden property.
+    await page.waitForFunction(()=>document.getElementById('controller-indicator')?.hidden===false);
     await page.waitForTimeout(90); // neutral gamepad sample arms the input gate
     const predict=()=>page.evaluate(async()=>{
       const {findMove,trySwap}=await import('/src/engine.mjs');
