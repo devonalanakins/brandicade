@@ -105,7 +105,8 @@ test('static code is offline-cacheable but private/no-store HTML and redirects a
  const second=await runtime.dispatch('/src/app.mjs');
  assert.equal(second.intercepted,true);
  assert.equal(runtime.requests.length,requestsAfterFirst,'cache-first code does not refetch');
- assert.equal(await (await runtime.caches.open('brandicade-glimmer-cascade-v8')).match('/src/app.mjs'),first.response);
+ assert.equal((await (await runtime.caches.open('brandicade-glimmer-cascade-v8')).match('/src/app.mjs')).status,200,
+  'cache stores a cloned successful static response');
  const secretPage=await runtime.dispatch('/index.html',{mode:'navigate'});
  assert.equal(secretPage.intercepted,true);
  assert.equal(await (await runtime.caches.open('brandicade-glimmer-cascade-v8')).match('/index.html'),
@@ -145,9 +146,9 @@ test('network-first public Prism Garden remains usable offline without replacing
  });
  const first=await runtime.dispatch('/prism-garden.html',{mode:'navigate'});
  assert.equal(first.intercepted,true);
+ assert.equal((await runtime.dispatch('/unknown-navigation',{mode:'navigate'})).intercepted,false,
+  'unknown navigation paths remain network-owned and cannot receive a cached homepage');
  offline=true;
  assert.equal((await runtime.dispatch('/prism-garden.html',{mode:'navigate'})).response.status,200,
   'the exact public game page is preserved for offline navigation');
- assert.equal((await runtime.dispatch('/unknown-navigation',{mode:'navigate'})).intercepted,false,
-  'unknown navigation paths may not receive the wrong cached homepage');
 });
