@@ -355,6 +355,82 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
    }finally{await context.close();}
   });
 
+  await t.test('quick overlays, backgrounding and rotation never replay a stale cascade',async()=>{
+   const context=await browser.newContext({viewport:{width:844,height:390},
+    serviceWorkers:'block',reducedMotion:'no-preference'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',error=>errors.push(error.message));
+   try{
+    await page.goto(url+'/',{waitUntil:'networkidle'});
+    await page.evaluate(async()=>{
+     const [{newSave,SAVE_KEY},{makeRun}]=await Promise.all([
+      import('/src/progression.mjs'),import('/src/engine.mjs')
+     ]);
+     const save=newSave();save.currentRun=makeRun(1);save.settings.sound=false;
+     localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+    });
+    await page.reload({waitUntil:'networkidle'});
+    await page.locator('#home .hero-text [data-action="play"]').click();
+    const makeMove=async()=>{
+     const expected=await page.evaluate(async()=>{
+      const {findMove,trySwap}=await import('/src/engine.mjs');
+      const run=JSON.parse(localStorage.getItem('brandicade:save:v1')).currentRun;
+      const move=findMove(run.board);
+      if(!move)throw Error('No deterministic valid move');
+      const result=trySwap(run,move.from,move.to);
+      if(!result.ok)throw Error('Predictor rejected a valid move');
+      return {move,run:result.run};
+     });
+     await page.locator('#pop-board [data-cell="'+expected.move.from+'"]').click();
+     await page.locator('#pop-board [data-cell="'+expected.move.to+'"]').click();
+     await page.waitForFunction(()=>document.getElementById('pop-board')?.dataset.animating==='true',
+      null,{timeout:5000});
+     const snapshot=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+     return {expected,snapshot};
+    };
+    const assertSettled=async(state,label)=>{
+     await page.waitForFunction(()=>!document.getElementById('pop-board')?.hasAttribute('data-animating'),
+      null,{timeout:5000});
+     assert.equal(await page.locator('#glimmer-moment').isHidden(),true,label+' must not show old visual rewards');
+     assert.equal(await page.locator('#pop-board').getAttribute('aria-busy'),null,label+' releases board busy');
+     const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('brandicade:save:v1')));
+     assert.deepEqual(saved,state.snapshot,label+' does not change the already committed save');
+     assert.deepEqual(saved.currentRun,state.expected.run,label+' preserves actual move outcome');
+     const board=await page.evaluate(()=>{
+      const kinds=['fern','aqua','ember','sun','orchid','luna'];
+      return [...document.querySelectorAll('#pop-board [data-cell]')].map(cell=>
+       kinds.find(kind=>cell.classList.contains(kind)));
+     });
+     assert.deepEqual(board,state.expected.run.board,label+' restores the authoritative 7x7 board');
+    };
+    const help=await makeMove();
+    // An overlay can open and close between cascade timer callbacks.
+    await page.evaluate(()=>{
+     document.querySelector('#game [data-action="game-help"]').click();
+     document.querySelector('#modal-close').click();
+    });
+    await assertSettled(help,'quick Help open/close');
+    const background=await makeMove();
+    await page.evaluate(()=>{
+     Object.defineProperty(document,'hidden',{
+      configurable:true,get(){return Boolean(window.__testHidden);}
+     });
+     window.__testHidden=true;
+     document.dispatchEvent(new Event('visibilitychange'));
+     window.__testHidden=false;
+     document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await assertSettled(background,'rapid tab background/foreground');
+    const rotated=await makeMove();
+    await page.setViewportSize({width:390,height:844});
+    await assertSettled(rotated,'landscape-to-portrait rotation');
+    assert.ok(await page.locator('#pop-board [data-cell="0"]').isVisible(),
+     'portrait continues to show interactive jewels');
+    await page.setViewportSize({width:844,height:390});
+    assert.deepEqual(errors,[],'interruptions must not throw browser errors');
+   }finally{await context.close();}
+  });
+
   await t.test('Xbox pause and Help interrupt visual cascades without losing genuine progress',async()=>{
    const context=await browser.newContext({
      viewport:{width:844,height:390},serviceWorkers:'block',reducedMotion:'no-preference'

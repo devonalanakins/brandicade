@@ -9,6 +9,10 @@ const escapeHTML=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 const bootSave=inspectLocalSave();
 let save=bootSave.save,saveBlocked=bootSave.status==='unreadable',selected=null,moving=false,lastTrigger=null,importPending=null,noticeTimeout=null,ignoreClickUntil=0;
 let storageWarningShown=false,prevPage='home',cabinetFilter='all';
+// Visual feedback is disposable. Once interrupted, an older turn must never
+// resume its cascade or celebrate after a fast overlay/visibility transition.
+let glimmerPresentationEpoch=0;
+const interruptGlimmerPresentation=()=>{glimmerPresentationEpoch++;};
 const TYPE_LABELS={fern:'fern',aqua:'waterdrop',ember:'ember',sun:'sun',orchid:'orchid',luna:'moonstone'};
 const activeMotion=()=>save.settings.motion==='on'||save.settings.motion==='system'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function commit(){
@@ -73,7 +77,7 @@ function showGlimmerMoment(event){
  moment.hidden=false;momentTimeout=setTimeout(clearGlimmerMoment,1150);
 }
 function ensureRun(){if(!save.currentRun)save.currentRun=makeRun(save.progression.unlockedLevel);commit();return save.currentRun;}
-function navigate(id,replace=false){clearGlimmerMoment();const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(saveBlocked&&id==='game'){id='home';toast('Glimmer Pop progress is locked until a backup is restored.');}if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
+function navigate(id,replace=false){interruptGlimmerPresentation();clearGlimmerMoment();const valid=['home','library','game','profile','treasures','together'];if(!valid.includes(id))id='home';if(saveBlocked&&id==='game'){id='home';toast('Glimmer Pop progress is locked until a backup is restored.');}if(id==='game')ensureRun();prevPage=$('.section.active')?.id||'home';
  $$('.section').forEach(el=>{el.classList.toggle('active',el.id===id);el.setAttribute('aria-hidden',el.id===id?'false':'true')});$$('.nav-button').forEach(el=>{const on=el.dataset.go===id;el.classList.toggle('active',on);on?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current');});
  if(location.hash!==`#${id}`){if(replace)history.replaceState(null,'',`#${id}`);else history.pushState(null,'',`#${id}`)}
  if(id==='game')renderGame();if(id==='profile')renderProfile();if(id==='treasures')renderTreasures();if(id==='home')renderHome();
@@ -167,7 +171,7 @@ function renderTreasures(){
 }
 function renderAll(){applySettings();renderHome();renderProfile();renderTreasures();if($('.section.active')?.id==='game')renderGame();}
 
-function openModal(kind,origin){lastTrigger=origin||document.activeElement;const templates={
+function openModal(kind,origin){interruptGlimmerPresentation();lastTrigger=origin||document.activeElement;const templates={
  brandle:`<div class="eyebrow">The original grove</div><h2 id="modal-title">BRANDLE is ready.</h2><p>Daily Grove and unlimited Wild Run are already playable at their original address. This opens that game in a new tab, keeping its existing browser saves undisturbed. Cross-game achievements and account syncing will arrive only after a verified migration.</p><div class="code-note">BRANDLE progress stays on its original web address for now. BRANDICADE does not claim its achievements yet.</div><div class="dialog-actions"><a class="btn primary" href="https://brandle-glimmer-grove.devonakins.workers.dev/" target="_blank" rel="noopener noreferrer">Open BRANDLE ↗</a><button class="btn secondary" type="button" data-action="close-modal">Stay here</button></div>`,
  help:`<div class="eyebrow">How to play</div><h2 id="modal-title">Glimmer Pop</h2><p>Swap two neighboring charms with a tap or swipe. Match three of the same kind in a row or column to clear them. Bigger matches create special bursts and chains. Collect the glowing target before your moves run out.</p><p>Complete levels to earn stars, XP, glow petals and real achievements. Replay as often as you want — there are no lives to buy or timer penalties.</p><div class="dialog-actions"><button class="btn primary" data-action="close-modal" type="button">Let's play →</button></div>`,
  settings:`<div class="eyebrow">Make yourself comfortable</div><h2 id="modal-title">Arcade settings.</h2><div class="setting-item"><div><b>Sound effects</b><small>Original little chimes when playing and earning rewards.</small></div><button class="switch ${save.settings.sound?'on':''}" role="switch" type="button" aria-label="Sound effects" aria-checked="${save.settings.sound}" data-toggle="sound"></button></div>
@@ -181,7 +185,7 @@ function openModal(kind,origin){lastTrigger=origin||document.activeElement;const
  };$('#modal-body').innerHTML=templates[kind]||templates.help;if(kind==='import'&&importPending){$('#import-preview').textContent=`Backup: Level ${importPending.progression.level}, ${Object.keys(importPending.achievements).length} achievements, ${importPending.progression.totalStars} stars.`;}
  $('#modal').classList.add('open');$('#modal-close').focus();}
 function closeModal(){if($('#modal').classList.contains('open')){$('#modal').classList.remove('open');$('#modal-body').replaceChildren();lastTrigger?.focus?.();}}
-function startRun(level){clearGlimmerMoment();if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
+function startRun(level){interruptGlimmerPresentation();clearGlimmerMoment();if(saveBlocked){toast('Restore a valid Glimmer Pop backup before playing.');return;}save.currentRun=makeRun(level);selected=null;commit();renderAll();navigate('game');toast(`Level ${level} · ${levelSpec(level).title}`);sound('tap');}
 function chooseCell(i){if(moving||ensureRun().ended)return;if(selected===null){selected=i;setSelection();sound();return;}
  if(selected===i){selected=null;setSelection();return;}
  if(!adjacent(selected,i)){selected=i;setSelection();sound();return;}
@@ -214,13 +218,13 @@ function paintGlimmerPreview(types) {
 const glimmerSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 /** Bounded animation of actual matched and refilled cells. If interrupted, the
  * final authoritative board is always redrawn from the already committed run. */
-async function animateGlimmerCascades(previous,from,to,event,committedRun) {
+async function animateGlimmerCascades(previous,from,to,event,committedRun,presentationEpoch) {
  const board=$('#pop-board'),waves=event?.visualWaves;
  if(!board||!activeMotion()||!Array.isArray(waves)||!waves.length)return;
  // Pause overlays take precedence over optional visual playback. The accepted
  // move was already saved; skip remaining waves and show its true final board.
  const presentationUnobstructed=()=>$('#controller-pause')?.hidden!==false&&!$('#modal')?.classList.contains('open');
- const stillPlaying=()=>save.currentRun===committedRun&&$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion()&&presentationUnobstructed();
+ const stillPlaying=()=>glimmerPresentationEpoch===presentationEpoch&&save.currentRun===committedRun&&$('#game')?.classList.contains('active')&&!document.hidden&&activeMotion()&&presentationUnobstructed();
  if(!stillPlaying())return;
  let preview=[...previous.board];[preview[from],preview[to]]=[preview[to],preview[from]];
  if(!paintGlimmerPreview(preview))return;
@@ -254,18 +258,18 @@ async function performSwap(a,b){if(moving||ensureRun().ended)return;const curren
   clearTimeout(noticeTimeout);lastToast.classList.remove('visible');
  }
  const restoreFocusedCell=Boolean(document.activeElement?.closest?.('#pop-board [data-cell]'));
- moving=true;
+ moving=true;const presentationEpoch=glimmerPresentationEpoch;
  save.currentRun=result.run;const awarded=recordTurn(save,result.event);let ended=null;if(result.run.ended)ended=recordEnd(save,result.run);
  // Save the accepted move before any animation: a reload cannot lose earned progress.
  commit();
  try {
   await animateMove(a,b);
-  await animateGlimmerCascades(current,a,b,result.event,result.run);
+  await animateGlimmerCascades(current,a,b,result.event,result.run,presentationEpoch);
  } finally {
   if(save.currentRun===result.run){renderGame();renderHome();renderProfile();renderTreasures();}
   moving=false;
  }
- if(save.currentRun!==result.run||!$('#game').classList.contains('active')||
+ if(glimmerPresentationEpoch!==presentationEpoch||save.currentRun!==result.run||!$('#game').classList.contains('active')||
     $('#modal').classList.contains('open')||$('#controller-pause')?.hidden===false||document.hidden)return;
  if(restoreFocusedCell&&!result.run.ended)$('#pop-board [data-cell="'+b+'"]')?.focus({preventScroll:true});
  showGlimmerMoment(result.event);
@@ -346,6 +350,19 @@ $('#pop-board').addEventListener('pointercancel',()=>{gesture=null});
 window.addEventListener('popstate',()=>navigate(location.hash.slice(1)||'home',true));
 window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)||'home',true));
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',applySettings);
+// Safari backgrounding, rotation, and quick controller pause transitions must
+// never revive optional visual waves. The accepted move was saved first.
+document.addEventListener('visibilitychange',()=>{if(document.hidden)interruptGlimmerPresentation();});
+window.addEventListener('pagehide',interruptGlimmerPresentation);
+window.addEventListener('resize',interruptGlimmerPresentation,{passive:true});
+const glimmerPauseOverlay=$('#controller-pause');
+if(glimmerPauseOverlay){
+ new MutationObserver(records=>{
+  // Prior [hidden] attribute means Pause opened, even if it closed before
+  // this MutationObserver callback: we invalidate that presentation.
+  if(records.some(record=>record.oldValue!==null))interruptGlimmerPresentation();
+ }).observe(glimmerPauseOverlay,{attributes:true,attributeFilter:['hidden'],attributeOldValue:true});
+}
 
 // Ambient 2D light motes; deliberately independent of gameplay and optional.
 function startAmbient(){const canvas=$('#fireflies'),ctx=canvas.getContext('2d');if(!ctx)return;let particles=[],width=0,height=0,dpr=1,time=0,last=0;
