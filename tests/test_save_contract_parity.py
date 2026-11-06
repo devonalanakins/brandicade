@@ -62,6 +62,22 @@ class SaveContractParityTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaisesRegex(SaveContractParityError, "Malformed"):
                 require_save_contract_parity(bad, self.preview, self.pins)
 
+    def test_private_release_cli_gate_accepts_unmodified_save_routes(self):
+        from prepare_frontend_only_cutover import verify_save_contract_before_release
+        def worker(table):
+            return b"/* BRANDICADE synthetic */\nconst FILES = " + table + b";\\nconst SEC = {};\\n"
+        result = verify_save_contract_before_release(
+            worker(self.prod), worker(self.preview), self.pins)
+        self.assertEqual(result["verified_save_contract_routes"], 2)
+
+    def test_private_release_cli_gate_rejects_changed_save_routes(self):
+        from prepare_frontend_only_cutover import verify_save_contract_before_release
+        def worker(table):
+            return b"/* BRANDICADE synthetic */\nconst FILES = " + table + b";\\nconst SEC = {};\\n"
+        changed = self.preview.replace(b"YWJj", b"YWJl")
+        with self.assertRaisesRegex(SaveContractParityError, "changed in preview"):
+            verify_save_contract_before_release(worker(self.prod), worker(changed), self.pins)
+
     def test_pinned_constants_cover_all_existing_game_save_modules(self):
         self.assertEqual(set(PINNED_SAVE_ROUTE_SHA256), {
             "/src/progression.mjs", "/src/prism-garden/save-guard.mjs",
