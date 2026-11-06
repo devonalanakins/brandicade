@@ -21,7 +21,9 @@ jobs:
       - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs tests/prism-run-safety.test.mjs
       - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - run: python3 build_worker.py
-      - run: python3 -m py_compile build_worker.py scripts/build_brandicade_protected.py
+      - name: Verify exact source-to-Worker frontend asset parity
+        run: python3 scripts/verify_release_assets.py --output dist/brandicade-release-assets.json
+      - run: python3 -m py_compile build_worker.py scripts/build_brandicade_protected.py scripts/verify_release_assets.py
       - run: python3 scripts/build_brandicade_protected.py
       - run: node --check dist/brandicade-protected.candidate.mjs
       - run: node --test tests/brandicade-protected-worker.test.mjs tests/cloud-sync.test.mjs tests/cloud-sync-ui.test.mjs tests/legacy-recovery-integration.test.mjs tests/legacy-write-api.test.mjs
@@ -47,6 +49,12 @@ jobs:
           path: .artifacts/landscape/*.png
           if-no-files-found: warn
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brandicade-static-provenance
+          path: dist/brandicade-release-assets.json
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: brandicade-protected-candidate
