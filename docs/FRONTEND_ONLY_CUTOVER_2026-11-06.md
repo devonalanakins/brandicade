@@ -45,6 +45,33 @@ python3 scripts/prepare_frontend_only_cutover.py \
 
 The historical, hash-only receipt documents this particular November 6 readback and **must be re-pinned** if either Worker deployment changes. `scripts/prepare_frontend_only_cutover.py` never proves the current provider version remains the same; that requires a fresh provider API check.
 
+## Pinned save-contract compatibility gate (November 6)
+
+The private production and preview Worker readbacks showed **byte-identical
+packaged entries** for these seven game-progress modules:
+`/src/progression.mjs`, `/src/prism-garden/save-guard.mjs`,
+`/src/prism-garden/backup.mjs`, `/src/prism-garden/achievements.mjs`,
+`/src/prism-garden/engine.mjs`, `/src/arcade-passport.mjs`, and
+`/src/cloud-sync.mjs`. Each entry's SHA-256 was pinned from production;
+no source, secrets, player IDs or personal saved-game data were exported.
+
+The private `scripts/prepare_frontend_only_cutover.py` **command path** now
+calls `verify_save_contract_before_release` before writing any candidate,
+using `scripts/save_contract_parity.py`. It fails closed when any pinned
+entry changes, is missing, or differs from production. The fixed pin prevents
+a simultaneous change to both production/preview inputs from passing.
+
+This is **static contract compatibility only**, not a real-world save-data
+migration or restoration test. In particular, no conclusion is possible about
+Brandi's Safari/PWA device-local progress; a green test is **not permission**
+to clear browser data or replace the live Worker. Cloud D1 aggregate counts
+do not substitute for device-held backups, signed user acceptance or a
+recoverable production release.
+
+Local tests: `python3 -m unittest discover -s tests -p
+'test_save_contract_parity.py' -v`. The guarded non-deploying GitHub workflow
+runs these checks in addition to the existing protected cutover tests.
+
 ## Explicit release gates — still OPEN
 
 1. Preserve and verify Brandi's original iPhone-local Glimmer and Prism Garden saves with independent backups. Cloud D1 aggregate counts of zero are not evidence of an empty iPhone.
