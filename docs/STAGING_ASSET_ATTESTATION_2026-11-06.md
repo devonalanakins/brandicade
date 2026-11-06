@@ -26,6 +26,7 @@ python3 scripts/attest_staging_assets.py \
   --service-worker sw.js \
   --cloud-sync src/cloud-sync.mjs \
   --expected-version 0e57ae55-d3ab-4157-a4c8-ebdb11f9da89 \
+  --expected-deployment 8e1ec85d-d64e-41ac-b9da-7b3149d645e3 \
   --output dist/staging-frontend-attestation.json
 python3 -m unittest discover -s tests -p 'test_staging_asset_attestation.py' -v
 ```
