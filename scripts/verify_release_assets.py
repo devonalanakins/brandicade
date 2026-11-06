@@ -25,8 +25,15 @@ def read_asset_table(worker_source: str):
     if worker_source.count(START) != 1 or worker_source.count(END) != 1:
         raise ValueError('Standalone static Worker asset boundary is ambiguous')
     raw = worker_source.split(START, 1)[1].split(END, 1)[0]
+    def no_duplicates(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate key in static Worker asset table: ' + key)
+            result[key] = value
+        return result
     try:
-        entries = json.loads(raw)
+        entries = json.loads(raw, object_pairs_hook=no_duplicates)
     except json.JSONDecodeError as exc:
         raise ValueError('Standalone Worker asset table is not JSON') from exc
     if not isinstance(entries, dict):
