@@ -13,7 +13,7 @@
 
 ## Execution boundaries: source integration versus deployment
 
-1. **Review and integrate source to `main`.** Preserve existing GitHub hero, source history and existing branches. Source integration is a development milestone, **not** a production rollout. Resolve any merge conflicts and run exact-head CI before merging. Keep the release workflow deployment-free.
+1. **Source integration COMPLETE (November 6).** [PR #16](https://github.com/devonalanakins/brandicade/pull/16) merged into `main`, preserving GitHub hero, all prior history, and the nondeploying verification workflow. Exact premerge-head [CI 42263850160](https://github.com/devonalanakins/brandicade/actions/runs/42263850160) passed. This **was not a production rollout**.
 2. **Verify static asset parity.** Build `python3 build_worker.py`, then run `python3 scripts/verify_release_assets.py`. CI must publish the deterministic content-addressed frontend-only receipt. This proves compressed static routes match their source bytes, **not** backend/deployment parity.
 3. **Inspect protected runtime parity.** Compare asset routing, signed Access verification, /api/session, GET/PUT /api/save and /api/backups, legacy record schema, Cloudflare Access environment, client injection and service-worker cache behavior. Create a production-equivalent **isolated** protected Worker using disposable D1 and approved private preview Access settings; test wrong-identity denial, stale revisions, backup conflicts, signed roles and cache bypass.
 4. **Preserve actual data.** Check the current production D1 metadata, owner-controlled encrypted export and isolated restore on a disposable database. Check Brandi's local `brandicade:save:v1` and separate `brandicade:prism-garden:v1` on her own iPhone. Do not clear site data, rename origin, auto-merge progress, delete D1, or expose player records in logs.
@@ -33,12 +33,16 @@
 - [ ] Export Glimmer and Prism saves before browser/site data changes; retain and independently confirm backups.
 - [ ] Record actual production deployment hash and version, post-cutover readback, rollback route and observer.
 
+## Additional read-only Cloudflare verification (November 6)
+
+Production and preview Workers each have a `SAVES` D1 binding, pointing to **distinct** databases with matching `saves` and `save_history` column structures (read-only PRAGMA metadata checks). Aggregate production query returned **0 saves and 0 history records at the instant queried**. No player rows or private values were fetched. Both `brandicade.anevum.com` and `prism.anevum.com` retain separate, audience-bound Cloudflare Access self-hosted applications with one policy each. This is not a real-user login, backup, or proof of device-local save absence. Production Worker still remained on deployment `49b2368d-4a9f-40a0-94f5-b3cc627827cc` after PR #16 merged.
+
 ## Release gate disposition
 
 | Requirement | November 6 disposition |
 | --- | --- |
-| New game and controller source integrated to latest release branch | **Implemented** — PR #15 merged into PR #12 branch |
-| Static/frontend source-to-build parity | **Implementation active** — new CI receipt; verify exact CI result on integration PR |
+| New game and controller source integrated to `main` | **Implemented** — PR #15 merged into PR #12 branch; source integration [PR #16](https://github.com/devonalanakins/brandicade/pull/16) merged November 6 |
+| Static/frontend source-to-build parity | **VERIFIED** — integration head `f5586afd` passed [CI 42263850160](https://github.com/devonalanakins/brandicade/actions/runs/42263850160), including the new asset manifest and protected dry-run. Not backend/live parity. |
 | Production backend parity and license provenance | **Open** — current original backend differs from source candidate |
 | Encrypted owner-held backup, isolated restore, origin-safe device preservation | **Open** — older metadata counts do not prove private local progress is absent |
 | Signed-in production-equivalent Access/D1 and physical iPhone/Xbox testing | **Open** |
