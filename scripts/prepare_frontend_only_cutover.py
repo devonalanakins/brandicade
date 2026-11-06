@@ -16,6 +16,8 @@ import re
 import stat
 from pathlib import Path
 
+from save_contract_parity import require_save_contract_parity
+
 ROOT = Path(__file__).resolve().parent.parent
 ASSET_START = b'const FILES = '
 ASSET_END = b';\nconst SEC = '
@@ -175,6 +177,17 @@ def private_write(path, candidate, root=ROOT):
     return destination
 
 
+def verify_save_contract_before_release(production_payload, preview_payload, pinned_hashes=None):
+    """Fail closed if any pinned game-progress module differs before candidate export.
+
+    Operates only on the static asset table. It cannot inspect local Safari saves
+    or prove an independent backup/restore occurred.
+    """
+    prod_table = split_worker(extract_module(production_payload))[1]
+    stage_table = split_worker(extract_module(preview_payload))[1]
+    return require_save_contract_parity(prod_table, stage_table, pinned_hashes)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--production', type=Path, required=True,
@@ -187,10 +200,14 @@ def main():
                         help='Optional private output within ignored dist/private/; never deploys')
     args = parser.parse_args()
     receipt = load_receipt(args.receipt)
-    candidate = compose(args.production.read_bytes(), args.preview.read_bytes(), receipt)
+    production_payload = args.production.read_bytes()
+    preview_payload = args.preview.read_bytes()
+    candidate = compose(production_payload, preview_payload, receipt)
+    save_parity = verify_save_contract_before_release(production_payload, preview_payload)
     if args.write_candidate:
         private_write(args.write_candidate, candidate)
     print('VERIFIED asset-only cutover projection:', digest(candidate))
+    print('VERIFIED pinned static save-contract assets:', save_parity['verified_save_contract_routes'])
     print('Production Access audience, player/admin mapping and backend retained byte-for-byte')
     print('NOT VERIFIED: owner device backup, live login, DNS, restore, production deployment')
     print('NO NETWORK OR PRODUCTION WRITE PERFORMED')
