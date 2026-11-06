@@ -28,6 +28,10 @@ jobs:
       - run: python3 build_worker.py
       - name: Verify exact source-to-Worker frontend asset parity
         run: python3 scripts/verify_release_assets.py --output dist/brandicade-release-assets.json
+      - name: Verify nondeploying source-exact preview asset assembly
+        run: |
+          python3 -m py_compile scripts/prepare_current_preview.py
+          python3 -c 'import sys; from pathlib import Path; sys.path.insert(0,"scripts"); from prepare_current_preview import build_preview_asset_table,BRIDGE_ROUTE; from build_worker import ASSETS; table,proof=build_preview_asset_table(Path("dist/brandicade.worker.js").read_bytes()); assert b"brandicade-glimmer-cascade-cloud-bridge-v9" not in table; assert b"\\\"/src/backup-file-check.mjs\\\"" in table; assert b"\\\"/src/cloud-sync.mjs\\\"" in table; assert proof["route_count"]==len(ASSETS)'
       - run: python3 -m py_compile build_worker.py scripts/build_brandicade_protected.py scripts/verify_release_assets.py
       - run: python3 scripts/build_brandicade_protected.py
       - run: node --check dist/brandicade-protected.candidate.mjs
