@@ -1,55 +1,57 @@
-# BRANDICADE — The Living Arcade
+<p align="center"><img src=".github/assets/readme-hero.svg" alt="Original Brandicade project artwork" width="100%" /></p>
 
-> **Recovery snapshot, not a production deployment source.** The static V1.0.1 archive matches the 14 static assets embedded in the current Worker. The deployed cloud-save and Access layer is not included here. Do not deploy this static build over the existing Worker: doing so could break cloud saves or access.
->
-> The archive's LICENSE is MIT, but its Worker build script emits a GPLv3 source notice. That discrepancy needs provenance review before asserting a definitive license for every component. The original notices are preserved.
+# Brandicade — The Living Arcade
 
+Brandicade is a private, offline-first family arcade built for Brandi, with Kahlua as its **only companion character**. Its game engines, public-safe source, and verification tests live here. Private game progress belongs to its original browser origin and protected storage, not to this public repository.
 
-An original, offline-first, private-personal arcade made for Brandi. The source is open; the profile and game data stay in the browser.
+## Source versus production (November 6, 2026)
 
-## Current vertical slice
-- Responsive cinematic atrium, Games, Glimmer Pop, Brandi Profile, Treasures, Together preview.
-- Glimmer Pop: original 7x7 match-three engine, swipe/tap swaps, cascades, special 4+/5+ clears, collectible objectives, 3-star results, 12 named stages with further numbered levels, restart, hints, level map.
-- Persistent device-local progression: XP, titles, frames, three avatars, 10 event-driven achievements, statistics, stars, and local backup export/import.
-- PWA app shell with offline caching; reduced motion, high contrast, color-assist labels, optional synthesized sound.
-- Brandle has two **one-tap launchers** (home and Games library) to its original, working website; its saved progress remains on the original origin. Full in-arcade hosting and shared progression are not yet implemented. See [the Brandle restoration boundary](docs/BRANDLE_RESTORATION.md).
+| System | Verified state |
+| --- | --- |
+| **Production** — [brandicade.anevum.com](https://brandicade.anevum.com) | Cloudflare Worker `brandicade` still serves the November 3 Prism Garden integration release, deployment `49b2368d-4a9f-40a0-94f5-b3cc627827cc` / version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` (observed in Cloudflare on November 6). |
+| **Latest source** | Landscape-first Kahlua arcade and controller improvements from [PR #15](https://github.com/devonalanakins/brandicade/pull/15) were merged into `release/prism-bloom-protected-parity-20261103`, **not** production. |
+| **Protected runtime candidate** | [PR #12](https://github.com/devonalanakins/brandicade/pull/12) provides a reconstructed signed-Access/D1 backend. It is **not byte-identical to the deployed legacy Worker**, and cloud writes are disabled by default. |
+| **Staging** — `prism.anevum.com` | Private preview Worker, with separate D1/Access configuration. It is not a replacement production origin or a transferable player-save origin. |
+| **Repository integration** | The branch merging all current release source into `main` must be reviewed separately. A source merge **does not** deploy a Worker. |
 
-## Local development
-Serve the folder at its root (not via `file://`) using a static web server:
+**Do not upload `dist/brandicade.worker.js`, or any unbundled candidate, over the protected production Worker.** The standalone static artifact lacks production Access and cloud-save APIs. No existing origin, D1 record, Cloudflare Access application, or Safari storage may be reset to simplify a release.
+
+## What the latest release candidate includes
+
+- **Living Arcade:** Kahlua-only welcome and responsive forest-green atrium; no Brandi avatar or fabricated achievements.
+- **Glimmer Pop:** original 7×7 match game with progression, awards, save protection, animation and pause isolation.
+- **Prism Garden:** 18 original deterministic jewel puzzles across three worlds, accessible guided hints, undo, living-scene restoration, own local backup and earned achievements.
+- **Unified controls:** touch and keyboard, plus synthetic-tested Xbox standard Gamepad API mapping, pause/back/selection, directional navigation, and landscape CSS for short phone viewports. Actual physical iPhone/Bluetooth Xbox acceptance remains open.
+- **Shared arcade passport:** rewards derived only from legitimately earned game progress; no synthetic awarded status.
+- **Brandle:** direct launch to its existing independently hosted origin; no iframe or automatic migration of its saved progress.
+- **Private storage:** explicit device backup/export/import; opt-in Glimmer Pop cloud reconciliation. Prism Garden uses its own separate local namespace. Cloud save write recovery is a candidate and must not be assumed live.
+
+The existing source contains focused Node tests, Python build and recovery tests, WebKit/Chromium browser tests, and nondeploying protected Worker simulation and Wrangler dry-run bundling. At head `fe047a3c8958e069e9cb649103b9db8e87751389`, [CI run 41954720457](https://github.com/devonalanakins/brandicade/actions/runs/41954720457) succeeded. Its browser/device simulations do **not** establish physical-device, authenticated production, backup/restore, or licensing acceptance.
+
+## Local development and verification
 
 ```sh
 python3 -m http.server 8788
 node --test tests/logic.test.mjs
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 build_worker.py
+python3 scripts/verify_release_assets.py --output dist/brandicade-release-assets.json
+python3 scripts/build_brandicade_protected.py
 ```
 
-This recovered static snapshot has no runtime dependencies, trackers, ads, payment services, third-party libraries or server database. The live application has a separate cloud-save layer not present in this deployable snapshot. The branch also includes **non-deploying** read-only API/D1 adapters and new candidate signed Access-role and transactional save/history modules, tested with synthetic identities, disposable SQLite, and an isolated disposable Cloudflare D1/Worker test. None is connected to the live Worker or its D1 database; authenticated owner acceptance, encrypted backup/restore, licensing and a safe production release remain incomplete. See [read-contract notes](docs/LEGACY_API_READ_RECOVERY.md), [signed-role/write staging](docs/ACCESS_ATOMIC_WRITE_RECOVERY.md), and [disposable D1 integration evidence](docs/D1_DISPOSABLE_INTEGRATION_2026-10-30.md). Uses native ES modules. The game and progress engines are deliberately pure/testable.
+The static source browser is for **local gameplay preview only**; it cannot exercise real protected cloud writes. `verify_release_assets.py` compares each deterministic static Worker route, MIME type and decompressed bytes to the current repository and writes a content-addressed **frontend-only** receipt; it neither asserts server parity nor deploys. The protected builder generates an **unbundled review candidate**; the GitHub verification workflow uses a pinned Wrangler dry-run bundle and synthetic security tests. Build outputs remain under `dist/`.
 
-## Important boundaries
-- This is a **device-local profile**, not a secure cross-device login. Export backups before clearing Safari data or changing phones.
-- Brandle runs on its original Cloudflare worker. It retains its own localStorage and statistics; no false shared awards are generated.
-- Never edit or deploy the ANEVUM apex worker, the original Brandle worker, or clinical business infrastructure.
-- The current design is a working vertical slice, not a finished commercial-scale AAA mobile game. Real-device testing, performance profiling, art/audio refinement, secure authentication if desired, and deeper level balancing remain open.
-- Personal content is not included in the repository. Do not place private letters, photos, credentials, or Brandi's saves in public code.
+## Release and privacy boundaries
 
-## Files
-- `index.html`, `src/styles.css`, `src/app.mjs`: UI and interactions
-- `src/engine.mjs`: pure match-three engine
-- `src/progression.mjs`: local profile, achievements, backup validation
-- `assets/`: original BRANDICADE art
-- `sw.js`, `manifest.webmanifest`: installable PWA shell
-- `tests/`: engine and browser checks
+**Release remains gated** until the owner completes or documents evidence for:
 
-## Next release gates
-1. Real iPhone Safari playthrough and PWA install, including reload and airplane mode.
-2. Automated complete win/loss test, multiple device sizes, save backup/restore and storage denial.
-3. Add a versioned Brandle export/import path without touching its existing local saves.
-4. Polish piece-by-piece swap/cascade animation and match-three difficulty curve, audio and performance.
-5. Recover and verify the existing cloud-save and access implementation, resolve source and licensing provenance, and verify backups and rollback before any deployment handover.
+1. Signed-in real-player and admin access checks on private staging, including denied users.
+2. Safe owner-held backup of any real device/cloud saves, isolated verified restore, and origin-preserving reload/upgrade checks.
+3. Production-equivalent Access/D1 bindings, legacy save API contract, conflict/rollback tests, and reviewed secrets/configuration (never committed).
+4. Real iPhone Safari/PWA/offline/touch accessibility and physical Bluetooth Xbox testing.
+5. MIT/GPLv3 source and generated Worker header provenance reconciliation, preserving all applicable notices.
+6. Reviewed production release artifact, current deployment/rollback identifiers, observed post-deployment checks, and only then retirement of the obsolete Prism hostname.
 
-## Repository ownership and recovery
+For current evidence, see [protected release candidate](docs/PRISM_BLOOM_PROTECTED_RELEASE.md), [November 3 release receipt](docs/PRISM_GARDEN_PRODUCTION_RELEASE_2026-11-03.md), and [cutover checklist](docs/BRANDICADE_MAIN_CUTOVER_2026-11-06.md). The requirements and sign-off are tracked in [Brandicade issue #2](https://github.com/devonalanakins/brandicade/issues/2) and the [living project record](https://app.notion.com/p/40a88cc2ef1481bbbcdce71be63b935e).
 
-This repository is the intended independent source home for BRANDICADE, including its game interface, shared progression, tests and release documentation. The original recovery archive was imported into [draft PR #1](https://github.com/anevum/brandicade/pull/1); the default branch remains a recovery placeholder until the draft has been reviewed and merged.
-
-This branch is **not** an authoritative replacement for the running application. The deployed Worker has separate cloud-save and access logic that is absent from this static archive. Verify authenticated account isolation, source provenance, backups/restoration and release ownership before any production deployment. Preserve existing live game progress. Resolve the original MIT/GPLv3 licensing notices without silently stripping or rewriting them.
-
-Project index: [anevum/anevum](https://github.com/anevum/anevum) · [GitHub reorganization handoff](https://github.com/anevum/anevum/blob/main/handoffs/ANEVUM.OPS.PACKAGE.2026-10-30.002.md)
+This remains an independent **family project**, not part of ANEVUM's commercial creative universe. Never add access tokens, partner information, private photos, personal save blobs, or clinical records to public source. The existing MIT `LICENSE` and inherited GPLv3 notice disagree; do not silently remove, replace, or reinterpret either before provenance review.
