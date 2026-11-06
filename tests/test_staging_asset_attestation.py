@@ -37,7 +37,7 @@ class StagingAssetAttestationTests(unittest.TestCase):
             'hostname': 'prism.anevum.com', 'script': 'brandicade-prism-preview-20261103',
             'deployment_id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             'version_id': 'ffffffff-1111-2222-3333-444444444444',
-            'asset_count': 3, 'assets': observed_assets,
+            'asset_count': 3, 'assets': observed_assets, 'claims': [],
         }
 
     @staticmethod
@@ -54,13 +54,14 @@ class StagingAssetAttestationTests(unittest.TestCase):
         return hashlib.sha256(json.dumps(body, sort_keys=True,
                     separators=(',', ':')).encode('utf-8')).hexdigest()
 
-    def verify(self, source=None, observed=None, sw=None, cloud=None, version=None):
+    def verify(self, source=None, observed=None, sw=None, cloud=None, version=None, deployment=None):
         return attestation(
             self.source if source is None else source,
             self.observed if observed is None else observed,
             self.sw if sw is None else sw,
             self.cloud if cloud is None else cloud,
             self.observed['version_id'] if version is None else version,
+            self.observed['deployment_id'] if deployment is None else deployment,
         )
 
     def test_valid_snapshot_requires_exact_source_assets_and_two_known_changes(self):
@@ -117,6 +118,20 @@ class StagingAssetAttestationTests(unittest.TestCase):
                 observed = copy.deepcopy(self.observed)
                 observed[key] = bad
                 self.verify(observed=observed)
+
+    def test_pinned_deployment_id_mismatch_fails(self):
+        with self.assertRaisesRegex(AttestationError, 'Staging deployment differs'):
+            self.verify(deployment='00000000-0000-0000-0000-000000000000')
+
+    def test_extra_unrecognized_manifest_fields_fail_closed(self):
+        src = copy.deepcopy(self.source)
+        src['unsupported'] = True
+        with self.assertRaisesRegex(AttestationError, 'source manifest'):
+            self.verify(source=src)
+        seen = copy.deepcopy(self.observed)
+        seen['unexpected'] = 'field'
+        with self.assertRaisesRegex(AttestationError, 'staging receipt'):
+            self.verify(observed=seen)
 
     def test_modified_source_manifest_is_rejected_even_if_route_hash_matches(self):
         for key, value in [('route_count', 4), ('manifest_sha256', 'f' * 64)]:
