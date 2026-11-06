@@ -12,7 +12,7 @@ Brandicade is a private, offline-first family arcade built for Brandi, with Kahl
 | **Latest source** | Landscape-first Kahlua arcade and controller improvements from [PR #15](https://github.com/devonalanakins/brandicade/pull/15) were merged into `release/prism-bloom-protected-parity-20261103`, **not** production. |
 | **Protected runtime candidate** | [PR #12](https://github.com/devonalanakins/brandicade/pull/12) provides a reconstructed signed-Access/D1 backend. It is **not byte-identical to the deployed legacy Worker**, and cloud writes are disabled by default. |
 | **Staging** — `prism.anevum.com` | Private preview Worker, with separate D1/Access configuration. It is not a replacement production origin or a transferable player-save origin. |
-| **Repository integration** | The branch merging all current release source into `main` must be reviewed separately. A source merge **does not** deploy a Worker. |
+| **Repository integration** | Current release source was merged into `main` in [PR #16](https://github.com/devonalanakins/brandicade/pull/16) on November 6, 2026. **Source merge does not deploy a Worker.** |
 
 **Do not deploy or upload `dist/brandicade.worker.js`, or any unbundled candidate, over the protected production Worker.** The standalone static artifact lacks production Access and cloud-save APIs. No existing origin, D1 record, Cloudflare Access application, or Safari storage may be reset to simplify a release.
 
@@ -26,7 +26,7 @@ Brandicade is a private, offline-first family arcade built for Brandi, with Kahl
 - **Brandle:** direct launch to its existing independently hosted origin; no iframe or automatic migration of its saved progress.
 - **Private storage:** explicit device backup/export/import; opt-in Glimmer Pop cloud reconciliation. Prism Garden uses its own separate local namespace. Cloud save write recovery is a candidate and must not be assumed live.
 
-The existing source contains focused Node tests, Python build and recovery tests, WebKit/Chromium browser tests, and nondeploying protected Worker simulation and Wrangler dry-run bundling. At head `fe047a3c8958e069e9cb649103b9db8e87751389`, [CI run 41954720457](https://github.com/devonalanakins/brandicade/actions/runs/41954720457) succeeded. Its browser/device simulations do **not** establish physical-device, authenticated production, backup/restore, or licensing acceptance.
+The existing source contains focused Node tests, Python build and recovery tests, WebKit/Chromium browser tests, and nondeploying protected Worker simulation and Wrangler dry-run bundling. At source integration head `f5586afd04aa3665d217351c024654b34dd16b4c`, [CI run 42263850160](https://github.com/devonalanakins/brandicade/actions/runs/42263850160) succeeded, including new static provenance verification, the protected Worker dry-run bundle, and Chromium/WebKit browser tests. Its browser/device simulations do **not** establish physical-device, authenticated production, backup/restore, or licensing acceptance.
 
 ## Local development and verification
 
