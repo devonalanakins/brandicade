@@ -762,3 +762,50 @@ test('Chromium landscape geometry and keyboard controls: real DOM, isolated save
   await new Promise(resolve=>server.close(resolve));
  }
 });
+
+test('read-only backup file controls accept valid exports without restoring in Chromium', {timeout:150000},async()=>{
+ const [{newSave,exportSave},{newProgress},{makeBackup}]=await Promise.all([
+  import('../src/progression.mjs'),
+  import('../src/prism-garden/achievements.mjs'),
+  import('../src/prism-garden/backup.mjs'),
+ ]);
+ const server=staticServer(),url=await waitForListening(server);
+ let browser;
+ try{
+  browser=await chromium.launch({headless:true});
+  const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  try{
+   await page.goto(url+'/',{waitUntil:'networkidle'});
+   await page.locator('#settings-open').click();
+   await page.getByRole('button',{name:'Check backup file'}).click();
+   const original=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+   await page.locator('#verify-file').setInputFiles({
+    name:'glimmer-check.json',mimeType:'application/json',
+    buffer:Buffer.from(exportSave(newSave())),
+   });
+   await page.waitForFunction(()=>document.querySelector('#toast')?.textContent?.includes('No saved progress changed.'));
+   assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),original,
+    'checking Glimmer file must not mutate local progress');
+   await page.goto(url+'/prism-garden.html',{waitUntil:'networkidle'});
+   await page.getByRole('button',{name:/Settings/}).first().click();
+   await page.locator('#pg-backup-verify').waitFor();
+   const prismRaw=await page.evaluate(()=>localStorage.getItem('brandicade:prism-garden:v1'));
+   const glimmerRaw=await page.evaluate(()=>localStorage.getItem('brandicade:save:v1'));
+   const content=await makeBackup(newProgress());
+   await page.locator('#pg-backup-check').setInputFiles({
+    name:'prism-check.json',mimeType:'application/json',buffer:Buffer.from(content),
+   });
+   await page.waitForFunction(()=>document.querySelector('#pg-backup-status')?.textContent?.includes('passed its checksum'));
+   assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:prism-garden:v1')),prismRaw,
+    'checking Prism file must not write puzzle progress');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),glimmerRaw,
+    'checking Prism file must not write Glimmer progress');
+   assert.deepEqual(errors,[],'read-only checks must not throw browser exceptions');
+  }finally{await context.close();}
+ }finally{
+  if(browser)await browser.close();
+  await new Promise(resolve=>server.close(resolve));
+ }
+});
