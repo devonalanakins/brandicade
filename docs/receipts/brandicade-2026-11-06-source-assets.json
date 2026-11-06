@@ -1,0 +1,253 @@
+{
+  "assets": [
+    {
+      "mime": "image/svg+xml",
+      "route": "/assets/atrium.svg",
+      "sha256": "7aaee0efcd21edca5b81b567013b17f2fb4eee4987bb8a9cce441b418a45f2a9",
+      "size_bytes": 2757,
+      "source": "assets/atrium.svg"
+    },
+    {
+      "mime": "image/png",
+      "route": "/assets/icon-1024.png",
+      "sha256": "807371804ab09704782f0a56a40ca461dd3d34928012faa7b3562c9f3187b5d1",
+      "size_bytes": 34221,
+      "source": "assets/icon-1024.png"
+    },
+    {
+      "mime": "image/png",
+      "route": "/assets/icon-192.png",
+      "sha256": "84d040a829b7d4887ce544c59a9182fd5861e37a2a01d9dbb0b538d71ba2b9c1",
+      "size_bytes": 5922,
+      "source": "assets/icon-192.png"
+    },
+    {
+      "mime": "image/png",
+      "route": "/assets/icon-512.png",
+      "sha256": "30c777f0178c1192b4566ae882563c54d34ea54a8f9c5d9d8ae707ffafaf94c3",
+      "size_bytes": 18475,
+      "source": "assets/icon-512.png"
+    },
+    {
+      "mime": "image/svg+xml",
+      "route": "/assets/icon.svg",
+      "sha256": "5e253cd867f0c117b9e52bcd090022b8618d68c1ef4f19ea4dff34c70fe17abb",
+      "size_bytes": 2550,
+      "source": "assets/icon.svg"
+    },
+    {
+      "mime": "image/svg+xml",
+      "route": "/assets/kahlua-companion.svg",
+      "sha256": "5bdf4f71007f96e25af29c5987de296d7b6d43ec29a1cb91a77c16472e4f0948",
+      "size_bytes": 7285,
+      "source": "assets/kahlua-companion.svg"
+    },
+    {
+      "mime": "image/svg+xml",
+      "route": "/assets/mark.svg",
+      "sha256": "8e113a9fe18287116dacd2abff7fd2315c4375dbd127e2d16196f207c20be8e6",
+      "size_bytes": 498,
+      "source": "assets/mark.svg"
+    },
+    {
+      "mime": "image/jpeg",
+      "route": "/assets/share.jpg",
+      "sha256": "533063f3ffd4121801aabe4f68db374979b151a75767d21f248f22118cfca09b",
+      "size_bytes": 67255,
+      "source": "assets/share.jpg"
+    },
+    {
+      "mime": "text/html; charset=utf-8",
+      "route": "/index.html",
+      "sha256": "4c8f72c825ff1571e218b76ba7bcac499fbc86b8ef17d83dc76d0a37e6635063",
+      "size_bytes": 26900,
+      "source": "index.html"
+    },
+    {
+      "mime": "application/manifest+json; charset=utf-8",
+      "route": "/manifest.webmanifest",
+      "sha256": "9ac15a5e2649e272b4798d7dd26ebe693ec64f6689e02eb3212d8b213ba69cf6",
+      "size_bytes": 639,
+      "source": "manifest.webmanifest"
+    },
+    {
+      "mime": "text/html; charset=utf-8",
+      "route": "/prism-garden.html",
+      "sha256": "61b7c5c6d2a7672165a8361b577f101056dd70c5dc67a9bcc501d122bf6ca01d",
+      "size_bytes": 796,
+      "source": "prism-garden.html"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/app.mjs",
+      "sha256": "d1d941dec5a505415bab02855413824edd518cdd04b9ae2d27e67fe6d9c01b9e",
+      "size_bytes": 45959,
+      "source": "src/app.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/arcade-controller.mjs",
+      "sha256": "183e568bd52d7c389ee712beb0eaa59cb05bd1636fc07253888912b4787353cd",
+      "size_bytes": 14632,
+      "source": "src/arcade-controller.mjs"
+    },
+    {
+      "mime": "text/css; charset=utf-8",
+      "route": "/src/arcade-landscape.css",
+      "sha256": "544a7ea18a63ba048a9641124f530a07a620d337f45c482467aea46211241fb4",
+      "size_bytes": 6375,
+      "source": "src/arcade-landscape.css"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/arcade-passport.mjs",
+      "sha256": "03af045b1166942d3cffff0d9f1e053206252a7bb1c6ec5572db7100b215a688",
+      "size_bytes": 2837,
+      "source": "src/arcade-passport.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/engine.mjs",
+      "sha256": "7f9d9ba9cf9229cdf246d510d69d9a7b61da468d68eaf74b4bf4a57a870557b4",
+      "size_bytes": 5983,
+      "source": "src/engine.mjs"
+    },
+    {
+      "mime": "text/css; charset=utf-8",
+      "route": "/src/kahlua-arcade.css",
+      "sha256": "f2da787a99b2cbdd8e06486ff4c9638aecb63a9fb89a3287da5f4a7a43ed5e56",
+      "size_bytes": 15446,
+      "source": "src/kahlua-arcade.css"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/kahlua-companion.mjs",
+      "sha256": "d29a76de4176dc8e678108c3a0e41d06a9da186e3cc0fa39a5e858c496b4d322",
+      "size_bytes": 1080,
+      "source": "src/kahlua-companion.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/achievements.mjs",
+      "sha256": "336ed21badfa519c91f9ac48f488dcff785cd49c3396d3111386e91f97a9dd08",
+      "size_bytes": 7753,
+      "source": "src/prism-garden/achievements.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/app.mjs",
+      "sha256": "7dbf9e855c6ebd13c0ad4a023d176f8161934f6e00b696a1c3cbf91bea1e79a5",
+      "size_bytes": 26950,
+      "source": "src/prism-garden/app.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/arcade-summary.mjs",
+      "sha256": "648f4e5cdec31bbb94ed9b5c8d15fcb7878a6bedf624fdfe76dba075e6b7142a",
+      "size_bytes": 1585,
+      "source": "src/prism-garden/arcade-summary.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/backup-ui.mjs",
+      "sha256": "2c711a33d26cd391bd080af2737acd3f682b7ae0c9ad8575aebe2afacf313e58",
+      "size_bytes": 4794,
+      "source": "src/prism-garden/backup-ui.mjs"
+    },
+    {
+      "mime": "text/css; charset=utf-8",
+      "route": "/src/prism-garden/backup.css",
+      "sha256": "4a980aedddd21736d002854b6c2e0c584b8246651293e80f1a020a0e873ac095",
+      "size_bytes": 1910,
+      "source": "src/prism-garden/backup.css"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/backup.mjs",
+      "sha256": "c6d5b8c96ebc5a9eb6967b8b5d96ba9e570f1b49cdbcb3da5ac93356e3ad5649",
+      "size_bytes": 2658,
+      "source": "src/prism-garden/backup.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/board-guide.mjs",
+      "sha256": "ce95b48b4dcfaf3172790e3818f14765438d4fbffc6ad80ecd1faf25a8e72697",
+      "size_bytes": 1684,
+      "source": "src/prism-garden/board-guide.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/content.mjs",
+      "sha256": "3bfbd2adb1132d243ab3748bb33db8048393d8b2a263d58602d8e19df91eb3b6",
+      "size_bytes": 3252,
+      "source": "src/prism-garden/content.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/controller.mjs",
+      "sha256": "fd70787ca75e157276aa1463e7a7d5c7cbaef91036115976fec087513bda460e",
+      "size_bytes": 10808,
+      "source": "src/prism-garden/controller.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/engine.mjs",
+      "sha256": "4e3c9231320453fa406956c8a543fe6efa0a96397101e0e8ad16c1b1b53b7f67",
+      "size_bytes": 5959,
+      "source": "src/prism-garden/engine.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/feedback.mjs",
+      "sha256": "3c351a312cdb87e7daeacb5d25a96021c5ecc6bb3d90cd58186b718b99670f49",
+      "size_bytes": 1675,
+      "source": "src/prism-garden/feedback.mjs"
+    },
+    {
+      "mime": "text/css; charset=utf-8",
+      "route": "/src/prism-garden/prism.css",
+      "sha256": "b361de5bb30160c53931cac375be7afa5ca9050df4c1c60fc7317ba4d130934a",
+      "size_bytes": 37041,
+      "source": "src/prism-garden/prism.css"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/restoration-scene.mjs",
+      "sha256": "27e49b2d6236ad893caee80c80e8823f9908e5ce7bd29726ded6b10a16b7dfef",
+      "size_bytes": 10323,
+      "source": "src/prism-garden/restoration-scene.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/prism-garden/save-guard.mjs",
+      "sha256": "d3dcbb5e64258d4fc783ebcfecfaf0485d9fdaebf7d5681651b3f7129733ab99",
+      "size_bytes": 4414,
+      "source": "src/prism-garden/save-guard.mjs"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/src/progression.mjs",
+      "sha256": "12cb39e36ace45347218f3364b0fbaab10ed117dc4c34093e045963177014f37",
+      "size_bytes": 11312,
+      "source": "src/progression.mjs"
+    },
+    {
+      "mime": "text/css; charset=utf-8",
+      "route": "/src/styles.css",
+      "sha256": "6d1413d5a7990055f2cdc3f0a3bce1975a11cce3142f3d9076cb6eb69a23bc60",
+      "size_bytes": 66638,
+      "source": "src/styles.css"
+    },
+    {
+      "mime": "text/javascript; charset=utf-8",
+      "route": "/sw.js",
+      "sha256": "8bc7ee4082747b2c2690f0ee9a456a9dce7f2de1ace5a64d94ed7d124dff4752",
+      "size_bytes": 4887,
+      "source": "sw.js"
+    }
+  ],
+  "manifest_sha256": "7dddc1c57a68d66bc3d3ec0f55e60daf394654570b452447bd44a619e723a915",
+  "route_count": 35,
+  "schema": 1,
+  "scope": "static-frontend-only"
+}
