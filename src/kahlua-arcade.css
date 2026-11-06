@@ -1,0 +1,156 @@
+/* Brandicade — Kahlua companion arcade. Visual-only progressive layer, no data writes. */
+:root{--pine:#05190e;--pine2:#0b291b;--pine3:#12442a;--teal:#8bfd7d;--deepteal:#37d96a;--orange:#ecc27f;--copper:#efcb91;--cream:#f4f9ed;--muted:#bcd0c0;--outline:#84f78535;--card:#0a2619}
+body{background:
+radial-gradient(ellipse at 49% -12%,#235f3680,transparent 44%),
+radial-gradient(ellipse at 96% 18%,#53c23e20,transparent 30%),
+radial-gradient(ellipse at 0% 43%,#d1a16117,transparent 38%),
+linear-gradient(135deg,#06160c,#0b2518 49%,#05190e 100%)}
+.mist:before{background:conic-gradient(from 170deg at 45% 45%,transparent,#5eff7320,transparent,#e4bb6212,transparent)}
+.logo-copy strong{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:950;font-style:italic;letter-spacing:-.055em;text-shadow:0 0 24px #83ff715c}
+.logo-copy span{color:#b5f6a6;letter-spacing:.22em}
+.crest{background:linear-gradient(145deg,#1c5934,#092316 65%,#142f20);border-color:#8afd766c;box-shadow:inset 0 1px #c9ff9c51,0 0 32px #6cff6040}
+.level-chip{border-color:#83f68568;background:linear-gradient(115deg,#103725,#0a271a)}
+.level-orb.kahlua-mini-mark{background:radial-gradient(circle,#4e934b,#14462f);color:#d7ffa7}
+.kahlua-mini-mark svg{width:24px;height:24px;filter:drop-shadow(0 0 6px #80fd8f99)}
+.kahlua-hero{position:relative;isolation:isolate;min-height:440px;overflow:hidden;border:1px solid #a4fa6b61;border-radius:32px;padding:28px 34px;background:
+radial-gradient(ellipse at 72% 46%,#64b83e37,transparent 42%),
+radial-gradient(ellipse at 7% 92%,#e7b8750c,transparent 55%),
+linear-gradient(115deg,#123821e8,#071b12ed 66%,#0a2b1dcf);box-shadow:inset 0 2px #cffca72c,0 28px 74px #0008,0 0 60px #42d85411}
+.kahlua-hero:after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:linear-gradient(90deg,#b4fe6c08 1px,transparent 1px),linear-gradient(#b4fe6c08 1px,transparent 1px);background-size:50px 50px;mask-image:linear-gradient(to right,transparent 17%,black 100%)}
+.kahlua-hero .hero-text{position:relative;z-index:2}
+.kahlua-kicker{color:#bbfc9e;font-weight:900;font-size:10px;letter-spacing:.18em}
+.kahlua-hero h1{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:920;font-size:clamp(42px,5vw,78px);line-height:.99;letter-spacing:-.06em;text-shadow:0 13px 40px #071809}
+.kahlua-hero h1 em{font-weight:940;color:#aaff7f;text-shadow:0 0 24px #74f6597d}
+.kahlua-hero .hero-copy{max-width:500px;line-height:1.75;color:#d1e2cf;font-size:13px}
+.kahlua-hero .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.kahlua-hero .btn.primary{border:1px solid #bcffac;box-shadow:0 0 0 2px #8aff6351,0 0 32px #5bea5791,inset 0 2px #fff7;background:linear-gradient(130deg,#a9ff78,#48d662);color:#0a2516;font-weight:900}
+.kahlua-hero .btn.secondary{background:#0b281cde;border:1px solid #9bea8c5e;color:#e5f4db;min-height:46px}
+.kahlua-hero .hero-metrics span{color:#d6ffb6;font-family:ui-sans-serif,system-ui,sans-serif;font-weight:850}
+.kahlua-stage{min-height:390px;overflow:visible;align-content:center}
+.kahlua-stage:before{background:radial-gradient(ellipse,#8afb5857,transparent 70%);filter:blur(24px);top:10%;left:4%;width:100%}
+.kahlua-stage .orbits{width:min(85%,435px);border-color:#bcff9563;box-shadow:0 0 0 25px #7bff6310,0 0 0 65px #83ff6907;animation-duration:120s}
+.kahlua-stage .portal{width:min(90%,430px);aspect-ratio:1.105;max-height:390px;filter:drop-shadow(0 22px 38px #000a);animation:kahlua-breathe 7s ease-in-out infinite}
+.kahlua-stage .portal img{width:100%;height:100%;display:block;object-fit:contain}
+.kahlua-stage .portal-shine{background:radial-gradient(ellipse,#a5ff8a47,transparent 62%)}
+.kahlua-stage-footer{position:absolute;bottom:6px;left:0;right:0;display:flex;justify-content:center;gap:16px;align-items:center;z-index:3}
+.kahlua-name{font-weight:950;letter-spacing:.12em;color:#ddfbc5;text-shadow:0 0 15px #8cfb6b70;font-size:18px}
+.kahlua-name small{display:block;font-size:8px;color:#b3ecb4;font-weight:700;letter-spacing:.18em;margin-top:3px}
+.kahlua-greet{min-height:44px;padding:9px 15px;border:1px solid #abf783aa;border-radius:13px;background:linear-gradient(120deg,#1a5530,#103b24);color:#e9ffda;font-size:11px;font-weight:850;box-shadow:0 0 20px #4deb6e36}
+.kahlua-greet:hover,.kahlua-greet:focus-visible{background:#246c3d;box-shadow:0 0 24px #94ff8080}
+.kahlua-response{position:absolute;bottom:-27px;left:0;right:0;text-align:center;color:#b9d6bd;font-size:10px;font-weight:650;min-height:14px;letter-spacing:.02em}
+.kahlua-stage[data-greeting="1"] .portal{filter:drop-shadow(0 24px 34px #8aff5b70)}
+.atrium-bloom{border-color:#98f98369;background:linear-gradient(130deg,#174e2f,#092618 72%);box-shadow:0 0 30px #6bff5711,inset 0 1px #ffffff21}
+.atrium-bloom-eyebrow,.section-heading em{color:#b6ff8c}
+.atrium-bloom-link{border-color:#83fa8f;color:#cbff9e}
+.collection-v1 .game-card,.library-v1 .game-card{border-color:#79dc8a73;box-shadow:0 16px 44px #0007,inset 0 1px #ffffff16}
+.collection-v1 .game-card:hover,.library-v1 .game-card:hover{transform:translateY(-5px);border-color:#acff8d;box-shadow:0 0 28px #89fb7650,0 20px 38px #0009}
+.glimmer-card{background:radial-gradient(ellipse at 82% 19%,#37dcb937,transparent 53%),linear-gradient(135deg,#134b34,#0b281c)!important}
+.brandle-card{background:radial-gradient(ellipse at 82% 18%,#b9e36f2a,transparent 55%),linear-gradient(135deg,#183e22,#0a281a)!important}
+.prism-card{background:radial-gradient(ellipse at 82% 19%,#c17ad52c,transparent 55%),linear-gradient(135deg,#27353e,#0a281c)!important}
+.profile-hero{background:radial-gradient(ellipse at 22% 41%,#59bb5f6a,transparent 42%),linear-gradient(130deg,#185037,#0b2b1e);border-color:#adfa8b89}
+.kahlua-profile-rings{border-radius:30%;box-shadow:0 0 0 9px #0c492c,0 0 0 11px #a6ff9f73,0 0 45px #84fb6a73}
+.avatar-large:has(>img){background:radial-gradient(ellipse at center,#347742,#10402e 60%,#081e17);border-radius:27%;overflow:hidden}
+.avatar-large img{width:100%;height:100%;object-fit:contain;transform:scale(1.18);filter:drop-shadow(0 4px 9px #0008)}
+.kahlua-profile-panel{background:linear-gradient(145deg,#194833,#08291b);border-color:#8ced867e}
+.kahlua-profile-note{display:flex;gap:12px;align-items:center}
+.kahlua-profile-note img{flex:0 0 92px;max-width:92px;filter:drop-shadow(0 3px 14px #a4f98733)}
+.kahlua-profile-note p{line-height:1.65;font-size:12px;color:#c3dfc1}
+@keyframes kahlua-breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(max-width:800px){.kahlua-hero{padding:22px}.kahlua-stage{min-height:310px}.kahlua-stage .portal{width:min(72vw,330px)}.kahlua-hero .hero-text{text-align:center}.kahlua-hero .actions{justify-content:center}}
+@media(max-width:600px){.kahlua-hero{padding:15px;border-radius:20px}.kahlua-stage{min-height:285px}.kahlua-stage .portal{width:min(75vw,290px)}.kahlua-stage-footer{gap:9px;bottom:1px}.kahlua-response{bottom:-23px}.kahlua-name{font-size:14px}.kahlua-greet{padding:8px 10px;font-size:10px}.kahlua-more-games{display:none}.kahlua-profile-note{align-items:flex-start}.kahlua-profile-note img{max-width:74px;flex-basis:74px}}
+@media(orientation:landscape) and (min-width:640px) and (max-height:540px){
+ #home .kahlua-hero{min-height:0!important;padding:8px 18px!important;gap:10px!important}
+ #home .kahlua-hero .hero-text{text-align:left!important;order:0!important}
+ #home .kahlua-hero h1{font-size:clamp(30px,7dvh,43px)!important}
+ #home .kahlua-hero .hero-copy{font-size:10px!important;line-height:1.3!important}
+ #home .kahlua-stage{min-height:0!important;height:clamp(155px,43dvh,196px)!important;overflow:visible!important}
+ #home .kahlua-stage .portal{width:min(100%,200px)!important;max-height:100%!important;height:auto!important}
+ #home .kahlua-stage-footer{bottom:0;gap:6px}
+ #home .kahlua-name{font-size:12px}
+ #home .kahlua-name small{font-size:6px}
+ #home .kahlua-greet{padding:5px 8px;font-size:9px;min-height:36px}
+ #home .kahlua-response{bottom:-16px;font-size:8px}
+ #home .hero-metrics{margin-top:8px!important}
+ #home .hero-metrics span{font-size:17px!important}
+ #home .kahlua-more-games{display:none}
+}
+body.calm .kahlua-stage .portal{animation:none!important}
+@media(prefers-reduced-motion:reduce){.kahlua-stage .portal{animation:none!important}.kahlua-hero .game-card:hover{transform:none!important}}
+
+/* Explicit mobile scene order: CTA and companion never share the same grid row. */
+@media(orientation:portrait) and (max-width:800px){
+ #home .kahlua-hero{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:22px!important;padding:20px 16px 26px!important}
+ #home .kahlua-hero .hero-text{display:flex!important;flex-direction:column!important;align-items:center!important;order:0!important;position:relative!important;min-width:0}
+ #home .kahlua-hero .hero-text .actions{position:static!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:10px!important;order:0!important;margin:6px auto 8px!important}
+ #home .kahlua-hero .hero-text .hero-metrics{margin-top:16px!important}
+ #home .kahlua-hero .kahlua-stage{order:1!important;position:relative!important;width:100%!important;min-height:228px!important;height:240px!important;margin:0!important;overflow:visible!important}
+ #home .kahlua-hero .kahlua-stage .portal{width:min(75vw,288px)!important;max-height:205px!important;height:205px!important;margin:0!important}
+ #home .kahlua-hero .kahlua-stage-footer{bottom:17px!important}
+ #home .kahlua-hero .kahlua-response{bottom:0!important}
+}
+
+
+/* Genuine Glimmer Pop turn feedback: Kahlua is the only illustrated character. */
+.glimmer-moment{position:absolute;z-index:12;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;width:min(88%,284px);display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #baff9cba;border-radius:19px;padding:9px 12px;background:radial-gradient(ellipse at 30% 15%,#43854fa9,#092617ef 77%);box-shadow:0 0 0 2px #bdff9c24,0 0 40px #75fc7194,0 24px 50px #000b;backdrop-filter:blur(6px);animation:glimmer-moment-flash 1.15s ease both}
+.glimmer-moment[hidden]{display:none!important}
+.glimmer-moment img{width:60px;height:60px;object-fit:contain;flex:none;filter:drop-shadow(0 3px 8px #000b)}
+.glimmer-moment-copy{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.glimmer-moment strong{color:#e9ffbd;font:950 clamp(14px,2.5vw,21px)/1.06 ui-sans-serif,system-ui,sans-serif;letter-spacing:.045em;text-shadow:0 0 18px #b3fa77ba}
+.glimmer-moment span{font-size:11px;font-weight:700;color:#e6f4db;font-variant-numeric:tabular-nums}
+.glimmer-moment[data-tier="cascade"],.glimmer-moment[data-tier="surge"]{background:radial-gradient(ellipse at 25% 10%,#68774fb3,#14291bea 75%);border-color:#f7d594;box-shadow:0 0 0 2px #ffefb22c,0 0 55px #ffe0806e,0 21px 50px #000b}
+.glimmer-moment[data-tier="victory"]{border-color:#f5f0b0;box-shadow:0 0 0 3px #c0ffbb32,0 0 70px #c6e78f91,0 24px 50px #000b}
+.game-board[data-tier="match"]+.board-shine{box-shadow:inset 0 0 18px #a8ffa663}
+.game-board[data-tier="cascade"]+.board-shine,.game-board[data-tier="surge"]+.board-shine,.game-board[data-tier="victory"]+.board-shine{box-shadow:inset 0 0 24px #f3df9d9c,0 0 20px #9cffa68c}
+.game-board-outer:has(.glimmer-moment:not([hidden])){border-color:#a8ff9b;box-shadow:inset 0 2px 5px #ffffff0c,0 20px 50px #0009,0 0 46px #75f77a5b}
+@keyframes glimmer-moment-flash{0%{opacity:0;transform:translate(-50%,-42%) scale(.78)}14%{opacity:1;transform:translate(-50%,-52%) scale(1.04)}35%{opacity:1;transform:translate(-50%,-50%) scale(1)}72%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-65%) scale(.96)}}
+@media(orientation:landscape) and (max-height:540px){.glimmer-moment{width:min(84%,240px);padding:5px 8px;gap:6px;top:36%}.glimmer-moment img{width:43px;height:43px}.glimmer-moment strong{font-size:14px}.glimmer-moment span{font-size:9px}}
+body.calm .glimmer-moment{animation:none!important}
+@media(prefers-reduced-motion:reduce){body:not(.force-motion) .glimmer-moment{animation:none!important}}
+
+
+/* Phone sideways: a dedicated, fully visible 7x7 Glimmer Pop stage.
+ * The game has its own Back button; the global bottom dock is hidden only during play.
+ * 44px jewels remain touch accessible even at 720x390. */
+@media(orientation:landscape) and (min-width:640px) and (max-height:540px){
+ body:has(#game.section.active) .topbar,
+ body:has(#game.section.active) .bottom-nav,
+ body:has(#game.section.active) .app-footnote{display:none!important}
+ body:has(#game.section.active) .viewport{min-height:100dvh;padding-bottom:max(4px,env(safe-area-inset-bottom))}
+ #game.section.active{width:100%;max-width:none}
+ #game .game-shell{
+  display:grid;grid-template-columns:minmax(332px,auto) minmax(0,1fr);
+  grid-template-areas:"board header" "board info" "board goal" "board tools";
+  align-content:center;align-items:center;column-gap:clamp(10px,2vw,22px);row-gap:clamp(4px,1.5dvh,9px);
+  max-width:none;width:100%;min-height:0;margin:4px auto 0;padding:9px 12px 10px;overflow:visible;border-radius:20px
+ }
+ #game .game-top{grid-area:header;min-width:0;align-items:center}
+ #game .game-top .back-button{min-width:45px;min-height:44px}
+ #game .game-top .utility-button{min-height:44px}
+ #game .game-info{grid-area:info;min-width:0;margin:0;align-items:center}
+ #game .challenge-strip{grid-area:goal;min-width:0;max-width:none;width:100%;margin:0;padding:8px 10px}
+ #game .game-board-outer{grid-area:board;justify-self:center;align-self:center;margin:0;padding:7px;min-width:0;max-width:none}
+ #game .game-board{--square:clamp(44px,11dvh,49px)!important;gap:2px}
+ #game .game-bottom{grid-area:tools;min-width:0;max-width:none;width:100%;margin:0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+ #game .game-tools{flex-wrap:wrap}
+ #game .game-tools .small-button{min-height:44px}
+ #game .game-live{max-width:none;flex:1 1 170px;min-width:0;text-align:left}
+ #game .game-end{inset:8px 5px 5px;border-radius:18px;z-index:18}
+ body:has(#game.section.active) .controller-legend{bottom:7px;right:14px;max-width:calc(100vw - 360px);opacity:.92}
+}
+
+
+/* The 640x360 compact phone is height-limited even with 44px jewels. Trim
+ * decorative shell spacing rather than reducing the tap targets or hiding tools. */
+@media(orientation:landscape) and (min-width:640px) and (max-height:370px){
+ #game .game-shell{margin-top:0;padding-top:0;padding-bottom:2px}
+ #game .game-board-outer{padding:5px}
+}
+
+/* Real per-wave cascade playback: no shrinking/reflow of 44px touch targets. */
+#pop-board[data-animating="true"] .charm{pointer-events:none}
+#pop-board .charm.clearing{animation:glimmer-clear .115s ease-in both;position:relative;z-index:2}
+#pop-board .charm.refilling{animation:glimmer-refill .125s cubic-bezier(.18,.88,.31,1) both}
+@keyframes glimmer-clear{from{opacity:1;filter:brightness(1.15) drop-shadow(0 0 6px #c8ff8b)}to{opacity:.04;filter:brightness(2) drop-shadow(0 0 17px #eaff9b);transform:scale(.58)}}
+@keyframes glimmer-refill{from{opacity:.2;transform:translateY(-16px) scale(.94);filter:brightness(1.6)}to{opacity:1;transform:translateY(0) scale(1);filter:brightness(1)}}
+body.calm #pop-board .charm.clearing,body.calm #pop-board .charm.refilling{animation:none!important}
+@media(prefers-reduced-motion:reduce){body:not(.force-motion) #pop-board .charm.clearing,body:not(.force-motion) #pop-board .charm.refilling{animation:none!important}}

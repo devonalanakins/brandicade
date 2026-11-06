@@ -1,0 +1,51 @@
+# Brandicade — unified source and production cutover
+
+**Decision (approved November 6, 2026):** Brandicade is the single playable arcade at `brandicade.anevum.com`. Prism Garden remains a game **within** Brandicade; `prism.anevum.com` is temporary private QA and will be retired **after** the new production release has passed the acceptance gates. The rest of ANEVUM and the independently hosted Brandle game must not be touched.
+
+## Verified initial checkpoint
+
+- Production Cloudflare Worker: `brandicade`. November 3 deployment `49b2368d-4a9f-40a0-94f5-b3cc627827cc`, version `9b88b22c-d740-4e8f-b35a-5178a627a8e2`, seen at **100%** through Cloudflare provider API on November 6.
+- Production hostname is a Worker custom domain with its own proxied DNS record. Production Worker has a D1 `SAVES` binding. It contains the November 3 Prism Garden frontend assets, but **not** the latest Kahlua/controller assets.
+- Isolated preview custom domain `prism.anevum.com` points to `brandicade-prism-preview-20261103`, has a separate `SAVES` binding, and was last deployed November 5. Preview includes the newer controller/landscape/companion assets. Its presence does not prove production readiness.
+- [PR #15](https://github.com/devonalanakins/brandicade/pull/15) merged into release source branch `release/prism-bloom-protected-parity-20261103`, **not `main`**; exact source head before this reconciliation: `fe047a3c8958e069e9cb649103b9db8e87751389`.
+- [CI 41954720457](https://github.com/devonalanakins/brandicade/actions/runs/41954720457) passed on that head. Source tests and browser simulation passed. This CI is **nondeploying** and does not use a real owner's Access identity, real device, live production D1, or origin-specific Safari storage.
+- Production backend is the **legacy original** Access/cloud-save runtime, not the PR #12 clean-room backend. **Do not** replace a live backend simply because source CI passes.
+
+## Execution boundaries: source integration versus deployment
+
+1. **Review and integrate source to `main`.** Preserve existing GitHub hero, source history and existing branches. Source integration is a development milestone, **not** a production rollout. Resolve any merge conflicts and run exact-head CI before merging. Keep the release workflow deployment-free.
+2. **Verify static asset parity.** Build `python3 build_worker.py`, then run `python3 scripts/verify_release_assets.py`. CI must publish the deterministic content-addressed frontend-only receipt. This proves compressed static routes match their source bytes, **not** backend/deployment parity.
+3. **Inspect protected runtime parity.** Compare asset routing, signed Access verification, /api/session, GET/PUT /api/save and /api/backups, legacy record schema, Cloudflare Access environment, client injection and service-worker cache behavior. Create a production-equivalent **isolated** protected Worker using disposable D1 and approved private preview Access settings; test wrong-identity denial, stale revisions, backup conflicts, signed roles and cache bypass.
+4. **Preserve actual data.** Check the current production D1 metadata, owner-controlled encrypted export and isolated restore on a disposable database. Check Brandi's local `brandicade:save:v1` and separate `brandicade:prism-garden:v1` on her own iPhone. Do not clear site data, rename origin, auto-merge progress, delete D1, or expose player records in logs.
+5. **Resolve rights and browser acceptance.** Clarify MIT/GPLv3 generated-source notices and asset provenance. Run owner-authenticated iPhone Safari, PWA, airplane-mode, restore, touch target, audio/screen-reader and physical Xbox (Bluetooth, A/B/X/Y, D-pad, stick, LB/RB, Menu, pause, disconnect) tests. Capture evidence without personal save contents.
+6. **Explicit production authorization and release receipt.** Confirm intended exact bundled artifact/hash, immutable head SHA, accountable operator, rollback ID, D1 protection, no unintended route or env changes, supported production method, and any required sign-off. Production upload/change must use the current production Worker and `SAVES` binding without silent reset.
+7. **Post-release:** Check the intended live URL in an authenticated real player session (home, both games, controller, progress persistence, backup, offline); check failed-login denial, API responses, Worker errors and D1 metadata. Record live Worker version, output hash, observation date and rollback.
+8. **Then retire preview hostname:** inventory dependencies; remove only the `prism.anevum.com` preview Worker custom-domain association and its corresponding proxied DNS entry after checking rollback needs. Do **not** delete production `brandicade` Worker/D1, Access policy, player origins or source history. Keep isolated preview code/config for rollback evaluation until independent clean-up approval.
+
+## Device acceptance checklist (must be completed by an actual allowlisted player)
+
+- [ ] Signed-in `https://brandicade.anevum.com/` loads the Kahlua atrium; blocked identity is denied.
+- [ ] Open Glimmer Pop; select and make a valid move, pause and resume, reload; previous progress remains.
+- [ ] Open Prism Garden from the arcade; move, undo, leave/reopen; board remains consistent; export its own backup and locate the saved file.
+- [ ] From an actual iPhone in landscape and portrait: check safe areas, keyboard/touch focus, PWA launch, offline content, and no cross-game storage overwrite.
+- [ ] Pair a physical Xbox controller; verify A, B, X, Y, D-pad, sticks, Menu, pause, focus recovery and disconnect, including while a modal is open.
+- [ ] Verify per-game achievements match completed events; only Kahlua companion appears.
+- [ ] Export Glimmer and Prism saves before browser/site data changes; retain and independently confirm backups.
+- [ ] Record actual production deployment hash and version, post-cutover readback, rollback route and observer.
+
+## Release gate disposition
+
+| Requirement | November 6 disposition |
+| --- | --- |
+| New game and controller source integrated to latest release branch | **Implemented** — PR #15 merged into PR #12 branch |
+| Static/frontend source-to-build parity | **Implementation active** — new CI receipt; verify exact CI result on integration PR |
+| Production backend parity and license provenance | **Open** — current original backend differs from source candidate |
+| Encrypted owner-held backup, isolated restore, origin-safe device preservation | **Open** — older metadata counts do not prove private local progress is absent |
+| Signed-in production-equivalent Access/D1 and physical iPhone/Xbox testing | **Open** |
+| Production cutover/observation and Prism hostname retirement | **Not executed** |
+
+**Release decision:** NO-GO for replacing the production Worker or removing the preview hostname until all mandatory gates are evidenced. GitHub source integration may proceed separately with truthful status markers and no deployment trigger.
+
+**Rollback:** Previous production Worker version `09c8dcb9-3db4-47c4-b7be-b9a218a7ba1e` is retained from the prior release receipt, but the rollback method must be reverified against current Cloudflare state and save changes immediately before action. Code rollback does **not** rewind player progress, D1, browser storage, or Access policy. Do not force old automatic cloud-sync behavior without evaluating newer saves.
+
+Source of truth: [Brandicade Notion project](https://app.notion.com/p/40a88cc2ef1481bbbcdce71be63b935e), [release PR #12](https://github.com/devonalanakins/brandicade/pull/12), [issue #2](https://github.com/devonalanakins/brandicade/issues/2), [November 3 deployment receipt](PRISM_GARDEN_PRODUCTION_RELEASE_2026-11-03.md).

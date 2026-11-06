@@ -1,0 +1,64 @@
+name: Verify recovered static source
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/prism-garden.test.mjs tests/prism-board-guide.test.mjs tests/prism-world-restoration.test.mjs tests/prism-arcade-integration.test.mjs tests/arcade-passport.test.mjs tests/logic.test.mjs tests/main-save-recovery.test.mjs tests/access-jwt.test.mjs tests/save-boundary.test.mjs tests/d1-save-adapter.test.mjs tests/brandle-link.test.mjs tests/legacy-read-contract.test.mjs tests/access-roles.test.mjs tests/legacy-d1-writer.test.mjs
+      - run: node --test tests/arcade-controller.test.mjs tests/prism-controller.test.mjs tests/prism-feedback.test.mjs tests/service-worker-cache.test.mjs
+      - run: node --check sw.js && node --check src/arcade-controller.mjs && node --check src/prism-garden/controller.mjs
+      - run: node --check src/app.mjs && node --check src/progression.mjs && node --check src/cloud-sync.mjs && node --check src/arcade-passport.mjs && node --check src/prism-garden/arcade-summary.mjs && node --check src/prism-garden/app.mjs && node --check src/prism-garden/board-guide.mjs && node --check src/prism-garden/feedback.mjs && node --check src/prism-garden/restoration-scene.mjs && node --check src/prism-garden/engine.mjs && node --check src/prism-garden/achievements.mjs && node --check src/prism-garden/save-guard.mjs && node --check src/prism-garden/backup.mjs && node --check src/prism-garden/backup-ui.mjs
+      - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs tests/prism-run-safety.test.mjs
+      - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - run: python3 build_worker.py
+      - name: Verify exact source-to-Worker frontend asset parity
+        run: python3 scripts/verify_release_assets.py --output dist/brandicade-release-assets.json
+      - run: python3 -m py_compile build_worker.py scripts/build_brandicade_protected.py scripts/verify_release_assets.py
+      - run: python3 scripts/build_brandicade_protected.py
+      - run: node --check dist/brandicade-protected.candidate.mjs
+      - run: node --test tests/brandicade-protected-worker.test.mjs tests/cloud-sync.test.mjs tests/cloud-sync-ui.test.mjs tests/legacy-recovery-integration.test.mjs tests/legacy-write-api.test.mjs
+      - run: npx --yes wrangler@4.156.2 deploy dist/brandicade-protected.candidate.mjs --name brandicade-protected-candidate --compatibility-date 2026-10-29 --dry-run --outdir dist/protected-bundle
+      - run: |
+          set -eu
+          files=$(find dist/protected-bundle -maxdepth 1 -type f -name '*.js')
+          count=$(find dist/protected-bundle -maxdepth 1 -type f -name '*.js' | wc -l)
+          test "$count" -eq 1
+          node --check "$files"
+          BRANDICADE_BUNDLED_WORKER="$PWD/$files" node --test tests/brandicade-protected-worker.test.mjs tests/cloud-sync.test.mjs tests/cloud-sync-ui.test.mjs
+      # Browser-level source-preview QA only; not an authenticated production test.
+      - name: Install pinned Chromium + WebKit browsers for responsive QA
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Verify phone landscape and touch layout in Chromium and WebKit
+        run: node --test tests/landscape-browser.test.mjs tests/webkit-mobile-browser.test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: brandicade-landscape-preview
+          path: .artifacts/landscape/*.png
+          if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brandicade-static-provenance
+          path: dist/brandicade-release-assets.json
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brandicade-protected-candidate
+          path: dist/protected-bundle/*.js
+          if-no-files-found: error
+          retention-days: 3
+# Verification only: NO deploy step. Protected Worker candidate is UNBUNDLED and requires owner-key, Access, D1, license and on-device release acceptance.
