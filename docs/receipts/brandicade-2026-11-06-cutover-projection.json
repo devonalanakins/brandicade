@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "scope": "asset-only-worker-cutover-preflight",
+  "production": {
+    "script": "brandicade",
+    "deployment_id": "49b2368d-4a9f-40a0-94f5-b3cc627827cc",
+    "version_id": "9b88b22c-d740-4e8f-b35a-5178a627a8e2",
+    "module_sha256": "8a8efdc84fdea8fb581f06cfb49d5f5abd2032a6fff0aee1e0fc1661a782adc5",
+    "asset_table_sha256": "b1dc33764afcd182a12e39fd746586cef37721d9b994f58d7078217aad6eff5c"
+  },
+  "preview": {
+    "script": "brandicade-prism-preview-20261103",
+    "deployment_id": "8e1ec85d-d64e-41ac-b9da-7b3149d645e3",
+    "version_id": "0e57ae55-d3ab-4157-a4c8-ebdb11f9da89",
+    "module_sha256": "0968308e28ebcb19972f1f3117b4be8ffb4f9d573779a8ee5cea86d3063e4667",
+    "asset_table_sha256": "af364454dd20ee140152d92d7613c1175fe4ce60f601992c06acdaa3b829e44c"
+  },
+  "candidate_sha256": "716792c8f3937096d769af305e9e17ad41e1f0908e8f374c562b7c5f8763c90a"
+}
