@@ -231,8 +231,14 @@ test('fixed player key excludes other players even from the encrypted snapshot',
  }finally{src.close()}
 });
 
-test('the recovered static Worker build excludes all backup and recovery code',async()=>{
+test('both static and protected candidate builders exclude the private backup vault',async()=>{
  const {readFileSync}=await import('node:fs');
- const build=readFileSync(new URL('../build_worker.py',import.meta.url),'utf8');
- assert.doesNotMatch(build,/legacy-backup-vault|legacy-recovery-composition/);
+ for (const path of ['../build_worker.py','../scripts/build_brandicade_protected.py',
+                     '../server/legacy-recovery-composition.mjs']) {
+  const source=readFileSync(new URL(path,import.meta.url),'utf8');
+  assert.doesNotMatch(source,/legacy-backup-vault|createEncryptedLegacyBackup|restoreEncryptedLegacyBackupToSandbox/,
+    'backup recovery must remain unexposed: '+path);
+ }
+ const staticBuild=readFileSync(new URL('../build_worker.py',import.meta.url),'utf8');
+ assert.doesNotMatch(staticBuild,/legacy-recovery-composition/);
 });
