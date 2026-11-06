@@ -85,6 +85,8 @@ test('legacy v7 caches containing private GETs are removed on activation without
   .put('/api/save',reply('/api/save'));
  await (await runtime.caches.open('brandicade-glimmer-cascade-cloud-bridge-v7'))
   .put('/api/backups',reply('/api/backups'));
+ await (await runtime.caches.open('brandicade-glimmer-cascade-v8'))
+  .put('/src/app.mjs',reply('/src/app.mjs'));
  await (await runtime.caches.open('unrelated-pwa')).put('/image.png',reply('/image.png'));
  await runtime.runLifecycle('activate');
  assert.deepEqual(await runtime.caches.keys(),['unrelated-pwa'],
