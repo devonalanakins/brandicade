@@ -72,10 +72,11 @@ def check_assets(data, expected_keys, kind):
 
 
 def source_index(source):
-    if not isinstance(source, dict) or source.get('schema') != 1 or source.get('scope') != SOURCE_SCOPE:
+    if (not isinstance(source, dict) or set(source) != {'schema', 'scope', 'route_count', 'assets', 'manifest_sha256'}
+            or type(source.get('schema')) is not int or source.get('schema') != 1 or source.get('scope') != SOURCE_SCOPE):
         raise AttestationError('Invalid source manifest schema/scope')
     data = check_assets(source, {'route', 'source', 'mime', 'size_bytes', 'sha256'}, 'source')
-    if source.get('route_count') != len(data):
+    if type(source.get('route_count')) is not int or source.get('route_count') != len(data):
         raise AttestationError('Source route count mismatch')
     for a in data.values():
         if not isinstance(a['source'], str) or a['source'].startswith('/') or '..' in Path(a['source']).parts:
@@ -87,8 +88,10 @@ def source_index(source):
     return data
 
 
-def observed_index(observed, expected_version=None):
-    if not isinstance(observed, dict) or observed.get('schema') != 1 or observed.get('scope') != STAGING_SCOPE:
+def observed_index(observed, expected_version=None, expected_deployment=None):
+    required = {'schema', 'scope', 'hostname', 'script', 'deployment_id', 'version_id', 'asset_count', 'assets', 'claims'}
+    if (not isinstance(observed, dict) or set(observed) != required
+            or type(observed.get('schema')) is not int or observed.get('schema') != 1 or observed.get('scope') != STAGING_SCOPE):
         raise AttestationError('Invalid staging receipt schema/scope')
     if observed.get('hostname') != STAGING_HOST or observed.get('script') != STAGING_SCRIPT:
         raise AttestationError('Unexpected staging host or Worker script')
@@ -98,16 +101,21 @@ def observed_index(observed, expected_version=None):
             raise AttestationError('Invalid staging ' + key)
     if expected_version is not None and observed['version_id'] != expected_version:
         raise AttestationError('Staging version differs from pinned deployment')
+    if expected_deployment is not None and observed['deployment_id'] != expected_deployment:
+        raise AttestationError('Staging deployment differs from pinned deployment')
+    if (not isinstance(observed['claims'], list) or len(observed['claims']) > 12
+            or not all(isinstance(claim, str) and len(claim) <= 300 for claim in observed['claims'])):
+        raise AttestationError('Staging claims invalid')
     index = check_assets(observed, {'route', 'mime', 'size_bytes', 'sha256'}, 'staging')
-    if observed.get('asset_count') != len(index):
+    if type(observed.get('asset_count')) is not int or observed.get('asset_count') != len(index):
         raise AttestationError('Staging asset count mismatch')
     return index
 
 
-def attestation(source, observed, sw_bytes, cloud_sync_bytes, expected_version=None):
+def attestation(source, observed, sw_bytes, cloud_sync_bytes, expected_version=None, expected_deployment=None):
     """Require all regular routes, the *exact* SW rewrite and one cloud bridge."""
     standard = source_index(source)
-    deployed = observed_index(observed, expected_version)
+    deployed = observed_index(observed, expected_version, expected_deployment)
     expected_routes = set(standard) | {BRIDGE_ROUTE}
     if set(deployed) != expected_routes:
         raise AttestationError('Staging route set mismatch: missing=' + str(sorted(expected_routes - set(deployed)))
@@ -160,11 +168,13 @@ def main():
     parser.add_argument('--service-worker', type=Path, required=True)
     parser.add_argument('--cloud-sync', type=Path, required=True)
     parser.add_argument('--expected-version', required=True)
+    parser.add_argument('--expected-deployment', required=True)
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     result = attestation(load_json(args.source), load_json(args.observed),
                          args.service_worker.read_bytes(), args.cloud_sync.read_bytes(),
-                         expected_version=args.expected_version)
+                         expected_version=args.expected_version,
+                         expected_deployment=args.expected_deployment)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + '\n', 'utf-8')
