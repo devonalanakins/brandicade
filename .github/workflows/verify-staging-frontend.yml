@@ -1,0 +1,38 @@
+name: Verify pinned Brandicade staging frontend
+on:
+  pull_request:
+    paths:
+      - 'scripts/attest_staging_assets.py'
+      - 'tests/test_staging_asset_attestation.py'
+      - 'docs/receipts/brandicade-2026-11-06-*.json'
+      - '.github/workflows/verify-staging-frontend.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  attest_staging_snapshot:
+    # This historical deployment snapshot is scoped to the current release
+    # branch. Do not gate unrelated future gameplay PRs on an old preview.
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'release/staging-asset-attestation-20261106'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate attestation fail-closed behavior
+        run: python3 -m unittest discover -s tests -p 'test_staging_asset_attestation.py' -v
+      - name: Verify pinned preview snapshot against exact source bytes
+        run: |
+          python3 scripts/attest_staging_assets.py \
+            --source docs/receipts/brandicade-2026-11-06-source-assets.json \
+            --observed docs/receipts/brandicade-2026-11-06-prism-staging-assets.json \
+            --service-worker sw.js \
+            --cloud-sync src/cloud-sync.mjs \
+            --expected-version 0e57ae55-d3ab-4157-a4c8-ebdb11f9da89 \
+            --output dist/staging-frontend-attestation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brandicade-2026-11-06-staging-frontend-attestation
+          path: dist/staging-frontend-attestation.json
+          retention-days: 14
+          if-no-files-found: error
+# This workflow reads pinned, asset-hash-only metadata. It never accesses
+# Cloudflare APIs, personal D1 records, secrets or production routes.
