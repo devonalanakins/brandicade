@@ -11,6 +11,8 @@ import json
 import re
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+
 SOURCE_SCOPE = 'static-frontend-only'
 STAGING_SCOPE = 'staging-static-assets-only'
 STAGING_HOST = 'prism.anevum.com'
@@ -71,16 +73,23 @@ def check_assets(data, expected_keys, kind):
     return index
 
 
-def source_index(source):
+def source_index(source, root=ROOT):
     if (not isinstance(source, dict) or set(source) != {'schema', 'scope', 'route_count', 'assets', 'manifest_sha256'}
             or type(source.get('schema')) is not int or source.get('schema') != 1 or source.get('scope') != SOURCE_SCOPE):
         raise AttestationError('Invalid source manifest schema/scope')
     data = check_assets(source, {'route', 'source', 'mime', 'size_bytes', 'sha256'}, 'source')
+    root = Path(root).resolve()
     if type(source.get('route_count')) is not int or source.get('route_count') != len(data):
         raise AttestationError('Source route count mismatch')
     for a in data.values():
         if not isinstance(a['source'], str) or a['source'].startswith('/') or '..' in Path(a['source']).parts:
             raise AttestationError('Invalid source file path: ' + a['route'])
+        asset_path = (root / a['source']).resolve()
+        if not asset_path.is_relative_to(root) or not asset_path.is_file():
+            raise AttestationError('Source file missing or outside repository: ' + a['route'])
+        actual = asset_path.read_bytes()
+        if sha256(actual) != a['sha256'] or len(actual) != a['size_bytes']:
+            raise AttestationError('Source file drifted from pinned manifest: ' + a['route'])
     body = {k: v for k, v in source.items() if k != 'manifest_sha256'}
     canonical = json.dumps(body, sort_keys=True, separators=(',', ':')).encode('utf-8')
     if source.get('manifest_sha256') != sha256(canonical):
@@ -112,9 +121,9 @@ def observed_index(observed, expected_version=None, expected_deployment=None):
     return index
 
 
-def attestation(source, observed, sw_bytes, cloud_sync_bytes, expected_version=None, expected_deployment=None):
+def attestation(source, observed, sw_bytes, cloud_sync_bytes, expected_version=None, expected_deployment=None, root=ROOT):
     """Require all regular routes, the *exact* SW rewrite and one cloud bridge."""
-    standard = source_index(source)
+    standard = source_index(source, root=root)
     deployed = observed_index(observed, expected_version, expected_deployment)
     expected_routes = set(standard) | {BRIDGE_ROUTE}
     if set(deployed) != expected_routes:
