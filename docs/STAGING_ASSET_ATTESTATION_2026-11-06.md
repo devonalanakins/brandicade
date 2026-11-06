@@ -17,7 +17,7 @@
 
 ## Reproducing the offline comparison
 
-The verifier works with immutable hash-only receipts and source files; it never talks to the Cloudflare API. On the same source revision as the receipt:
+The verifier works with immutable hash-only receipts and source files; it never talks to the Cloudflare API. It independently checks the SHA-256 and exact size of **every current repository asset** against the pinned source receipt before comparing to the staged digest inventory; changing a source file without a new source receipt fails closed. On the same source revision as the receipt:
 
 ```sh
 python3 scripts/attest_staging_assets.py \
