@@ -28,6 +28,19 @@ async function exportUnreadable(){
  writeDownload(raw,'prism-garden-unverified-original-'+new Date().toISOString().slice(0,10)+'.txt');
  notify('Original data downloaded as-is. This is not a verified backup; retain it privately for recovery.','success');
 }
+async function verifySelectedBackup(input){
+ const file=input.files?.[0];input.value='';
+ if(!file)return;
+ if(file.size>MAX_BACKUP_BYTES)throw Error('The selected file exceeds the supported backup size.');
+ const contents=await file.text();
+ // Reuse the exact format checksum and replayable move validation used by
+ // import, but never call localStorage.setItem, prompt for restore or reload.
+ const valid=await parseBackup(contents,dependencies);
+ const envelope=JSON.parse(contents);
+ if(JSON.stringify(envelope.progress)!==JSON.stringify(valid))
+  throw Error('This file would change or omit progress details during restore. Nothing was changed.');
+ notify('Prism Garden backup passed its checksum and saved-game validation. No progress was changed.','success');
+}
 async function importSelected(input){
  const file=input.files?.[0];input.value='';
  if(!file)return;
@@ -56,6 +69,8 @@ function mount(){
   '<div class="pg-backup-buttons"><button type="button" id="pg-backup-export">Download backup</button>'+
   '<label for="pg-backup-import">Restore from file</label>'+
   '<input id="pg-backup-import" type="file" accept=".json,application/json" aria-label="Select Prism Garden backup file"></div>'+
+  '<button type="button" id="pg-backup-verify">Check a backup file without restoring</button>'+
+  '<input id="pg-backup-check" type="file" accept=".json,application/json" aria-label="Choose Prism Garden backup to check" hidden>'+
   (hasUnreadableOriginal?'<button type="button" id="pg-backup-raw">Download original unreadable save</button>':'')+
   (recovery.recoveryRequired&&!hasUnreadableOriginal?'<p class="pg-backup-storage-note">Browser storage is unavailable. Allow site storage before restoring a backup.</p>':'')+
   '<p id="pg-backup-status" role="status" aria-live="polite">'+
@@ -71,6 +86,13 @@ function mount(){
   const button=event.currentTarget;button.disabled=true;
   try{await exportUnreadable();}catch(error){notify(error?.message||'Original save export failed.','error');}
   finally{button.disabled=false;}
+ });
+ panel.querySelector('#pg-backup-verify').addEventListener('click',()=>{
+  panel.querySelector('#pg-backup-check').click();
+ });
+ panel.querySelector('#pg-backup-check').addEventListener('change',async event=>{
+  try{await verifySelectedBackup(event.currentTarget);}
+  catch(error){notify(error?.message||'Backup could not be checked. Nothing changed.','error');}
  });
  panel.querySelector('#pg-backup-import').addEventListener('change',async event=>{
   try{await importSelected(event.currentTarget);}catch(error){notify(error?.message||'Could not read backup. Nothing changed.','error');}
