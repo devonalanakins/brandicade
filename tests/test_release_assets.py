@@ -63,6 +63,12 @@ class ReleaseAssetReceiptTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'Invalid static MIME or gzip flag'):
                     asset_manifest(bad, self.assets, self.root)
 
+    def test_duplicate_json_keys_fail_closed(self):
+        item = json.dumps(self.entries['/src/game.mjs'])
+        duplicate = 'const FILES = {' + ','.join(['"/src/game.mjs":' + item] * 2) + '};\nconst SEC = {};'
+        with self.assertRaisesRegex(ValueError, 'Duplicate key'):
+            read_asset_table(duplicate)
+
     def test_ambiguous_or_invalid_worker_boundary_is_rejected(self):
         good = 'const FILES = ' + json.dumps(self.entries) + ';\nconst SEC = {};'
         self.assertEqual(read_asset_table(good), self.entries)
