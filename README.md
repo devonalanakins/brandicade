@@ -14,7 +14,7 @@ Brandicade is a private, offline-first family arcade built for Brandi, with Kahl
 | **Staging** — `prism.anevum.com` | Private preview Worker, with separate D1/Access configuration. It is not a replacement production origin or a transferable player-save origin. |
 | **Repository integration** | The branch merging all current release source into `main` must be reviewed separately. A source merge **does not** deploy a Worker. |
 
-**Do not upload `dist/brandicade.worker.js`, or any unbundled candidate, over the protected production Worker.** The standalone static artifact lacks production Access and cloud-save APIs. No existing origin, D1 record, Cloudflare Access application, or Safari storage may be reset to simplify a release.
+**Do not deploy or upload `dist/brandicade.worker.js`, or any unbundled candidate, over the protected production Worker.** The standalone static artifact lacks production Access and cloud-save APIs. No existing origin, D1 record, Cloudflare Access application, or Safari storage may be reset to simplify a release.
 
 ## What the latest release candidate includes
 
