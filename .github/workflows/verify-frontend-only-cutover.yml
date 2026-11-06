@@ -1,0 +1,23 @@
+name: Verify Brandicade asset-only cutover guards
+on:
+  pull_request:
+    paths:
+      - 'scripts/prepare_frontend_only_cutover.py'
+      - 'tests/test_frontend_only_cutover.py'
+      - 'docs/receipts/brandicade-2026-11-06-cutover-projection.json'
+      - '.github/workflows/verify-frontend-only-cutover.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static_release_guard:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run negative, privacy and byte-parity tests (synthetic only)
+        run: python3 -m unittest discover -s tests -p 'test_frontend_only_cutover.py' -v
+      - name: Verify syntax and immutable hash-only receipt format
+        run: |
+          python3 -m py_compile scripts/prepare_frontend_only_cutover.py
+          python3 -c 'import sys; sys.path.insert(0,"scripts"); from prepare_frontend_only_cutover import load_receipt; x=load_receipt("docs/receipts/brandicade-2026-11-06-cutover-projection.json"); assert x["candidate_sha256"] == "716792c8f3937096d769af305e9e17ad41e1f0908e8f374c562b7c5f8763c90a"'
+# No Cloudflare credentials, private Worker source, D1 access, deploy or artifact upload.
