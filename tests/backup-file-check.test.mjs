@@ -52,3 +52,16 @@ test('partial profile that would acquire synthetic default data is refused',()=>
  delete backup.data.settings;
  assert.throws(()=>checkGlimmerBackup(JSON.stringify(backup)),/lose or alter save details/);
 });
+
+test('Glimmer verifier is reachable from settings and bundled for offline use',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const app=readFileSync(new URL('../src/app.mjs',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+ const worker=readFileSync(new URL('../build_worker.py',import.meta.url),'utf8');
+ assert.ok(app.includes("case 'check-backup':$('#verify-file').click();break;"));
+ assert.ok(app.includes('checkGlimmerBackup(await file.text())'));
+ assert.match(html,/id="verify-file" type="file"/);
+ assert.ok(sw.includes("'/src/backup-file-check.mjs'"));
+ assert.ok(worker.includes("'/src/backup-file-check.mjs'"));
+});
