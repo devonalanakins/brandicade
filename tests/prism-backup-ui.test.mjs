@@ -13,6 +13,8 @@ test('Settings backup controls export, cancel import and confirm restore without
  const controls={
   '#pg-backup-export':{disabled:false,addEventListener(type,fn){listeners.export=fn;}},
   '#pg-backup-import':{files:[],value:'',addEventListener(type,fn){listeners.import=fn;}},
+  '#pg-backup-verify':{addEventListener(type,fn){listeners.verifyButton=fn;}},
+  '#pg-backup-check':{files:[],value:'',clicked:0,click(){this.clicked++;},addEventListener(type,fn){listeners.check=fn;}},
   '#pg-backup-status':{textContent:'',dataset:{}}
  };
  const panel={setAttribute(){},querySelector:s=>controls[s],id:'pg-backup-tools'};
@@ -39,6 +41,26 @@ test('Settings backup controls export, cancel import and confirm restore without
   const replacement=newProgress();replacement.completed[LEVELS[0].id]='2026-11-02T12:00:00Z';
   replacement.active=createRun(LEVELS[0],{runId:'restored-run'});
   const payload=await makeBackup(replacement);
+  const verifier=controls['#pg-backup-check'];
+  assert.equal(typeof listeners.verifyButton,'function');
+  assert.equal(typeof listeners.check,'function');
+  listeners.verifyButton();
+  assert.equal(verifier.clicked,1);
+  const originalRaw=storage.get(KEY);
+  verifier.files=[{size:new TextEncoder().encode(payload).length,text:async()=>payload}];
+  await listeners.check({currentTarget:verifier});
+  assert.equal(storage.get(KEY),originalRaw);
+  assert.equal(loaded,0);
+  assert.match(controls['#pg-backup-status'].textContent,/passed its checksum/);
+  assert.equal(controls['#pg-backup-status'].dataset.kind,'success');
+  const tampered=JSON.parse(payload);
+  tampered.progress.completed['PG-001']='2026-01-01T00:00:00Z';
+  const corruptText=JSON.stringify(tampered);
+  verifier.files=[{size:new TextEncoder().encode(corruptText).length,text:async()=>corruptText}];
+  await listeners.check({currentTarget:verifier});
+  assert.equal(controls['#pg-backup-status'].dataset.kind,'error');
+  assert.equal(storage.get(KEY),originalRaw);
+  assert.equal(loaded,0);
   const input=controls['#pg-backup-import'];
   input.files=[{size:new TextEncoder().encode(payload).length,text:async()=>payload}];
   await listeners.import({currentTarget:input});
@@ -66,6 +88,8 @@ test('damaged original can be exported as-is without accepting it as a valid bac
   '#pg-backup-export':{disabled:false,addEventListener(type,fn){handlers.export=fn;}},
   '#pg-backup-raw':{disabled:false,addEventListener(type,fn){handlers.raw=fn;}},
   '#pg-backup-import':{files:[],value:'',addEventListener(type,fn){handlers.import=fn;}},
+  '#pg-backup-verify':{addEventListener(type,fn){handlers.verifyButton=fn;}},
+  '#pg-backup-check':{files:[],value:'',click(){},addEventListener(type,fn){handlers.check=fn;}},
   '#pg-backup-status':{textContent:'',dataset:{}}
  };
  const panel={setAttribute(){},querySelector:s=>controls[s]};

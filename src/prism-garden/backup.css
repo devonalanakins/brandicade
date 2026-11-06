@@ -11,3 +11,7 @@
 #pg-backup-raw{display:block;width:100%;min-height:47px;margin:3px 0 10px;border:1px solid #e9c789;border-radius:12px;background:#453927;color:#fff4db;font-size:12px;font-weight:700;padding:11px}
 #pg-backup-raw:focus-visible{outline:3px solid #e9d7a2;outline-offset:3px}
 .pg-backup-storage-note{color:#ffe2bb;font-size:12px;line-height:1.5;margin:10px 0}
+
+#pg-backup-verify{display:block;width:100%;min-height:47px;margin:2px 0 12px;border:1px solid #8fbfa6;border-radius:12px;background:#1b4a3c;color:#f3efe1;padding:11px;font-size:12px;font-weight:650;cursor:pointer}
+#pg-backup-verify:focus-visible{outline:3px solid #e9d7a2;outline-offset:3px}
+#pg-backup-verify:hover{background:#27624e}

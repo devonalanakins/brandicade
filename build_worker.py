@@ -15,6 +15,7 @@ ASSETS = {
     '/index.html': ('index.html','text/html; charset=utf-8'),
     '/src/styles.css': ('src/styles.css','text/css; charset=utf-8'),
     '/src/app.mjs': ('src/app.mjs','text/javascript; charset=utf-8'),
+    '/src/backup-file-check.mjs': ('src/backup-file-check.mjs','text/javascript; charset=utf-8'),
     '/src/arcade-controller.mjs': ('src/arcade-controller.mjs','text/javascript; charset=utf-8'),
     '/src/arcade-landscape.css': ('src/arcade-landscape.css','text/css; charset=utf-8'),
     '/src/kahlua-arcade.css': ('src/kahlua-arcade.css','text/css; charset=utf-8'),

@@ -2,6 +2,7 @@ import {SIZE,TYPES,LEVEL_NAMES,levelSpec,makeRun,findMove,trySwap,adjacent} from
 import {FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
 import {prismArcadeSummary} from './prism-garden/arcade-summary.mjs';
 import {ARCADE_PASSPORT,deriveArcadePassport} from './arcade-passport.mjs';
+import {checkGlimmerBackup} from './backup-file-check.mjs';
 
 const $=(s)=>document.querySelector(s);
 const $$=(s)=>[...document.querySelectorAll(s)];
@@ -192,7 +193,7 @@ function openModal(kind,origin){interruptGlimmerPresentation();lastTrigger=origi
  <div class="setting-item"><div><b>Animation intensity</b><small>System respects reduced-motion preferences. Calm minimizes effects.</small></div><select data-select="motion" aria-label="Animation intensity"><option value="system" ${save.settings.motion==='system'?'selected':''}>System</option><option value="on" ${save.settings.motion==='on'?'selected':''}>Cinematic</option><option value="off" ${save.settings.motion==='off'?'selected':''}>Calm</option></select></div>
  <div class="setting-item"><div><b>High contrast</b><small>Increase text and card-edge contrast.</small></div><button class="switch ${save.settings.contrast?'on':''}" role="switch" type="button" aria-label="High contrast" aria-checked="${save.settings.contrast}" data-toggle="contrast"></button></div>
  <div class="setting-item"><div><b>Charm labels</b><small>Add a small letter to each piece as a color-independent cue.</small></div><button class="switch ${save.settings.colorAssist?'on':''}" role="switch" type="button" aria-label="Charm labels" aria-checked="${save.settings.colorAssist}" data-toggle="colorAssist"></button></div>
- <h3>Progress &amp; privacy</h3><p>Glimmer Pop saves on this device. A separate, optional cloud-backup panel is available in your Profile when signed in. Export a backup before changing phones. Prism Garden has its own independent save.</p><div class="dialog-actions"><button class="btn secondary" data-action="export" type="button">Export backup ↓</button><button class="btn secondary" data-action="import" type="button">Import backup ↑</button></div><div class="settings-note">No advertising, analytics, subscriptions, paid lives, public rankings, or external account data. This project's code can be public while personal saved data stays private.</div>`,
+ <h3>Progress &amp; privacy</h3><p>Glimmer Pop saves on this device. A separate, optional cloud-backup panel is available in your Profile when signed in. Export a backup before changing phones. Prism Garden has its own independent save.</p><div class="dialog-actions"><button class="btn secondary" data-action="export" type="button">Export backup ↓</button><button class="btn secondary" data-action="import" type="button">Import backup ↑</button><button class="btn secondary" data-action="check-backup" type="button">Check backup file</button></div><div class="settings-note">No advertising, analytics, subscriptions, paid lives, public rankings, or external account data. This project's code can be public while personal saved data stays private.</div>`,
  levels:`<div class="eyebrow">Your little adventure map</div><h2 id="modal-title">The Garden Trail</h2><p>Replay unlocked levels whenever you want. Finished levels keep their best stars. The next level opens when you win.</p><div class="level-map">${Array.from({length:Math.min(save.progression.unlockedLevel+4,18)},(_,i)=>i+1).map(l=>{const unlocked=l<=save.progression.unlockedLevel,stars=save.progression.levels[String(l)]?.stars||0;return `<button class="level-node" data-level="${l}" type="button" ${unlocked?'':'disabled'}><b>${String(l).padStart(2,'0')}</b><span>${unlocked?levelSpec(l).title:'Locked'}</span><small>${unlocked?(stars?'★'.repeat(stars):'AVAILABLE'):'FINISH PRIOR LEVEL'}</small></button>`}).join('')}</div>`,
  restart:`<div class="eyebrow">Another attempt</div><h2 id="modal-title">Start fresh?</h2><p>Restarting resets the current Glimmer Pop level's board, moves and score. Previously earned stars, XP and achievements stay safe.</p><div class="dialog-actions"><button class="btn primary" data-action="confirm-restart" type="button">Restart this level</button><button class="btn secondary" data-action="close-modal" type="button">Keep playing</button></div>`,
  import:`<div class="eyebrow">Restore a saved garden</div><h2 id="modal-title">Replace local progress?</h2><p>A valid BRANDICADE backup was found. Importing will replace the Glimmer Pop progress currently stored on this device. If the existing save is unreadable, download its original data first. Prism Garden saves are not changed.</p><p id="import-preview"></p><div class="dialog-actions"><button class="btn primary" data-action="confirm-import" type="button">Yes, restore backup</button><button class="btn secondary" data-action="close-modal" type="button">Cancel</button></div>`,
@@ -333,6 +334,7 @@ document.addEventListener('click',event=>{const target=event.target;
   case 'open-settings':case 'settings':openModal('settings',action);break;
   case 'close-modal':closeModal();break;
   case 'export':doExport();break;
+  case 'check-backup':$('#verify-file').click();break;
    case 'recovery-export':doRecoveryExport();break;
   case 'recovery-import':case 'import':$('#import-file').click();break;
   case 'hint':handleHint();break;
@@ -354,6 +356,15 @@ $('#settings-open').addEventListener('click',e=>openModal('settings',e.currentTa
 $('#modal-close').addEventListener('click',closeModal);
 $('#brand-home').addEventListener('click',e=>{e.preventDefault();navigate('home');});
 document.addEventListener('change',event=>{const select=event.target.closest?.('[data-select]');if(select?.dataset.select==='motion'){save.settings.motion=['system','on','off'].includes(select.value)?select.value:'system';commit();applySettings();toast(save.settings.motion==='off'?'Calm effects enabled.':'Animation preference saved.');}});
+$('#verify-file').addEventListener('change',async event=>{
+ const file=event.target.files?.[0];event.target.value='';
+ if(!file)return;
+ try{
+  if(file.size>512000)throw Error('Choose a Glimmer Pop export smaller than 500KB.');
+  const result=checkGlimmerBackup(await file.text());
+  toast(`Glimmer Pop backup is readable: ${result.gamesPlayed} games. No saved progress changed.`);
+ }catch(err){toast(err?.message||'Backup file could not be checked. Your progress was not changed.');}
+});
 $('#import-file').addEventListener('change',async event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{if(file.size>512000)throw Error('Backup is too large.');importPending=importSave(await file.text());closeModal();openModal('import',$('#settings-open'));}catch(err){importPending=null;toast(err.message||'This backup could not be imported.');}});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeModal();selected=null;setSelection();return;}
  const cell=event.target.closest?.('[data-cell]');if(!cell)return;const idx=Number(cell.dataset.cell),d={ArrowUp:-SIZE,ArrowDown:SIZE,ArrowLeft:-1,ArrowRight:1}[event.key];if(d===undefined)return;const next=idx+d;if(adjacent(idx,next)){event.preventDefault();$(`#pop-board [data-cell="${next}"]`)?.focus();}});

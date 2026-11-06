@@ -85,6 +85,8 @@ test('legacy v7 caches containing private GETs are removed on activation without
   .put('/api/save',reply('/api/save'));
  await (await runtime.caches.open('brandicade-glimmer-cascade-cloud-bridge-v7'))
   .put('/api/backups',reply('/api/backups'));
+ await (await runtime.caches.open('brandicade-glimmer-cascade-v8'))
+  .put('/src/app.mjs',reply('/src/app.mjs'));
  await (await runtime.caches.open('unrelated-pwa')).put('/image.png',reply('/image.png'));
  await runtime.runLifecycle('activate');
  assert.deepEqual(await runtime.caches.keys(),['unrelated-pwa'],
@@ -105,14 +107,14 @@ test('static code is offline-cacheable but private/no-store HTML and redirects a
  const second=await runtime.dispatch('/src/app.mjs');
  assert.equal(second.intercepted,true);
  assert.equal(runtime.requests.length,requestsAfterFirst,'cache-first code does not refetch');
- assert.equal((await (await runtime.caches.open('brandicade-glimmer-cascade-v8')).match('/src/app.mjs')).status,200,
+ assert.equal((await (await runtime.caches.open('brandicade-glimmer-cascade-v9')).match('/src/app.mjs')).status,200,
   'cache stores a cloned successful static response');
  const secretPage=await runtime.dispatch('/index.html',{mode:'navigate'});
  assert.equal(secretPage.intercepted,true);
- assert.equal(await (await runtime.caches.open('brandicade-glimmer-cascade-v8')).match('/index.html'),
+ assert.equal(await (await runtime.caches.open('brandicade-glimmer-cascade-v9')).match('/index.html'),
   undefined,'private protected HTML must never be stored');
  await runtime.dispatch('/prism-garden.html',{mode:'navigate'});
- assert.equal(await (await runtime.caches.open('brandicade-glimmer-cascade-v8')).match('/prism-garden.html'),
+ assert.equal(await (await runtime.caches.open('brandicade-glimmer-cascade-v9')).match('/prism-garden.html'),
   undefined,'Access-redirected navigation must never be stored');
  offline=true;
  assert.equal((await runtime.dispatch('/index.html',{mode:'navigate'})).response.offline,true,
@@ -128,7 +130,7 @@ test('PWA installation filters no-store and redirected responses and preserves o
   return reply(url);
  });
  await runtime.runLifecycle('install');
- const cache=await runtime.caches.open('brandicade-glimmer-cascade-v8');
+ const cache=await runtime.caches.open('brandicade-glimmer-cascade-v9');
  assert.equal(await cache.match('/index.html'),undefined);
  assert.equal(await cache.match('/'),undefined);
  assert.equal(await cache.match('/assets/icon.svg'),undefined);
