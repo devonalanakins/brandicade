@@ -31,7 +31,27 @@ jobs:
       - name: Verify nondeploying source-exact preview asset assembly
         run: |
           python3 -m py_compile scripts/prepare_current_preview.py
-          python3 -c 'import sys; from pathlib import Path; sys.path.insert(0,"scripts"); from prepare_current_preview import build_preview_asset_table,BRIDGE_ROUTE; from build_worker import ASSETS; table,proof=build_preview_asset_table(Path("dist/brandicade.worker.js").read_bytes()); assert b"brandicade-glimmer-cascade-cloud-bridge-v9" not in table; assert b"\\\"/src/backup-file-check.mjs\\\"" in table; assert b"\\\"/src/cloud-sync.mjs\\\"" in table; assert proof["route_count"]==len(ASSETS)'
+          python3 - <<'PY'
+          import base64
+          import gzip
+          import json
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, "scripts")
+          from prepare_current_preview import build_preview_asset_table
+          from build_worker import ASSETS
+          raw, proof = build_preview_asset_table(Path("dist/brandicade.worker.js").read_bytes())
+          entries = json.loads(raw)
+          assert set(entries) == set(ASSETS) | {"/src/cloud-sync.mjs"}
+          sw = entries["/sw.js"]
+          blob = base64.b64decode(sw["b"], validate=True)
+          if sw["g"]:
+              blob = gzip.decompress(blob)
+          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v9'" in blob
+          assert b"const ASSETS=['/src/cloud-sync.mjs'," in blob
+          assert proof["route_count"] == len(ASSETS)
+          print("Nondeploying preview static source parity verified")
+          PY
       - run: python3 -m py_compile build_worker.py scripts/build_brandicade_protected.py scripts/verify_release_assets.py
       - run: python3 scripts/build_brandicade_protected.py
       - run: node --check dist/brandicade-protected.candidate.mjs
