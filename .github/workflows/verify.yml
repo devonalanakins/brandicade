@@ -19,6 +19,11 @@ jobs:
       - run: node --check sw.js && node --check src/arcade-controller.mjs && node --check src/prism-garden/controller.mjs
       - run: node --check src/app.mjs && node --check src/progression.mjs && node --check src/cloud-sync.mjs && node --check src/arcade-passport.mjs && node --check src/prism-garden/arcade-summary.mjs && node --check src/prism-garden/app.mjs && node --check src/prism-garden/board-guide.mjs && node --check src/prism-garden/feedback.mjs && node --check src/prism-garden/restoration-scene.mjs && node --check src/prism-garden/engine.mjs && node --check src/prism-garden/achievements.mjs && node --check src/prism-garden/save-guard.mjs && node --check src/prism-garden/backup.mjs && node --check src/prism-garden/backup-ui.mjs
       - run: node --test tests/prism-ui-smoke.test.mjs tests/prism-backup.test.mjs tests/prism-backup-ui.test.mjs tests/prism-run-safety.test.mjs
+      - name: Verify standalone encrypted player backup and disposable restore (synthetic only)
+        run: |
+          node --check server/legacy-backup-vault.mjs
+          node --check tests/legacy-backup-vault.test.mjs
+          node --test tests/legacy-backup-vault.test.mjs
       - run: python3 -m unittest discover -s tests -p 'test_*.py' -v
       - run: python3 build_worker.py
       - name: Verify exact source-to-Worker frontend asset parity
