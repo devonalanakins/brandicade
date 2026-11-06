@@ -5,6 +5,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 from attest_staging_assets import (
@@ -15,10 +16,17 @@ from attest_staging_assets import (
 
 class StagingAssetAttestationTests(unittest.TestCase):
     def setUp(self):
+        self.temp = TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        (self.root / 'src').mkdir()
         self.sw = ("/* synthetic offline Worker */\n" + SOURCE_CACHE + ';\n'
                    + SOURCE_ASSETS + "'/index.html'];\n").encode('utf-8')
         self.cloud = b'/* synthetic bridge */ export const safe = true;\n'
         self.game = b'export const arcade = true;\n'
+        (self.root / 'src/game.mjs').write_bytes(self.game)
+        (self.root / 'sw.js').write_bytes(self.sw)
+        (self.root / 'src/cloud-sync.mjs').write_bytes(self.cloud)
         sw_alt = self.sw.decode().replace(SOURCE_CACHE, STAGING_CACHE).replace(SOURCE_ASSETS, STAGING_ASSETS).encode()
         source_assets = [
             self.entry('/src/game.mjs', 'text/javascript; charset=utf-8', self.game, source='src/game.mjs'),
@@ -62,6 +70,7 @@ class StagingAssetAttestationTests(unittest.TestCase):
             self.cloud if cloud is None else cloud,
             self.observed['version_id'] if version is None else version,
             self.observed['deployment_id'] if deployment is None else deployment,
+            root=self.root,
         )
 
     def test_valid_snapshot_requires_exact_source_assets_and_two_known_changes(self):
@@ -73,6 +82,15 @@ class StagingAssetAttestationTests(unittest.TestCase):
         self.assertFalse(result['live_authentication_verified'])
         self.assertFalse(result['backend_parity_verified'])
         self.assertFalse(result['production_deployment_verified'])
+
+    def test_local_source_drift_or_missing_file_is_rejected(self):
+        local = self.root / 'src/game.mjs'
+        local.write_bytes(self.game + b'evil')
+        with self.assertRaisesRegex(AttestationError, 'Source file drifted'):
+            self.verify()
+        local.unlink()
+        with self.assertRaisesRegex(AttestationError, 'Source file missing'):
+            self.verify()
 
     def test_changed_static_asset_bytes_or_mime_fails(self):
         for key, value in [('sha256', '0' * 64), ('size_bytes', 900), ('mime', 'text/html')]:
@@ -170,6 +188,7 @@ class StagingAssetAttestationTests(unittest.TestCase):
         src = copy.deepcopy(self.source)
         src['assets'][-1] = self.entry('/sw.js', 'text/javascript; charset=utf-8', sw, source='sw.js')
         src['manifest_sha256'] = self.manifest_hash(src)
+        (self.root / 'sw.js').write_bytes(sw)
         with self.assertRaisesRegex(AttestationError, 'rewrite boundary changed'):
             self.verify(source=src, sw=sw)
 
