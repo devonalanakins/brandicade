@@ -47,7 +47,7 @@ jobs:
           blob = base64.b64decode(sw["b"], validate=True)
           if sw["g"]:
               blob = gzip.decompress(blob)
-          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v9'" in blob
+          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v10'" in blob
           assert b"const ASSETS=['/src/cloud-sync.mjs'," in blob
           assert proof["route_count"] == len(ASSETS)
           print("Nondeploying preview static source parity verified")
@@ -71,6 +71,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Verify phone landscape and touch layout in Chromium and WebKit
         run: node --test tests/landscape-browser.test.mjs tests/webkit-mobile-browser.test.mjs
+      - name: Rehearse isolated two-game backup restoration in Chromium and WebKit
+        run: node --test tests/isolated-backup-restore-browser.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

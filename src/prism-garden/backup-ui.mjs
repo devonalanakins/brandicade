@@ -28,24 +28,28 @@ async function exportUnreadable(){
  writeDownload(raw,'prism-garden-unverified-original-'+new Date().toISOString().slice(0,10)+'.txt');
  notify('Original data downloaded as-is. This is not a verified backup; retain it privately for recovery.','success');
 }
-async function verifySelectedBackup(input){
- const file=input.files?.[0];input.value='';
- if(!file)return;
- if(file.size>MAX_BACKUP_BYTES)throw Error('The selected file exceeds the supported backup size.');
- const contents=await file.text();
- // Reuse the exact format checksum and replayable move validation used by
- // import, but never call localStorage.setItem, prompt for restore or reload.
+async function parseLosslessBackup(contents){
+ // Both checking and restoring must reject silently sanitized/omitted fields.
+ // A valid SHA-256 digest alone does not guarantee lossless compatibility.
  const valid=await parseBackup(contents,dependencies);
  const envelope=JSON.parse(contents);
  if(JSON.stringify(envelope.progress)!==JSON.stringify(valid))
   throw Error('This file would change or omit progress details during restore. Nothing was changed.');
+ return valid;
+}
+async function verifySelectedBackup(input){
+ const file=input.files?.[0];input.value='';
+ if(!file)return;
+ if(file.size>MAX_BACKUP_BYTES)throw Error('The selected file exceeds the supported backup size.');
+ // Read-only path: do not write storage, prompt for restore or reload.
+ await parseLosslessBackup(await file.text());
  notify('Prism Garden backup passed its checksum and saved-game validation. No progress was changed.','success');
 }
 async function importSelected(input){
  const file=input.files?.[0];input.value='';
  if(!file)return;
  if(file.size>MAX_BACKUP_BYTES)throw Error('The selected file exceeds the supported backup size.');
- const incoming=await parseBackup(await file.text(),dependencies);
+ const incoming=await parseLosslessBackup(await file.text());
  if(!window.confirm('Replace ONLY Prism Garden progress on this device with this backup? Glimmer Pop and Brandle will not be changed.')){
   notify('Import cancelled. Nothing changed.');return;
  }

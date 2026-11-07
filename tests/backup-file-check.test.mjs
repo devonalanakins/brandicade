@@ -60,7 +60,8 @@ test('Glimmer verifier is reachable from settings and bundled for offline use',a
  const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
  const worker=readFileSync(new URL('../build_worker.py',import.meta.url),'utf8');
  assert.ok(app.includes("case 'check-backup':$('#verify-file').click();break;"));
- assert.ok(app.includes('checkGlimmerBackup(await file.text())'));
+ assert.ok(app.includes('checkGlimmerBackup(contents)'));
+ assert.match(app,/const contents=await file\.text\(\);checkGlimmerBackup\(contents\);importPending=importSave\(contents\);/, 'a lossy import must never reach confirmation');
  assert.match(html,/id="verify-file" type="file"/);
  assert.ok(sw.includes("'/src/backup-file-check.mjs'"));
  assert.ok(worker.includes("'/src/backup-file-check.mjs'"));

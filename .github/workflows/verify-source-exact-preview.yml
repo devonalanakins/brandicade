@@ -27,7 +27,7 @@ jobs:
         run: |
           python3 build_worker.py
           python3 scripts/verify_release_assets.py --output dist/brandicade-release-assets.json
-      - name: Verify v9 cloud bridge translation against real current assets
+      - name: Verify v10 cloud bridge translation against real current assets
         run: |
           python3 - <<'PY'
           import base64
@@ -45,7 +45,7 @@ jobs:
           blob = base64.b64decode(sw["b"], validate=True)
           if sw["g"]:
               blob = gzip.decompress(blob)
-          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v9'" in blob
+          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v10'" in blob
           assert b"const ASSETS=['/src/cloud-sync.mjs'," in blob
           assert proof["route_count"] == len(ASSETS)
           print("Verified source-exact staged assets; NO deployment performed")
