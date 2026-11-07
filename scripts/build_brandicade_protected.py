@@ -115,10 +115,10 @@ export default {
     }
     if(path==='/sw.js'){
       let code=await response.text();
-      const cache="const CACHE='brandicade-glimmer-cascade-v10'";
+      const cache="const CACHE='brandicade-glimmer-cascade-v11'";
       const assets="const ASSETS=[";
       if(!code.includes(cache)||!code.includes(assets))return restricted(503);
-      code=code.replace(cache,"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v10'")
+      code=code.replace(cache,"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v11'")
         .replace(assets,"const ASSETS=['/src/cloud-sync.mjs',");
       const headers=new Headers(response.headers);headers.set('Cache-Control','no-store');
       return new Response(code,{status:200,headers});

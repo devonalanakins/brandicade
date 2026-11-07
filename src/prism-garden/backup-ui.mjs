@@ -15,7 +15,10 @@ function readCurrent(){
  if(!raw)throw Error('No Prism Garden progress has been saved on this device yet.');
  let value;
  try{value=JSON.parse(raw);}catch{throw Error('Local progress cannot be read. Original data remains untouched.');}
- return sanitizeImportedProgress(value,dependencies);
+ const normalized=sanitizeImportedProgress(value,dependencies);
+ if(JSON.stringify(value)!==JSON.stringify(normalized))
+  throw Error('The save has unsupported details. Download the exact original instead; no progress was changed.');
+ return normalized;
 }
 async function exportCurrent(){
  const progress=readCurrent(),contents=await makeBackup(progress);
@@ -63,7 +66,11 @@ function mount(){
  const settings=host.querySelector('.pg-options');
  if(!settings)return;
  const recovery=readStoredProgress();
- const hasUnreadableOriginal=recovery.recoveryRequired&&typeof recovery.raw==='string';
+ let losslessExport=true;
+ try{readCurrent();}catch{losslessExport=false;}
+ // Offer exact raw export whenever strict format validation would discard data.
+ const hasUnreadableOriginal=typeof recovery.raw==='string'&&
+  (recovery.recoveryRequired||!losslessExport);
  const panel=document.createElement('section');
  panel.id='pg-backup-tools';panel.className='pg-backup-panel';
  panel.setAttribute('aria-labelledby','pg-backup-title');
@@ -75,7 +82,7 @@ function mount(){
   '<input id="pg-backup-import" type="file" accept=".json,application/json" aria-label="Select Prism Garden backup file"></div>'+
   '<button type="button" id="pg-backup-verify">Check a backup file without restoring</button>'+
   '<input id="pg-backup-check" type="file" accept=".json,application/json" aria-label="Choose Prism Garden backup to check" hidden>'+
-  (hasUnreadableOriginal?'<button type="button" id="pg-backup-raw">Download original unreadable save</button>':'')+
+  (hasUnreadableOriginal?'<button type="button" id="pg-backup-raw">Download exact original (unverified)</button>':'')+
   (recovery.recoveryRequired&&!hasUnreadableOriginal?'<p class="pg-backup-storage-note">Browser storage is unavailable. Allow site storage before restoring a backup.</p>':'')+
   '<p id="pg-backup-status" role="status" aria-live="polite">'+
   'Backups include achievements, completed levels and your current puzzle. '+

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {SAVE_KEY,newSave,inspectLocalSave,loadSave,persist,restoreConfirmedBackup} from '../src/progression.mjs';
+import {SAVE_KEY,newSave,readLosslessLocalSave,inspectLocalSave,loadSave,persist,restoreConfirmedBackup} from '../src/progression.mjs';
 
 function storage(original=null){
  const slots=new Map(original===null?[]:[[SAVE_KEY,original]]);
@@ -40,6 +40,35 @@ test('malformed JSON is never silently overwritten by initialization or future s
   assert.equal(db.slots.get(SAVE_KEY),raw);
   assert.equal(db.slots.get('prism-garden:progress:v1'),'jewel-progress-unaltered');
  }
+});
+
+test('unknown or normalized Glimmer fields are never silently overwritten by ordinary saves',()=>{
+ for(const modified of [
+  save=>{save.unknownTreasures={rare:['jade']};},
+  save=>{save.profile.avatar='unsupported-future-avatar';},
+  save=>{delete save.settings;},
+  save=>{save.stats.played=-5;},
+ ]){
+  const saved=newSave();saved.stats.played=12;modified(saved);
+  const raw=JSON.stringify(saved),db=storage(raw);
+  assert.throws(()=>readLosslessLocalSave(raw),/cannot preserve/);
+  const inspected=inspectLocalSave(db);
+  assert.equal(inspected.status,'unreadable','recovery mode must be shown for a lossy source');
+  assert.equal(persist(inspected.save,db),false,'normal gameplay must not replace unknown progress');
+  assert.equal(db.writes.length,0);
+  assert.equal(db.slots.get(SAVE_KEY),raw,'original exact bytes remain available for raw export');
+ }
+});
+
+test('lossless local saves still round-trip and permit ordinary updates',()=>{
+ const valid=newSave();valid.stats.played=4;
+ const raw=JSON.stringify(valid),db=storage(raw);
+ assert.deepEqual(readLosslessLocalSave(raw),valid);
+ const loaded=inspectLocalSave(db);
+ assert.equal(loaded.status,'valid');
+ loaded.save.stats.played++;
+ assert.equal(persist(loaded.save,db),true);
+ assert.equal(inspectLocalSave(db).save.stats.played,5);
 });
 
 test('unsupported schema, oversized records, and invalid storage types fail closed',()=>{

@@ -159,3 +159,55 @@ test('two-game export and isolated restore refuse lossy files (Chromium and WebK
   }
  }finally{await new Promise(resolve=>server.close(resolve));}
 });
+
+
+test('Glimmer exports the latest persisted progress, or exact unverified original if incompatible',
+ {timeout:180000},async t=>{
+ const {server,url}=await localServer();
+ try{
+  for(const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+   await t.test(name,async()=>{
+    const browser=await engine.launch({headless:true});
+    try{
+     const original=newSave();original.stats.played=2;
+     const context=await browser.newContext({viewport:{width:390,height:844},
+      serviceWorkers:'block',acceptDownloads:true});
+     try{
+      await context.addInitScript(raw=>{
+       if(localStorage.getItem('brandicade:save:v1')===null)
+        localStorage.setItem('brandicade:save:v1',raw);
+      },JSON.stringify(original));
+      const page=await context.newPage();
+      await page.goto(url+'/',{waitUntil:'networkidle'});
+      await page.locator('#settings-open').click();
+      const updated=newSave();updated.stats.played=21;updated.profile.avatar='fox';
+      const latestRaw=JSON.stringify(updated);
+      await page.evaluate(raw=>localStorage.setItem('brandicade:save:v1',raw),latestRaw);
+      const [valid]=await Promise.all([
+       page.waitForEvent('download'),
+       page.locator('#modal [data-action="export"]').click()
+      ]);
+      const data=JSON.parse((await readFile(await valid.path())).toString('utf8'));
+      assert.equal(data.format,'BRANDICADE_BACKUP');
+      assert.equal(data.data.stats.played,21,'export reads the latest device data, not stale app memory');
+      assert.equal(data.data.profile.avatar,'fox');
+      assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),latestRaw);
+      const unsupported={...updated,unrecognizedKeepSake:{fromOldVersion:true}};
+      const preservedRaw=JSON.stringify(unsupported);
+      await page.evaluate(raw=>localStorage.setItem('brandicade:save:v1',raw),preservedRaw);
+      const [rawDownload]=await Promise.all([
+       page.waitForEvent('download'),
+       page.locator('#modal [data-action="export"]').click()
+      ]);
+      assert.match(rawDownload.suggestedFilename(),/original-unreadable-save\.txt$/);
+      assert.equal((await readFile(await rawDownload.path())).toString('utf8'),preservedRaw,
+       'raw fallback must preserve even unsupported fields');
+      assert.equal(await page.evaluate(()=>localStorage.getItem('brandicade:save:v1')),preservedRaw,
+       'export must never mutate the original on-device progress');
+      await page.close();
+     }finally{await context.close();}
+    }finally{await browser.close();}
+   });
+  }
+ }finally{await new Promise(resolve=>server.close(resolve));}
+});
