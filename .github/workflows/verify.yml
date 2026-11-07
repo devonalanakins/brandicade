@@ -47,7 +47,7 @@ jobs:
           blob = base64.b64decode(sw["b"], validate=True)
           if sw["g"]:
               blob = gzip.decompress(blob)
-          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v10'" in blob
+          assert b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v11'" in blob
           assert b"const ASSETS=['/src/cloud-sync.mjs'," in blob
           assert proof["route_count"] == len(ASSETS)
           print("Nondeploying preview static source parity verified")
