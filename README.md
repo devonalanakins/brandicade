@@ -8,11 +8,11 @@ Brandicade is a private, offline-first family arcade built for Brandi, with Kahl
 
 | System | Verified state |
 | --- | --- |
-| **Production** — [brandicade.anevum.com](https://brandicade.anevum.com) | Cloudflare Worker `brandicade` still serves the November 3 Prism Garden integration release, deployment `49b2368d-4a9f-40a0-94f5-b3cc627827cc` / version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` (observed in Cloudflare on November 6). |
-| **Latest source** | Landscape-first Kahlua arcade and controller improvements from [PR #15](https://github.com/devonalanakins/brandicade/pull/15) were merged into `release/prism-bloom-protected-parity-20261103`, **not** production. |
-| **Protected runtime candidate** | [PR #12](https://github.com/devonalanakins/brandicade/pull/12) provides a reconstructed signed-Access/D1 backend. It is **not byte-identical to the deployed legacy Worker**, and cloud writes are disabled by default. |
-| **Staging** — `prism.anevum.com` | Private preview Worker, with separate D1/Access configuration. It is not a replacement production origin or a transferable player-save origin. |
-| **Repository integration** | Current release source was merged into `main` in [PR #16](https://github.com/devonalanakins/brandicade/pull/16) on November 6, 2026. **Source merge does not deploy a Worker.** |
+| **Production** — [brandicade.anevum.com](https://brandicade.anevum.com) | Existing protected release still serves 100% of traffic: version `9b88b22c-d740-4e8f-b35a-5178a627a8e2`. New v9 candidate `e46c58f2-c532-4949-b762-474398df927c` is uploaded but **INACTIVE**; no live traffic switched (provider checked November 6). |
+| **Latest source** | Current unified Kahlua / landscape / controller / both backup-check UIs are on `main` at `73e6e09a4d0245a631c01d224d18ba766cbff654`; [full CI](https://github.com/devonalanakins/brandicade/actions/runs/42288102952) passed. Source is not proof of signed-in device acceptance. |
+| **Production upgrade method** | The inactive v9 Worker copies only current **staging static assets** into the existing production Worker's code; production Access audience, signed APIs and D1 runtime are retained. The separate reconstructed PR #12 backend is **not** used. |
+| **Staging** — [prism.anevum.com](https://prism.anevum.com) | Latest v9 frontend is LIVE privately at 100% staging traffic: Worker version `906ffa9c-e60b-40b7-87f7-c69ff3eb222c`; separate D1 and Access. Origin-specific saves do not automatically transfer. |
+| **Repository integration** | Source integration [PR #16](https://github.com/devonalanakins/brandicade/pull/16), backup checks [PR #21](https://github.com/devonalanakins/brandicade/pull/21), and source-exact preflight [PR #22](https://github.com/devonalanakins/brandicade/pull/22) are merged. **No production traffic change occurred.** |
 
 **Do not deploy or upload `dist/brandicade.worker.js`, or any unbundled candidate, over the protected production Worker.** The standalone static artifact lacks production Access and cloud-save APIs. No existing origin, D1 record, Cloudflare Access application, or Safari storage may be reset to simplify a release.
 
@@ -26,7 +26,7 @@ Brandicade is a private, offline-first family arcade built for Brandi, with Kahl
 - **Brandle:** direct launch to its existing independently hosted origin; no iframe or automatic migration of its saved progress.
 - **Private storage:** explicit device backup/export/import; opt-in Glimmer Pop cloud reconciliation. Prism Garden uses its own separate local namespace. Cloud save write recovery is a candidate and must not be assumed live.
 
-The existing source contains focused Node tests, Python build and recovery tests, WebKit/Chromium browser tests, and nondeploying protected Worker simulation and Wrangler dry-run bundling. At source integration head `f5586afd04aa3665d217351c024654b34dd16b4c`, [CI run 42263850160](https://github.com/devonalanakins/brandicade/actions/runs/42263850160) succeeded, including new static provenance verification, the protected Worker dry-run bundle, and Chromium/WebKit browser tests. Its browser/device simulations do **not** establish physical-device, authenticated production, backup/restore, or licensing acceptance.
+The existing source contains focused Node tests, Python build and recovery tests, WebKit/Chromium browser tests, and nondeploying protected Worker simulation and Wrangler dry-run bundling. At current source head `73e6e09a4d0245a631c01d224d18ba766cbff654`, [full CI run 42288102952](https://github.com/devonalanakins/brandicade/actions/runs/42288102952) succeeded, including exact static provenance, protected Worker dry-run and Chromium/WebKit browser tests. Its browser/device simulations do **not** establish physical-device, authenticated production, backup/restore, or licensing acceptance.
 
 ## Local development and verification
 
@@ -52,6 +52,6 @@ The static source browser is for **local gameplay preview only**; it cannot exer
 5. MIT/GPLv3 source and generated Worker header provenance reconciliation, preserving all applicable notices.
 6. Reviewed production release artifact, current deployment/rollback identifiers, observed post-deployment checks, and only then retirement of the obsolete Prism hostname.
 
-For current evidence, see [protected release candidate](docs/PRISM_BLOOM_PROTECTED_RELEASE.md), [November 3 release receipt](docs/PRISM_GARDEN_PRODUCTION_RELEASE_2026-11-03.md), and [cutover checklist](docs/BRANDICADE_MAIN_CUTOVER_2026-11-06.md). The requirements and sign-off are tracked in [Brandicade issue #2](https://github.com/devonalanakins/brandicade/issues/2) and the [living project record](https://app.notion.com/p/40a88cc2ef1481bbbcdce71be63b935e).
+For current evidence, see the [v9 pinned release gate](docs/PRODUCTION_V9_RELEASE_GATE_2026-11-06.md), [device acceptance instructions](docs/DEVICE_BACKUP_ACCEPTANCE_2026-11-06.md), and [cutover checklist](docs/BRANDICADE_MAIN_CUTOVER_2026-11-06.md). The requirements and sign-off are tracked in [Brandicade issue #2](https://github.com/devonalanakins/brandicade/issues/2) and the [living project record](https://app.notion.com/p/40a88cc2ef1481bbbcdce71be63b935e).
 
 This remains an independent **family project**, not part of ANEVUM's commercial creative universe. Never add access tokens, partner information, private photos, personal save blobs, or clinical records to public source. The existing MIT `LICENSE` and inherited GPLv3 Worker header present an unresolved **license discrepancy**; do not silently remove, replace, or reinterpret either before provenance review.

@@ -2,7 +2,7 @@
 
 **Date:** November 6, 2026
 
-**Target:** prepare the current `main` frontend, including the new read-only save-file verification screens, for private review while preserving the existing staging Worker authentication and save backend. This is **not** a staging deployment, live release, login check, or approval to retire `prism.anevum.com`.
+**Historical scope:** prepare the current `main` frontend, including read-only save-file verification screens, without changing backend code. **UPDATE:** The prepared v9 preview has since been **deployed to private staging** (version `906ffa9c-e60b-40b7-87f7-c69ff3eb222c`, deployment `726deef8-6441-4097-8e06-5a2daf4ce881`). The corresponding **production** candidate is uploaded but inactive. See the [current production release gate](PRODUCTION_V9_RELEASE_GATE_2026-11-06.md). No signed-in real-device acceptance is implied.
 
 ## Why another staging receipt is required
 

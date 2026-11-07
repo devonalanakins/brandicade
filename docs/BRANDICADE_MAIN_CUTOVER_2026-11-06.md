@@ -2,6 +2,10 @@
 
 **Decision (approved November 6, 2026):** Brandicade is the single playable arcade at `brandicade.anevum.com`. Prism Garden remains a game **within** Brandicade; `prism.anevum.com` is temporary private QA and will be retired **after** the new production release has passed the acceptance gates. The rest of ANEVUM and the independently hosted Brandle game must not be touched.
 
+## Latest provider checkpoint — supersedes the historical initial snapshot
+
+As of November 6, source commit `73e6e09a4d0245a631c01d224d18ba766cbff654` passed [full GitHub CI](https://github.com/devonalanakins/brandicade/actions/runs/42288102952). Current v9 private staging is **LIVE** on `prism.anevum.com` at version `906ffa9c-e60b-40b7-87f7-c69ff3eb222c` (100% preview traffic). Production's new v9 candidate version `e46c58f2-c532-4949-b762-474398df927c` was uploaded and independently read back, but remains **INACTIVE**; production version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` still receives 100% traffic. [Current version-pinned release gate](PRODUCTION_V9_RELEASE_GATE_2026-11-06.md). The initial checkpoint below is retained as historical evidence, not current provider status.
+
 ## Verified initial checkpoint
 
 - Production Cloudflare Worker: `brandicade`. November 3 deployment `49b2368d-4a9f-40a0-94f5-b3cc627827cc`, version `9b88b22c-d740-4e8f-b35a-5178a627a8e2`, seen at **100%** through Cloudflare provider API on November 6.
@@ -50,6 +54,6 @@ Production and preview Workers each have a `SAVES` D1 binding, pointing to **dis
 
 **Release decision:** NO-GO for replacing the production Worker or removing the preview hostname until all mandatory gates are evidenced. GitHub source integration may proceed separately with truthful status markers and no deployment trigger.
 
-**Rollback:** Previous production Worker version `09c8dcb9-3db4-47c4-b7be-b9a218a7ba1e` is retained from the prior release receipt, but the rollback method must be reverified against current Cloudflare state and save changes immediately before action. Code rollback does **not** rewind player progress, D1, browser storage, or Access policy. Do not force old automatic cloud-sync behavior without evaluating newer saves.
+**Rollback:** For a future v9 traffic activation, the immediately preceding LIVE production Worker is version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` (still 100% active at this checkpoint), not the older historical version `09c8dcb9-3db4-47c4-b7be-b9a218a7ba1e`. Reverify deployability and player saves immediately before a production change. Code rollback does **not** rewind player progress, D1, browser storage, or Access policy. Do not force old automatic cloud-sync behavior without evaluating newer saves.
 
 Source of truth: [Brandicade Notion project](https://app.notion.com/p/40a88cc2ef1481bbbcdce71be63b935e), [release PR #12](https://github.com/devonalanakins/brandicade/pull/12), [issue #2](https://github.com/devonalanakins/brandicade/issues/2), [November 3 deployment receipt](PRISM_GARDEN_PRODUCTION_RELEASE_2026-11-03.md).
