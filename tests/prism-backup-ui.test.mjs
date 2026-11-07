@@ -137,3 +137,50 @@ test('damaged original can be exported as-is without accepting it as a valid bac
   URL.createObjectURL=oldURL.create;URL.revokeObjectURL=oldURL.revoke;
  }
 });
+
+
+test('Prism export refuses a sanitized backup and preserves the exact unsupported original',async()=>{
+ const original={...newProgress(),futureKeepsake:{color:'emerald'}};
+ const raw=JSON.stringify(original),map=new Map([[KEY,raw],['brandicade:save:v1','glimmer-stays']]);
+ const writes=[];let created=0,blob=null;
+ const handlers={};
+ const controls={
+  '#pg-backup-export':{disabled:false,addEventListener(_type,fn){handlers.export=fn;}},
+  '#pg-backup-raw':{disabled:false,addEventListener(_type,fn){handlers.raw=fn;}},
+  '#pg-backup-import':{files:[],value:'',addEventListener(){}},
+  '#pg-backup-verify':{addEventListener(){}},
+  '#pg-backup-check':{files:[],value:'',addEventListener(){}},
+  '#pg-backup-status':{textContent:'',dataset:{}}
+ };
+ const panel={setAttribute(){},querySelector:selector=>controls[selector]};
+ const host={panel:null,querySelector(selector){return selector==='#pg-backup-tools'?this.panel:selector==='.pg-options'?{after:node=>{this.panel=node;}}:null;}};
+ const prev={document:globalThis.document,MutationObserver:globalThis.MutationObserver,window:globalThis.window,localStorage:globalThis.localStorage};
+ const url={create:URL.createObjectURL,revoke:URL.revokeObjectURL};
+ globalThis.localStorage={getItem:k=>map.get(k)??null,setItem:(k,v)=>{writes.push(k);map.set(k,v);}};
+ globalThis.MutationObserver=class{observe(){}};
+ globalThis.window={confirm(){throw Error('restore prompt must not occur');},location:{reload(){throw Error('no reload');}}};
+ globalThis.document={getElementById:selector=>selector==='prism-app'?host:selector==='pg-backup-status'?controls['#pg-backup-status']:null,
+  createElement:()=>({...panel,click(){created++;},remove(){}}),body:{appendChild(){}}};
+ URL.createObjectURL=b=>{blob=b;return 'blob:local-unverified';};URL.revokeObjectURL=()=>{};
+ try{
+  await import('../src/prism-garden/backup-ui.mjs?lossless-export');
+  assert.equal(typeof handlers.export,'function');
+  assert.equal(typeof handlers.raw,'function','raw export must be available when data cannot round-trip');
+  await handlers.export({currentTarget:controls['#pg-backup-export']});
+  assert.equal(created,0,'no lossy verified backup may be downloaded');
+  assert.equal(controls['#pg-backup-status'].dataset.kind,'error');
+  assert.match(controls['#pg-backup-status'].textContent,/unsupported details/);
+  await handlers.raw({currentTarget:controls['#pg-backup-raw']});
+  assert.equal(created,1);
+  assert.equal(await blob.text(),raw,'unverified raw copy retains every unsupported byte');
+  assert.equal(controls['#pg-backup-status'].dataset.kind,'success');
+  assert.equal(writes.length,0,'neither export action may write browser storage');
+  assert.equal(map.get(KEY),raw);
+  assert.equal(map.get('brandicade:save:v1'),'glimmer-stays');
+ }finally{
+  for(const [key,value] of Object.entries(prev)){
+   if(value===undefined)delete globalThis[key];else globalThis[key]=value;
+  }
+  URL.createObjectURL=url.create;URL.revokeObjectURL=url.revoke;
+ }
+});
