@@ -4,6 +4,8 @@
 
 **New verification:** [PR #26](https://github.com/devonalanakins/brandicade/pull/26) and [full post-merge CI](https://github.com/devonalanakins/brandicade/actions/runs/42326554686) passed, including synthetic export and isolated two-game restore rehearsals in Chromium and WebKit. This does **not** satisfy the owner's original iPhone backup or real-device restore acceptance requirement. The PWA cache is now `cloud-bridge-v10`.
 
+**HISTORICAL, SUPERSEDED:** v10 is **not** the current release. Its inactive version `167e4379-4634-4936-b7ea-c6ce1833e878` lacks the verified v11 lossless-export/write protection. Do not promote it. See the [v11 release gate](PRODUCTION_V11_RELEASE_GATE_2026-11-06.md) and [release issue #24](https://github.com/devonalanakins/brandicade/issues/24). The v10 manifest is retained only for audit history.
+
 **Status checked November 6, 2026:** Source and exact-head GitHub CI are VERIFIED. The newest private staging version is LIVE. A production candidate is UPLOADED BUT INACTIVE. **Production crossover is NO-GO pending real owner/device evidence.** No amount of CI coverage can establish that Brandi's iPhone-local progress has been preserved.
 
 ## Pinned provider state
