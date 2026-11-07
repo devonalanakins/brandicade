@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "release": "brandicade-v11-production-2026-11-06",
+  "source_sha": "1e8c4cf85269438ca291a770b814ac186710577a",
+  "ci_url": "https://github.com/devonalanakins/brandicade/actions/runs/42330373171",
+  "production": {
+    "script": "brandicade",
+    "hostname": "brandicade.anevum.com",
+    "current_live_version": "9b88b22c-d740-4e8f-b35a-5178a627a8e2",
+    "current_deployment": "49b2368d-4a9f-40a0-94f5-b3cc627827cc",
+    "inactive_candidate_version": "b98da834-ce76-4c45-8f19-95f802f6e904",
+    "candidate_sha256": "02864027fcf100d4d0464f5a9480f3ed434069784f1c9c13a97beaff8c472340",
+    "candidate_asset_count": 37,
+    "rollback_version": "9b88b22c-d740-4e8f-b35a-5178a627a8e2"
+  },
+  "staging": {
+    "script": "brandicade-prism-preview-20261103",
+    "hostname": "prism.anevum.com",
+    "live_version": "b7fb7f2c-0d0c-4295-b6c7-a5338d4f77a3",
+    "deployment": "cd38cc2b-e6c9-4d71-9006-9e2a3152a7b0",
+    "source_sha256": "b080c287a1398d63222911dcfd76138310b61d573be5406388be29c5da2c33ba",
+    "asset_count": 37
+  },
+  "evidence_ids": [
+    "original_iphone_glimmer_export",
+    "original_iphone_prism_export",
+    "independent_owner_held_copy",
+    "isolated_restore_no_original_changes",
+    "authorized_player_and_denied_user_login",
+    "iphone_pwa_offline_and_landscape",
+    "physical_xbox_controller",
+    "source_license_rights_review",
+    "rollback_procedure_rehearsed",
+    "owner_final_release_approval"
+  ]
+}
