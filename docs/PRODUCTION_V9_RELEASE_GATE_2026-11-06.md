@@ -1,5 +1,7 @@
 # Brandicade v9 — production release gate (inactive candidate)
 
+**HISTORICAL, SUPERSEDED:** The inactive v9 candidate documented here does **not** contain the corrected lossless import path. It must never be promoted as the current release. The actively reviewed release is [v10](PRODUCTION_V10_RELEASE_GATE_2026-11-06.md), with [release issue #24](https://github.com/devonalanakins/brandicade/issues/24). This old document and JSON receipt are retained only for audit history.
+
 **Status checked November 6, 2026:** Source and exact-head GitHub CI are VERIFIED. The newest private staging version is LIVE. A production candidate is UPLOADED BUT INACTIVE. **Production crossover is NO-GO pending real owner/device evidence.** No amount of CI coverage can establish that Brandi's iPhone-local progress has been preserved.
 
 ## Pinned provider state

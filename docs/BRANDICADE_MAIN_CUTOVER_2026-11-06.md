@@ -2,7 +2,11 @@
 
 **Decision (approved November 6, 2026):** Brandicade is the single playable arcade at `brandicade.anevum.com`. Prism Garden remains a game **within** Brandicade; `prism.anevum.com` is temporary private QA and will be retired **after** the new production release has passed the acceptance gates. The rest of ANEVUM and the independently hosted Brandle game must not be touched.
 
-## Latest provider checkpoint — supersedes the historical initial snapshot
+## Latest provider checkpoint — v10 source-exact release
+
+As of November 6, software commit `b4f3f1469c13a6ee7a8ee165486f8cb6f833968a` passed [full CI](https://github.com/devonalanakins/brandicade/actions/runs/42326554686), including synthetic isolated Glimmer and Prism backup/restore on Chromium and WebKit. The corrected **v10 private staging** is LIVE at `prism.anevum.com`, 100% on Worker version `e346cfcd-afd0-4cdb-98a3-0b46f9d20737`, deployment `b5b2c1a3-702f-4adc-bd5d-e04483d959d2`. The corresponding **v10 inactive production candidate** `167e4379-4634-4936-b7ea-c6ce1833e878` was uploaded, read back and independently hash-verified. Production still serves the previous protected version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` at 100% traffic. No actual iPhone saves or authenticated device tests have been verified. [Current v10 release gate](PRODUCTION_V10_RELEASE_GATE_2026-11-06.md) and [issue #24](https://github.com/devonalanakins/brandicade/issues/24). The old inactive v9 candidate `e46c58f2...` is **superseded; do not promote**.
+
+## Earlier v9 provider checkpoint — historical evidence only
 
 As of November 6, source commit `73e6e09a4d0245a631c01d224d18ba766cbff654` passed [full GitHub CI](https://github.com/devonalanakins/brandicade/actions/runs/42288102952). Current v9 private staging is **LIVE** on `prism.anevum.com` at version `906ffa9c-e60b-40b7-87f7-c69ff3eb222c` (100% preview traffic). Production's new v9 candidate version `e46c58f2-c532-4949-b762-474398df927c` was uploaded and independently read back, but remains **INACTIVE**; production version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` still receives 100% traffic. [Current version-pinned release gate](PRODUCTION_V9_RELEASE_GATE_2026-11-06.md). The initial checkpoint below is retained as historical evidence, not current provider status.
 
@@ -54,6 +58,6 @@ Production and preview Workers each have a `SAVES` D1 binding, pointing to **dis
 
 **Release decision:** NO-GO for replacing the production Worker or removing the preview hostname until all mandatory gates are evidenced. GitHub source integration may proceed separately with truthful status markers and no deployment trigger.
 
-**Rollback:** For a future v9 traffic activation, the immediately preceding LIVE production Worker is version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` (still 100% active at this checkpoint), not the older historical version `09c8dcb9-3db4-47c4-b7be-b9a218a7ba1e`. Reverify deployability and player saves immediately before a production change. Code rollback does **not** rewind player progress, D1, browser storage, or Access policy. Do not force old automatic cloud-sync behavior without evaluating newer saves.
+**Rollback:** For a future v10 traffic activation, the immediately preceding LIVE production Worker is version `9b88b22c-d740-4e8f-b35a-5178a627a8e2` (still 100% active at this checkpoint), not the older historical version `09c8dcb9-3db4-47c4-b7be-b9a218a7ba1e`. Reverify deployability and player saves immediately before a production change. Code rollback does **not** rewind player progress, D1, browser storage, or Access policy. Do not force old automatic cloud-sync behavior without evaluating newer saves.
 
 Source of truth: [Brandicade Notion project](https://app.notion.com/p/40a88cc2ef1481bbbcdce71be63b935e), [release PR #12](https://github.com/devonalanakins/brandicade/pull/12), [issue #2](https://github.com/devonalanakins/brandicade/issues/2), [November 3 deployment receipt](PRISM_GARDEN_PRODUCTION_RELEASE_2026-11-03.md).

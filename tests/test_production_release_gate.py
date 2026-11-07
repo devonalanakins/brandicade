@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('check_production_release_gate',ROOT/'scripts/check_production_release_gate.py')
 gate=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
-MANIFEST = gate.load_manifest(gate.read_json(ROOT/'docs/receipts/brandicade-v9-production-candidate-2026-11-06.json'))
+MANIFEST = gate.load_manifest(gate.read_json(ROOT/'docs/receipts/brandicade-v10-production-candidate-2026-11-06.json'))
 NOW = datetime(2026, 11, 7, 1, 0, tzinfo=timezone.utc)
 
 
@@ -49,8 +49,8 @@ class ProductionGateTests(unittest.TestCase):
         return gate.evaluate(MANIFEST, observation, acceptance, now=NOW)
 
     def test_pinned_source_and_cloudflare_versions_are_exact(self):
-        self.assertEqual(MANIFEST['source_sha'],'73e6e09a4d0245a631c01d224d18ba766cbff654')
-        self.assertEqual(MANIFEST['production']['inactive_candidate_version'],'e46c58f2-c532-4949-b762-474398df927c')
+        self.assertEqual(MANIFEST['source_sha'],'b4f3f1469c13a6ee7a8ee165486f8cb6f833968a')
+        self.assertEqual(MANIFEST['production']['inactive_candidate_version'],'167e4379-4634-4936-b7ea-c6ce1833e878')
         self.assertEqual(MANIFEST['production']['rollback_version'],MANIFEST['production']['current_live_version'])
         self.assertEqual(MANIFEST['production']['candidate_asset_count'],37)
 
@@ -136,6 +136,12 @@ class ProductionGateTests(unittest.TestCase):
         bad['production']['rollback_version']=bad['production']['inactive_candidate_version']
         with self.assertRaisesRegex(gate.GateInputError,'manifest_rollback'):
             gate.load_manifest(bad)
+
+
+    def test_superseded_v9_candidate_cannot_be_approved_by_v10_gate(self):
+        historical=gate.read_json(ROOT/'docs/receipts/brandicade-v9-production-candidate-2026-11-06.json')
+        with self.assertRaisesRegex(gate.GateInputError,'manifest_release'):
+            gate.load_manifest(historical)
 
 
 if __name__=='__main__':

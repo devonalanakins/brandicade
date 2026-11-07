@@ -13,15 +13,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_MANIFEST = ROOT / 'docs/receipts/brandicade-v9-production-candidate-2026-11-06.json'
+DEFAULT_MANIFEST = ROOT / 'docs/receipts/brandicade-v10-production-candidate-2026-11-06.json'
 HEX64 = re.compile(r'^[0-9a-f]{64}$')
 GUID = re.compile(r'^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
-PINNED_SOURCE = '73e6e09a4d0245a631c01d224d18ba766cbff654'
+PINNED_SOURCE = 'b4f3f1469c13a6ee7a8ee165486f8cb6f833968a'
 PINNED_PRODUCTION_VERSION = '9b88b22c-d740-4e8f-b35a-5178a627a8e2'
-PINNED_CANDIDATE_VERSION = 'e46c58f2-c532-4949-b762-474398df927c'
-PINNED_CANDIDATE_SHA256 = '1eca359d1694506918810607a27e189810e1c26340ae2728b32e82791e34e310'
-PINNED_STAGING_VERSION = '906ffa9c-e60b-40b7-87f7-c69ff3eb222c'
-PINNED_STAGING_SHA256 = '122ce9b683dc5c222955d01bc6927fed1e085fdb7669552a0918ce4c976bb8e9'
+PINNED_CANDIDATE_VERSION = '167e4379-4634-4936-b7ea-c6ce1833e878'
+PINNED_CANDIDATE_SHA256 = 'ad94d4f63c7c4e5ba0f3ac8057f0e04d080ebe70cdc5c384811eaa80aa0d95f2'
+PINNED_STAGING_VERSION = 'e346cfcd-afd0-4cdb-98a3-0b46f9d20737'
+PINNED_STAGING_SHA256 = 'f50d0c627087e0c12829e660e6c375819c3abaf5352abc6af3a7ea697de18f40'
 
 EVIDENCE_IDS = (
     'original_iphone_glimmer_export',
@@ -70,11 +70,11 @@ def load_manifest(raw):
                       'production', 'staging', 'evidence_ids'), 'manifest_shape')
     if type(raw['schema']) is not int or raw['schema'] != 1:
         raise GateInputError('manifest_schema')
-    if raw['release'] != 'brandicade-v9-production-2026-11-06' or raw['source_sha'] != PINNED_SOURCE:
+    if raw['release'] != 'brandicade-v10-production-2026-11-06' or raw['source_sha'] != PINNED_SOURCE:
         raise GateInputError('manifest_release')
     if not isinstance(raw['source_sha'], str) or not re.fullmatch(r'[0-9a-f]{40}', raw['source_sha']):
         raise GateInputError('manifest_source_sha')
-    if raw['ci_url'] != 'https://github.com/devonalanakins/brandicade/actions/runs/42288102952':
+    if raw['ci_url'] != 'https://github.com/devonalanakins/brandicade/actions/runs/42326554686':
         raise GateInputError('manifest_ci_url')
     if raw['evidence_ids'] != list(EVIDENCE_IDS):
         raise GateInputError('manifest_evidence_ids')
