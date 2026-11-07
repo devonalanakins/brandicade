@@ -22,8 +22,8 @@ from prepare_frontend_only_cutover import (
 from save_contract_parity import require_save_contract_parity
 from verify_release_assets import asset_manifest
 
-SOURCE_SW_CACHE = b"const CACHE='brandicade-glimmer-cascade-v9'"
-PREVIEW_SW_CACHE = b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v9'"
+SOURCE_SW_CACHE = b"const CACHE='brandicade-glimmer-cascade-v10'"
+PREVIEW_SW_CACHE = b"const CACHE='brandicade-glimmer-cascade-cloud-bridge-v10'"
 SOURCE_SW_ASSETS = b'const ASSETS=['
 PREVIEW_SW_ASSETS = b"const ASSETS=['/src/cloud-sync.mjs',"
 BRIDGE_ROUTE = '/src/cloud-sync.mjs'
