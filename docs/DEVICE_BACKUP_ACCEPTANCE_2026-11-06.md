@@ -2,7 +2,7 @@
 
 **Purpose:** confirm that Brandi's actual game progress is independently recoverable before changing `brandicade.anevum.com`. This is a **human/device acceptance gate**, not a script to access, upload, import, or overwrite private saved games.
 
-**Observed engineering status (November 6, 2026):** current production still uses the protected November 3 Worker; newer frontend and the read-only file checks are source-only. Existing *export* functions already exist on production. Nothing below is evidence of completion until the user performs and confirms it.
+**Current deployment status (November 6, 2026):** the original protected production Worker remains live and its existing export controls can be used on Brandi's iPhone. The newer read-only backup-check buttons are **live in private staging** at `prism.anevum.com`, but NOT live at `brandicade.anevum.com`. Nothing below is evidence of completion until performed and confirmed by the actual player.
 
 ## On Brandi's actual iPhone (existing production origin)
 
@@ -12,11 +12,11 @@
 4. In the iPhone Files app, check that **both distinct files** are visible, nonzero in size, and remain available after closing/reopening Files. Keep an independent owner-controlled copy encrypted or in private storage. Never send backups, identity tokens, screenshots of personal records, or private recovery keys into a public GitHub issue or source repository.
 5. Leave game data untouched. **Do not test restoration by importing into the original iPhone save.** An isolated disposable device/profile is required to demonstrate actual restore behavior without replacing the only copy.
 
-## When the next frontend is available in private authenticated staging
+## On the currently deployed private v9 staging frontend
 
 The new Settings **Check backup file** control for Glimmer Pop accepts its existing JSON export and verifies **format and lossless compatibility only**. The legacy file has **no signed checksum**: a readable file may still have been edited or be stale. The Prism Garden Settings **Check a backup file without restoring** control validates its embedded SHA-256 integrity digest and replayable puzzle state, and fails on damaged or lossy content. Its digest is **not a signature** and does not prove file authorship. Both checks are file-local and must **never write browser storage**.
 
-Do not interpret these source-only buttons as already deployed. In a later authenticated staging session, choose copies of the saved files with the read-only controls and record only the success/failure, never the save contents. The dedicated Prism preview may have an independent storage origin; do **not** restore production save files to it merely to certify the new controls.
+These controls are available in the currently deployed **private** staging version. In an authenticated staging session, select **copies** of the saved files and record success or failure, never their contents. The dedicated Prism preview may have an independent storage origin; do **not** restore production save files to it merely to certify the new controls.
 
 ## Minimal completion evidence — no private values
 
