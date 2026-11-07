@@ -128,9 +128,14 @@ test('two-game export and isolated restore refuse lossy files (Chromium and WebK
      assert.equal(await page.evaluate(()=>sessionStorage.getItem('synthetic-restore-confirm-count')),'0');
      assert.equal(await page.evaluate(key=>localStorage.getItem(key),PRISM_KEY),beforePrism);
      assert.equal(await page.evaluate(key=>localStorage.getItem(key),GLIMMER_KEY),installedGlimmer);
+     // WebKit can begin reloading before setInputFiles returns.
+     // Observe the actual top-level navigation before inspecting storage.
+     const reloaded=page.waitForEvent('framenavigated',frame=>frame===page.mainFrame());
      await page.locator('#pg-backup-import').setInputFiles({
       name:'prism-valid.json',mimeType:'application/json',buffer:Buffer.from(prismText)
      });
+     await reloaded;
+     await page.waitForLoadState('networkidle');
      await page.waitForFunction(({key,id})=>{
       try{return !!JSON.parse(localStorage.getItem(key)).completed[id];}catch{return false;}
      },{key:PRISM_KEY,id:LEVELS[0].id});
