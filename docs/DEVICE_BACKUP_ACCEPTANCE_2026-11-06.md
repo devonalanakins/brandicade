@@ -12,11 +12,11 @@
 4. In the iPhone Files app, check that **both distinct files** are visible, nonzero in size, and remain available after closing/reopening Files. Keep an independent owner-controlled copy encrypted or in private storage. Never send backups, identity tokens, screenshots of personal records, or private recovery keys into a public GitHub issue or source repository.
 5. Leave game data untouched. **Do not test restoration by importing into the original iPhone save.** An isolated disposable device/profile is required to demonstrate actual restore behavior without replacing the only copy.
 
-## On the currently deployed private v10 staging frontend
+## On the currently deployed private v11 staging frontend
 
 The new Settings **Check backup file** control for Glimmer Pop accepts its existing JSON export and verifies **format and lossless compatibility only**. The legacy file has **no signed checksum**: a readable file may still have been edited or be stale. The Prism Garden Settings **Check a backup file without restoring** control validates its embedded SHA-256 integrity digest and replayable puzzle state, and fails on damaged or lossy content. Its digest is **not a signature** and does not prove file authorship. Both checks are file-local and must **never write browser storage**.
 
-These controls are available in the currently deployed **private v10** staging version. The v10 restore handlers also reject any file that would silently lose unsupported fields before prompting to replace a save. In an authenticated staging session, select **copies** of the saved files and record success or failure, never their contents. The dedicated Prism preview may have an independent storage origin; do **not** restore production save files to it merely to certify the new controls.
+These controls are available in the currently deployed **private v11** staging version. Both restore and export now reject files/records that would silently lose unsupported details. If strict backup generation is impossible, use the raw unverified original download instead; an unverified raw export is **not** a valid restorable backup without further recovery work. In an authenticated staging session, select **copies** of the saved files and record success or failure, never their contents. The dedicated Prism preview may have an independent storage origin; do **not** restore production save files to it merely to certify the new controls.
 
 ## Minimal completion evidence — no private values
 
