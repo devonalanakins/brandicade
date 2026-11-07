@@ -365,7 +365,7 @@ $('#verify-file').addEventListener('change',async event=>{
   toast(`Glimmer Pop backup is readable: ${result.gamesPlayed} games. No saved progress changed.`);
  }catch(err){toast(err?.message||'Backup file could not be checked. Your progress was not changed.');}
 });
-$('#import-file').addEventListener('change',async event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{if(file.size>512000)throw Error('Backup is too large.');importPending=importSave(await file.text());closeModal();openModal('import',$('#settings-open'));}catch(err){importPending=null;toast(err.message||'This backup could not be imported.');}});
+$('#import-file').addEventListener('change',async event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{if(file.size>512000)throw Error('Backup is too large.');const contents=await file.text();checkGlimmerBackup(contents);importPending=importSave(contents);closeModal();openModal('import',$('#settings-open'));}catch(err){importPending=null;toast(err.message||'This backup could not be imported.');}});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeModal();selected=null;setSelection();return;}
  const cell=event.target.closest?.('[data-cell]');if(!cell)return;const idx=Number(cell.dataset.cell),d={ArrowUp:-SIZE,ArrowDown:SIZE,ArrowLeft:-1,ArrowRight:1}[event.key];if(d===undefined)return;const next=idx+d;if(adjacent(idx,next)){event.preventDefault();$(`#pop-board [data-cell="${next}"]`)?.focus();}});
 let gesture=null;
