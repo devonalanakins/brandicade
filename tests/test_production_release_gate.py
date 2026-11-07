@@ -138,5 +138,11 @@ class ProductionGateTests(unittest.TestCase):
             gate.load_manifest(bad)
 
 
+    def test_superseded_v9_candidate_cannot_be_approved_by_v10_gate(self):
+        historical=gate.read_json(ROOT/'docs/receipts/brandicade-v9-production-candidate-2026-11-06.json')
+        with self.assertRaisesRegex(gate.GateInputError,'manifest_release'):
+            gate.load_manifest(historical)
+
+
 if __name__=='__main__':
     unittest.main()
