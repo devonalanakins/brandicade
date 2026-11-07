@@ -9,7 +9,7 @@ test('Settings backup controls export, cancel import and confirm restore without
  const initial=newProgress();
  initial.active=createRun(LEVELS[0],{runId:'ui-backup-sample'});
  const storage=new Map([[KEY,JSON.stringify(initial)],['brandicade:save:v1','leave-intact']]);
- const listeners={};let downloaded=false,loaded=0,consent=false;
+ const listeners={};let downloaded=false,loaded=0,consent=false,confirmations=0;
  const controls={
   '#pg-backup-export':{disabled:false,addEventListener(type,fn){listeners.export=fn;}},
   '#pg-backup-import':{files:[],value:'',addEventListener(type,fn){listeners.import=fn;}},
@@ -24,7 +24,7 @@ test('Settings backup controls export, cancel import and confirm restore without
  const oldURL={create:URL.createObjectURL,revoke:URL.revokeObjectURL};
  globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)};
  globalThis.MutationObserver=class{observe(){}};
- globalThis.window={confirm:()=>consent,location:{reload(){loaded++;}}};
+ globalThis.window={confirm:()=>{confirmations++;return consent;},location:{reload(){loaded++;}}};
  globalThis.document={
   getElementById:s=>s==='prism-app'?host:s==='pg-backup-status'?controls['#pg-backup-status']:null,
   createElement:()=>({...panel,click(){downloaded=true;},remove(){}}),
@@ -62,14 +62,34 @@ test('Settings backup controls export, cancel import and confirm restore without
   assert.equal(storage.get(KEY),originalRaw);
   assert.equal(loaded,0);
   const input=controls['#pg-backup-import'];
+  // Correct checksum, but unknown profile details would be silently stripped
+  // by sanitization. Neither checking nor importing may accept such a file.
+  const losslessFailure=await makeBackup({...replacement,unsupportedCustomField:{keepsake:true}});
+  const rejects=[
+   losslessFailure,
+   corruptText,
+   JSON.stringify({format:'not-prism',version:1}),
+  ];
+  for(const text of rejects){
+   const beforePrompts=confirmations;
+   input.files=[{size:new TextEncoder().encode(text).length,text:async()=>text}];
+   await listeners.import({currentTarget:input});
+   assert.equal(controls['#pg-backup-status'].dataset.kind,'error');
+   assert.equal(confirmations,beforePrompts,'invalid backup cannot trigger a restore prompt');
+   assert.equal(storage.get(KEY),originalRaw,'invalid backup cannot overwrite original Prism progress');
+   assert.equal(loaded,0);
+  }
+  assert.equal(storage.get('brandicade:save:v1'),'leave-intact');
   input.files=[{size:new TextEncoder().encode(payload).length,text:async()=>payload}];
   await listeners.import({currentTarget:input});
   assert.equal(loaded,0);
+  assert.equal(confirmations,1);
   assert.deepEqual(JSON.parse(storage.get(KEY)),initial);
   consent=true;
   input.files=[{size:new TextEncoder().encode(payload).length,text:async()=>payload}];
   await listeners.import({currentTarget:input});
   assert.equal(loaded,1);
+  assert.equal(confirmations,2);
   assert.deepEqual(JSON.parse(storage.get(KEY)),replacement);
   assert.equal(storage.get('brandicade:save:v1'),'leave-intact');
  }finally{
