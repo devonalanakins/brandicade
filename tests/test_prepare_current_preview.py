@@ -23,7 +23,7 @@ class PreviewSourceTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         (self.root / 'src').mkdir()
         self.files = {
-            'index.html': b'<html>New v9 arcade backup verifier</html>',
+            'index.html': b'<html>New v10 arcade backup verifier</html>',
             'src/progression.mjs': b'/* unchanged progression */\nexport const schema=1;\n',
             'src/backup-file-check.mjs': b'export const checkBackup = () => true;\n',
             'src/cloud-sync.mjs': b'/* Brandicade cloud-save bridge first-party */\nexport const safe=true;\n',
@@ -46,9 +46,9 @@ class PreviewSourceTests(unittest.TestCase):
         }
         self.source_worker = self.worker(self.static_assets, b'production')
         self.old_assets = {
-            '/index.html': encode_asset(b'<html>Old v8 arcade</html>', 'text/html; charset=utf-8'),
+            '/index.html': encode_asset(b'<html>Old v9 arcade</html>', 'text/html; charset=utf-8'),
             '/src/progression.mjs': self.static_assets['/src/progression.mjs'],
-            '/sw.js': encode_asset(b"const CACHE='brandicade-glimmer-cascade-v8';\nconst ASSETS=[];\n", 'text/javascript; charset=utf-8'),
+            '/sw.js': encode_asset(b"const CACHE='brandicade-glimmer-cascade-v9';\nconst ASSETS=[];\n", 'text/javascript; charset=utf-8'),
             '/src/cloud-sync.mjs': encode_asset(self.files['src/cloud-sync.mjs'], 'text/javascript; charset=utf-8'),
         }
         self.prod_assets = copy.deepcopy(self.old_assets)
@@ -139,7 +139,7 @@ class PreviewSourceTests(unittest.TestCase):
             self.prepare(production_payload=self.prod+b' ')
 
     def test_stale_source_service_worker_cache_fails_closed(self):
-        (self.root/'sw.js').write_bytes(self.files['sw.js'].replace(b'v9', b'v8'))
+        (self.root/'sw.js').write_bytes(self.files['sw.js'].replace(b'v10', b'v9'))
         entries = copy.deepcopy(self.static_assets)
         entries['/sw.js'] = encode_asset((self.root/'sw.js').read_bytes(), 'text/javascript; charset=utf-8')
         with self.assertRaisesRegex(ReleaseGuardError, 'service worker cache'):
