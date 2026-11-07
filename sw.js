@@ -1,5 +1,5 @@
 /* Brandicade offline shell only: never cache private API responses or Access pages. */
-const CACHE='brandicade-glimmer-cascade-v9';
+const CACHE='brandicade-glimmer-cascade-v10';
 const ASSETS=['/','/index.html','/src/styles.css','/src/arcade-landscape.css','/src/kahlua-arcade.css','/src/app.mjs','/src/backup-file-check.mjs','/src/kahlua-companion.mjs','/src/arcade-controller.mjs','/src/engine.mjs','/src/progression.mjs','/prism-garden.html','/src/prism-garden/content.mjs','/src/prism-garden/engine.mjs','/src/prism-garden/board-guide.mjs','/src/prism-garden/feedback.mjs','/src/prism-garden/achievements.mjs','/src/prism-garden/restoration-scene.mjs','/src/prism-garden/app.mjs','/src/prism-garden/controller.mjs','/src/prism-garden/prism.css','/src/prism-garden/save-guard.mjs','/src/prism-garden/backup.mjs','/src/prism-garden/backup-ui.mjs','/src/prism-garden/backup.css','/src/prism-garden/arcade-summary.mjs','/src/arcade-passport.mjs','/assets/atrium.svg','/assets/kahlua-companion.svg','/assets/mark.svg','/assets/icon.svg','/assets/icon-192.png','/assets/icon-512.png','/assets/icon-1024.png','/manifest.webmanifest'];
 const OWNED_CACHE_PREFIX='brandicade-glimmer-cascade-';
 const STATIC_PATHS=new Set(ASSETS);
