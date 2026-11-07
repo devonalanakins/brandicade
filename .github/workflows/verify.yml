@@ -71,6 +71,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Verify phone landscape and touch layout in Chromium and WebKit
         run: node --test tests/landscape-browser.test.mjs tests/webkit-mobile-browser.test.mjs
+      - name: Rehearse isolated two-game backup restoration in Chromium and WebKit
+        run: node --test tests/isolated-backup-restore-browser.test.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
