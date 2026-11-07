@@ -1,5 +1,5 @@
 import {SIZE,TYPES,LEVEL_NAMES,levelSpec,makeRun,findMove,trySwap,adjacent} from './engine.mjs';
-import {FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
+import {FRAMES,TITLES,ACHIEVEMENTS,newSave,inspectLocalSave,readLosslessLocalSave,persist,restoreConfirmedBackup,sanitizeSave,exportSave,importSave,earnedCount,metric,recordVisit,recordTurn,recordEnd,xpThreshold,levelTitle} from './progression.mjs';
 import {prismArcadeSummary} from './prism-garden/arcade-summary.mjs';
 import {ARCADE_PASSPORT,deriveArcadePassport} from './arcade-passport.mjs';
 import {checkGlimmerBackup} from './backup-file-check.mjs';
@@ -296,7 +296,30 @@ function handleHint(){if(ensureRun().ended)return;const move=findMove(save.curre
  for(const id of [move.from,move.to]){$(`#pop-board [data-cell="${id}"]`)?.classList.add('hinted');}
  setTimeout(()=>$$('#pop-board .hinted').forEach(x=>x.classList.remove('hinted')),2100);$('#game-live').textContent='Try swapping those two glowing charms.';sound();}
 function settingsToggle(key){if(!Object.hasOwn(save.settings,key)||typeof save.settings[key]!=='boolean')return;save.settings[key]=!save.settings[key];commit();applySettings();openModal('settings',lastTrigger);}
-function doExport(){if(saveBlocked){doRecoveryExport();return;}const str=exportSave(save);const file=new Blob([str],{type:'application/json'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=`BRANDICADE-Brandi-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);toast('A portable progress backup was prepared.');}
+function doExport(){
+ if(saveBlocked){doRecoveryExport();return;}
+ let raw;
+ try{raw=globalThis.localStorage.getItem('brandicade:save:v1');}
+ catch{toast('Device storage could not be read. No backup was created.');return;}
+ if(raw===null){toast('No Glimmer Pop save exists on this device yet. No backup was created.');return;}
+ let str;
+ try{
+  // Export the exact persisted snapshot, not a possibly stale in-memory copy.
+  const persisted=readLosslessLocalSave(raw);
+  str=exportSave(persisted);
+  checkGlimmerBackup(str);
+ }catch{
+  doRecoveryExport();
+  toast('Progress has unsupported details. An unverified original was downloaded; keep it safe.');
+  return;
+ }
+ const file=new Blob([str],{type:'application/json'}),url=URL.createObjectURL(file);
+ const link=document.createElement('a');
+ link.href=url;link.download=`BRANDICADE-Brandi-backup-${new Date().toISOString().slice(0,10)}.json`;
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),2500);
+ toast('Portable progress backup downloaded from this device.');
+}
 
 function doRecoveryExport(){
  let original;
