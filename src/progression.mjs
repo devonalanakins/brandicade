@@ -73,13 +73,20 @@ export function sanitizeSave(input){
  return out;
 }
 /** Never interpret corrupt, unsupported or unreadable local saves as an empty slot. */
+/** Guard against a valid v1 record silently losing fields during normalization. */
+export function readLosslessLocalSave(raw){
+ if(typeof raw!=='string'||raw.length>524288)throw Error('Invalid stored data');
+ const original=JSON.parse(raw),restored=sanitizeSave(original);
+ if(JSON.stringify(original)!==JSON.stringify(restored))
+  throw Error('Saved progress contains details this version cannot preserve.');
+ return restored;
+}
 export function inspectLocalSave(storage=null){
  try{
   storage??=globalThis.localStorage;
   const raw=storage.getItem(SAVE_KEY);
   if(raw===null)return {save:newSave(),status:'empty'};
-  if(typeof raw!=='string'||raw.length>524288)throw Error('Invalid stored data');
-  return {save:sanitizeSave(JSON.parse(raw)),status:'valid'};
+  return {save:readLosslessLocalSave(raw),status:'valid'};
  }catch{return {save:newSave(),status:'unreadable'};}
 }
 export function loadSave(storage=null){return inspectLocalSave(storage).save;}
@@ -89,8 +96,7 @@ export function persist(save,storage=null){
   storage??=globalThis.localStorage;
   const existing=storage.getItem(SAVE_KEY);
   if(existing!==null){
-   if(typeof existing!=='string'||existing.length>524288)return false;
-   sanitizeSave(JSON.parse(existing)); // fail closed before touching original
+   readLosslessLocalSave(existing); // reject unknown or silently normalized original fields
   }
   save.updatedAt=nowISO();
   storage.setItem(SAVE_KEY,JSON.stringify(save));
